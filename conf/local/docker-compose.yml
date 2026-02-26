@@ -1,0 +1,31 @@
+# docker-compose: local dev configuration
+# DO NOT RUN THIS DIRECTLY! Use the Justfile: `just up`
+# This will handle environment setup for you
+
+services:
+  caddy:
+    image: "caddy:2.11-alpine"
+    restart: no
+    volumes:
+      - ${ROOT}/conf/local/caddy:/etc/caddy:ro # Caddyfile
+      - ${ROOT}/front:/usr/share/caddy:ro # Web content
+      - capstone-caddy-data:/data # Caddy managed data
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+
+  # TODO: develop and insert the backend here
+
+  postgres:
+    image: "postgres:18.2-alpine"
+    restart: no
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: reallygoodpassword
+    volumes:
+      - capstone-postgres-data:/var/lib/postgres/18/docker # PostGres DB data
+
+volumes:
+  capstone-caddy-data:
+  capstone-postgres-data:

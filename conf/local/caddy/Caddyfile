@@ -1,0 +1,8 @@
+localhost {
+    encode gzip
+    handle {
+        root * /usr/share/caddy
+        try_files {path} {path}/index.html =404
+        file_server
+    }
+}
