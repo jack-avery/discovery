@@ -1,10 +1,31 @@
 # Capstone Project
 
-TODO: replace instances of "Capstone" with the actual project name
+TODO: replace instances of "Capstone" with the actual project name: "discovery" maybe?
 
 TODO: figure out PostGres volume??
 
 ## Usage
+
+### Setting up your environment
+
+This project uses the following tools:
+- [Docker](https://www.docker.com) w/ docker-compose-v2
+- [Just](https://github.com/casey/just)
+
+... and will probably eventually be using [Ansible](https://github.com/ansible/ansible) for deployment
+
+If you're on Windows, you will first need to install **WSL** as Ansible requires Linux. You can follow Microsoft's installation instructions [here](https://learn.microsoft.com/en-us/windows/wsl/install). The default distribution of **Ubuntu** is probably fine, and these installation instructions will be geared towards it. Users of other distributions: it is expected you know what you are doing.
+
+To install these requirements on Ubuntu:
+- Open a Terminal window.
+- Update local cache: `sudo apt-get update`
+- Download dependencies: `sudo apt-get install -y docker.io docker-compose-v2 ansible just`
+
+Your environment should now be ready to go.
+
+> Ansible doesn't trust WSL mounted `ansible.cfg` files; this is because of the default permission masks that WSL applies. If you plan to run deployments you will probably need to [configure WSL's automount permissions](https://learn.microsoft.com/en-us/windows/wsl/wsl-config).
+
+### Running
 
 The project provides a **Justfile** for easy administration.
 
@@ -13,4 +34,4 @@ The project provides a **Justfile** for easy administration.
 
 The application, when ran using the default environment (`local`), should be available at http://localhost:80.
 
-Pulled new database schema changes
+Pulled database schema changes can be applied by running `just initdb` again.
