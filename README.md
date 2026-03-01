@@ -22,6 +22,7 @@ To install these requirements on Ubuntu:
 - Open a Terminal window.
 - Update local cache: `sudo apt-get update`
 - Download dependencies: `sudo apt-get install -y docker.io docker-compose-v2 ansible just`
+
 Users of other distributions: it is expected you know what you are doing.
 
 Your environment should now be ready to go.
