@@ -1,9 +1,5 @@
 # Capstone Project
 
-TODO: replace instances of "Capstone" with the actual project name: "discovery" maybe?
-
-TODO: figure out PostGres volume??
-
 ## Usage
 
 ### Setting up your environment

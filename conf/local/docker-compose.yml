@@ -3,7 +3,7 @@
 # This will handle environment setup for you
 
 services:
-  caddy:
+  front:
     image: "caddy:2.11-alpine"
     restart: no
     volumes:
@@ -17,15 +17,15 @@ services:
 
   # TODO: develop and insert the backend here
 
-  postgres:
-    image: "postgres:18.2-alpine"
+  db:
+    image: "mysql:8.0-debian"
+    command: --sql-mode="TRADITIONAL"
     restart: no
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: reallygoodpassword
+      - "MYSQL_ALLOW_EMPTY_PASSWORD=1"
     volumes:
-      - capstone-postgres-data:/var/lib/postgres/18/docker # PostGres DB data
+      - capstone-mysql-data:/var/lib/mysql # MySQL DB data
 
 volumes:
   capstone-caddy-data:
-  capstone-postgres-data:
+  capstone-mysql-data:
