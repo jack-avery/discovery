@@ -7,8 +7,8 @@ initdb ENV=default_env:
     $COMPOSE create db
     $COMPOSE start db
     $COMPOSE cp ./db/schema.sql db:/schema.sql
-    echo "Waiting 5 seconds for PG to start..."
-    sleep 5
+    echo "Waiting 10 seconds for MySQL to start..."
+    sleep 10
     $COMPOSE exec db /bin/sh -c 'mysql < schema.sql'
     $COMPOSE exec db rm schema.sql
     just down {{ENV}}
