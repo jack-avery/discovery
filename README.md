@@ -35,3 +35,11 @@ The project provides a **Justfile** for easy administration.
 The application, when ran using the default environment (`local`), should be available at http://localhost:80.
 
 Pulled database schema changes can be applied by running `just initdb` again.
+
+## Development
+
+There are a few different general good-practice things to follow to make development easy:
+
+1. **Do not perform your development on the `main` branch.** This prevents merge conflicts when multiple people attempt to push different histories.
+2. **Not mandatory, but following [Semantic Commit Messages](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716) can make things easier to track**
+3. **Commit more**. Smaller commits make it easier to `git bisect` exactly *which change* introduced an issue.
