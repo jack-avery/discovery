@@ -41,5 +41,5 @@ Pulled database schema changes can be applied by running `just initdb` again.
 There are a few different general good-practice things to follow to make development easy:
 
 1. **Do not perform your development on the `main` branch.** This prevents merge conflicts when multiple people attempt to push different histories.
-2. **Not mandatory, but following [Semantic Commit Messages](https://gist.github.com/joshbuchea/6f47e86d2510bce28f8e7f42ae84c716) can make things easier to track**
-3. **Commit more**. Smaller commits make it easier to `git bisect` exactly *which change* introduced an issue.
+2. **Commit more**. Smaller commits make it easier to `git bisect` exactly *which change* introduced an issue.
+3. **Not mandatory, but following [Conventional Commit Messages](https://www.conventionalcommits.org/en/v1.0.0/) can make things easier to track**
