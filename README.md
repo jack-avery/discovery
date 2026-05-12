@@ -36,6 +36,8 @@ The application, when ran using the default environment (`local`), should be ava
 
 Pulled database schema changes can be applied by running `just initdb` again.
 
+> This Justfile is purely for local development; Ansible will handle remote deployment.
+
 ## Development
 
 There are a few different general good-practice things to follow to make development easy:
