@@ -4,6 +4,7 @@ initdb ENV=default_env:
     #!/usr/bin/env bash
     just down {{ENV}}
     COMPOSE="docker compose -f ./conf/{{ENV}}/docker-compose.yml"
+    docker rm {{ENV}}_discovery-mysql-data
     $COMPOSE create db
     $COMPOSE start db
     $COMPOSE cp ./db/schema.sql db:/schema.sql

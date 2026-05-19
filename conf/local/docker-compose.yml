@@ -9,7 +9,7 @@ services:
     volumes:
       - ${ROOT}/conf/local/caddy:/etc/caddy:ro # Caddyfile
       - ${ROOT}/front:/usr/share/caddy:ro # Web content
-      - capstone-caddy-data:/data # Caddy managed data
+      - discovery-caddy-data:/data # Caddy managed data
     ports:
       - 80:80
       - 443:443
@@ -24,8 +24,8 @@ services:
     environment:
       - "MYSQL_ALLOW_EMPTY_PASSWORD=1"
     volumes:
-      - capstone-mysql-data:/var/lib/mysql # MySQL DB data
+      - discovery-mysql-data:/var/lib/mysql # MySQL DB data
 
 volumes:
-  capstone-caddy-data:
-  capstone-mysql-data:
+  discovery-caddy-data:
+  discovery-mysql-data:
