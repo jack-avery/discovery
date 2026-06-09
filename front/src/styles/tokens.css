@@ -1,0 +1,77 @@
+/*
+ * RRCRC Design System Tokens
+ * Rideau-Rockcliffe Community Resource Centre
+ *
+ * Typography: Urbanist (headings), Lato (body)
+ * Palette: cream background, navy primary, teal interactions, orange pending
+ */
+
+:root {
+  /* Navy primary system */
+  --ds-primary: #1b365d;
+  --ds-primary-hover: #152a4a;
+  --ds-primary-muted: #1b365d14;
+  --ds-primary-foreground: #ffffff;
+
+  /* Teal interaction states */
+  --ds-interactive: #0b7a75;
+  --ds-interactive-hover: #096560;
+  --ds-interactive-muted: #0b7a751a;
+  --ds-interactive-foreground: #ffffff;
+
+  /* Orange pending moderation */
+  --ds-pending: #d97706;
+  --ds-pending-hover: #b45309;
+  --ds-pending-muted: #d977061a;
+  --ds-pending-foreground: #ffffff;
+
+  /* Cream / off-white application background */
+  --ds-background: #faf7f2;
+  --ds-foreground: #1b365d;
+
+  /* Surfaces */
+  --ds-surface: #ffffff;
+  --ds-surface-raised: #f5f1ea;
+  --ds-surface-overlay: #1b365d66;
+
+  /* Borders & muted */
+  --ds-border: #e5dfd4;
+  --ds-border-subtle: #efe9df;
+  --ds-muted: #f0ebe3;
+  --ds-muted-foreground: #5c6b7a;
+
+  /* Semantic status */
+  --ds-success: #15803d;
+  --ds-success-foreground: #ffffff;
+  --ds-warning: #d97706;
+  --ds-warning-foreground: #ffffff;
+  --ds-danger: #b91c1c;
+  --ds-danger-foreground: #ffffff;
+
+  /* Typography */
+  --ds-font-heading: "Urbanist", ui-sans-serif, system-ui, sans-serif;
+  --ds-font-body: "Lato", ui-sans-serif, system-ui, sans-serif;
+
+  /* Border radius */
+  --ds-radius-sm: 0.375rem;
+  --ds-radius-md: 0.5rem;
+  --ds-radius-lg: 0.75rem;
+  --ds-radius-xl: 1rem;
+  --ds-radius-full: 9999px;
+
+  /* Shadows */
+  --ds-shadow-sm: 0 1px 2px 0 rgb(27 54 93 / 0.06);
+  --ds-shadow-md: 0 4px 12px -2px rgb(27 54 93 / 0.1);
+  --ds-shadow-lg: 0 12px 32px -4px rgb(27 54 93 / 0.14);
+  --ds-shadow-glow: 0 0 0 3px rgb(11 122 117 / 0.25);
+
+  /* Spacing */
+  --ds-space-page: 1.5rem;
+  --ds-space-section: 1.5rem;
+  --ds-space-card: 1.25rem;
+  --ds-space-inline: 1rem;
+
+  /* Accessibility */
+  --ds-focus-ring: 0 0 0 2px var(--ds-background), 0 0 0 4px var(--ds-interactive);
+  --ds-min-touch: 44px;
+}

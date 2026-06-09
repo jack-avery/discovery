@@ -1,0 +1,5 @@
+export { DiscoverPage } from './DiscoverPage'
+export { MapPage } from './MapPage'
+export { NotFoundPage } from './NotFoundPage'
+export { ResourcesPage } from './ResourcesPage'
+export { SubmissionsPage } from './SubmissionsPage'
