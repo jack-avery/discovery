@@ -1,5 +1,8 @@
 export { DiscoverPage } from './DiscoverPage'
 export { MapPage } from './MapPage'
 export { NotFoundPage } from './NotFoundPage'
+export { RequestResourceUpdatePage } from './RequestResourceUpdatePage'
 export { ResourcesPage } from './ResourcesPage'
+export { StaffSignInPage } from './StaffSignInPage'
+export { SubmitResourcePage } from './SubmitResourcePage'
 export { SubmissionsPage } from './SubmissionsPage'

@@ -9,7 +9,7 @@ export function getResourceEmptyReason(
 
   if (filters.search?.trim()) return 'search'
 
-  if (filters.categorySlug) return 'filter'
+  if (filters.categorySlugs && filters.categorySlugs.length > 0) return 'filter'
   if (filters.tagSlugs && filters.tagSlugs.length > 0) return 'filter'
 
   return 'none'

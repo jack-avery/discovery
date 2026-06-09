@@ -2,7 +2,9 @@ import { useState } from 'react'
 import type { Resource } from '@/types'
 
 export interface ResourceFilters {
-  categorySlug?: string
+  /** Empty or omitted = all categories */
+  categorySlugs?: string[]
+  /** Empty or omitted = all tags */
   tagSlugs?: string[]
   search?: string
 }

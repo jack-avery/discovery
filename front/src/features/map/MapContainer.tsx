@@ -14,8 +14,12 @@ interface MapContainerProps {
  * Leaflet-ready map mount point.
  *
  * The `#resource-map` div must remain empty for Leaflet initialization.
- * Overlays (disconnected state, detail panel) render as sibling elements
- * in MapStage, not inside the mount div.
+ * Overlays (disconnected state, filter bar, detail panel) render as sibling
+ * elements in MapStage, not inside the mount div.
+ *
+ * Reserved control zones for Leaflet:
+ * - Top-left: zoom controls (FilterBar offsets with md:left-14)
+ * - Bottom-right: attribution
  */
 export function MapContainer({
   className,

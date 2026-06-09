@@ -1,3 +1,5 @@
-export { FilterBar } from './FilterBar'
+export { FilterBar, type FilterBarProps } from './FilterBar'
+export { FloatingControlBubble } from './FloatingControlBubble'
+export { RESOURCE_DETAIL_PANEL_WIDTH } from './constants'
 export { MapStage } from './MapStage'
 export { ResourceDetailPanel } from './ResourceDetailPanel'

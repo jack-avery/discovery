@@ -13,21 +13,21 @@ export function PageShell({ title, description, children }: PageShellProps) {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto scrollbar-thin">
-      <header className="flex shrink-0 items-start gap-3 border-b border-border bg-surface px-4 py-4 sm:px-6">
-        <div className="lg:hidden">
+      <header className="app-header flex shrink-0 items-center gap-3 border-b border-border bg-surface px-4 sm:px-5">
+        <div className="shrink-0 lg:hidden">
           <SidebarToggle onClick={openSidebar} />
         </div>
-        <div>
-          <h1 className="font-heading text-2xl font-bold tracking-tight text-foreground">
-            {title}
-          </h1>
-          {description && (
-            <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-          )}
-        </div>
+        <h1 className="min-w-0 flex-1 truncate font-heading text-base font-semibold text-foreground">
+          {title}
+        </h1>
       </header>
 
-      <div className="page-container flex-1 space-y-section">{children}</div>
+      <div className="page-container flex-1 space-y-section">
+        {description && (
+          <p className="text-sm text-muted-foreground">{description}</p>
+        )}
+        {children}
+      </div>
     </div>
   )
 }

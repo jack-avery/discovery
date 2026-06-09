@@ -32,6 +32,11 @@
     gap: var(--spacing-section);
   }
 
+  .app-header {
+    height: var(--ds-header-height);
+    min-height: var(--ds-header-height);
+  }
+
   .focus-ring:focus-visible {
     box-shadow: var(--ds-focus-ring);
   }

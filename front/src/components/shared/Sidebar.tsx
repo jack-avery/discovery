@@ -1,11 +1,12 @@
-import { FileText, MapPin, Menu, X } from 'lucide-react'
-import { NavLink } from 'react-router-dom'
+import { LogIn, MapPin, Menu, PlusCircle, RefreshCw, X } from 'lucide-react'
+import { Link, NavLink } from 'react-router-dom'
 import { Button } from '@/components/ui'
 import { cn } from '@/utils/cn'
 
-const navItems = [
+const publicNavItems = [
   { to: '/', label: 'Discover', icon: MapPin, end: true },
-  { to: '/submissions', label: 'Submissions', icon: FileText },
+  { to: '/submit', label: 'Submit Resource', icon: PlusCircle },
+  { to: '/request-update', label: 'Request Resource Update', icon: RefreshCw },
 ]
 
 interface SidebarProps {
@@ -31,7 +32,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         )}
         aria-label="Main navigation"
       >
-        <div className="flex h-16 items-center justify-between border-b border-border px-5">
+        <div className="app-header flex items-center justify-between border-b border-border px-5">
           <div className="flex items-center gap-2.5">
             <div
               className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary"
@@ -40,8 +41,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <span className="font-heading text-xs font-bold text-primary-foreground">RC</span>
             </div>
             <div>
-              <p className="font-heading text-sm font-semibold text-foreground">RRCRC</p>
-              <p className="text-xs text-muted-foreground">Resource Discovery</p>
+              <p className="font-heading text-sm font-semibold leading-tight text-foreground">
+                RRCRC
+              </p>
+              <p className="text-xs leading-tight text-muted-foreground">Resource Discovery</p>
             </div>
           </div>
           <Button
@@ -55,8 +58,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           </Button>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto p-4 scrollbar-thin">
-          {navItems.map(({ to, label, icon: Icon, end }) => (
+        <nav className="flex-1 space-y-1 overflow-y-auto p-3 scrollbar-thin">
+          {publicNavItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -76,6 +79,17 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             </NavLink>
           ))}
         </nav>
+
+        <div className="border-t border-border p-4">
+          <Link
+            to="/sign-in"
+            onClick={onClose}
+            className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-ring"
+          >
+            <LogIn className="h-3.5 w-3.5" aria-hidden="true" />
+            Staff Sign In
+          </Link>
+        </div>
       </aside>
     </>
   )

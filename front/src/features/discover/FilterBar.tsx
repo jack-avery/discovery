@@ -1,14 +1,20 @@
-import type { ReactNode } from 'react'
+import { SlidersHorizontal } from 'lucide-react'
+import { useSelection } from '@/app/providers/SelectionProvider'
 import type { Category, Tag } from '@/types'
 import { SidebarToggle } from '@/components/shared/Sidebar'
 import { SearchBar } from '@/components/shared'
-import { CategoryFilter, type CategoryFilterValue, TagFilter } from '@/features/filters'
+import { CategoryDropdown, TagsDropdown } from '@/features/filters'
+import { Button } from '@/components/ui'
+import { useMediaQuery } from '@/hooks'
+import { RESOURCE_DETAIL_PANEL_WIDTH } from '@/features/discover/constants'
+import { FloatingControlBubble } from '@/features/discover/FloatingControlBubble'
+import { cn } from '@/utils/cn'
 
-interface FilterBarProps {
+export interface FilterBarProps {
   search: string
   onSearchChange: (value: string) => void
-  category: CategoryFilterValue
-  onCategoryChange: (value: CategoryFilterValue) => void
+  selectedCategories: string[]
+  onCategoriesChange: (slugs: string[]) => void
   selectedTags: string[]
   onTagsChange: (tags: string[]) => void
   categories: Category[]
@@ -18,15 +24,13 @@ interface FilterBarProps {
   tagsLoading?: boolean
   tagsError?: string | null
   onSidebarOpen?: () => void
-  /** Slot for future filters (accessibility, hours, distance, etc.) */
-  futureFilters?: ReactNode
 }
 
 export function FilterBar({
   search,
   onSearchChange,
-  category,
-  onCategoryChange,
+  selectedCategories,
+  onCategoriesChange,
   selectedTags,
   onTagsChange,
   categories,
@@ -36,41 +40,83 @@ export function FilterBar({
   tagsLoading,
   tagsError,
   onSidebarOpen,
-  futureFilters,
 }: FilterBarProps) {
+  const { selectedResourceId } = useSelection()
+  const isMobile = useMediaQuery('(max-width: 767px)')
+  const isPanelOpen = selectedResourceId !== null
+  const recenterForPanel = isPanelOpen && !isMobile
+
   return (
-    <div className="shrink-0 border-b border-border bg-surface px-4 py-3 sm:px-6">
-      <div className="flex items-start gap-3">
+    <div
+      role="toolbar"
+      aria-label="Map filters"
+      className={cn(
+        'pointer-events-none absolute top-3 z-[5] flex justify-center sm:top-4',
+        'transition-[right] duration-300 ease-out',
+        'left-3 sm:left-4 md:left-14 lg:left-16',
+        !recenterForPanel && 'right-3 sm:right-4',
+      )}
+      style={recenterForPanel ? { right: RESOURCE_DETAIL_PANEL_WIDTH } : undefined}
+    >
+      <div className="flex max-w-full flex-wrap items-center justify-center gap-1.5 md:flex-nowrap">
         {onSidebarOpen && (
-          <div className="pt-1 lg:hidden">
+          <FloatingControlBubble className="w-9 shrink-0 justify-center px-0 lg:hidden">
             <SidebarToggle onClick={onSidebarOpen} />
-          </div>
+          </FloatingControlBubble>
         )}
 
-        <div className="min-w-0 flex-1 space-y-3">
-          <SearchBar
-            value={search}
-            onChange={onSearchChange}
-            placeholder="Search resources by name, category, or location…"
-          />
+        <div
+          className={cn(
+            'grid w-full max-w-full gap-1.5',
+            'grid-cols-1 sm:grid-cols-2',
+            'md:w-[min(100%,42rem)] md:grid-cols-[2.6fr_1fr_1fr_0.85fr] md:flex-none',
+          )}
+        >
+          <FloatingControlBubble className="min-w-0 sm:col-span-2 md:col-span-1">
+            <SearchBar
+              value={search}
+              onChange={onSearchChange}
+              placeholder="Search resources…"
+              floating
+            />
+          </FloatingControlBubble>
 
-          <CategoryFilter
-            categories={categories}
-            isLoading={categoriesLoading}
-            error={categoriesError}
-            active={category}
-            onChange={onCategoryChange}
-          />
+          <FloatingControlBubble className="min-w-0">
+            <CategoryDropdown
+              categories={categories}
+              value={selectedCategories}
+              onChange={onCategoriesChange}
+              isLoading={categoriesLoading}
+              error={categoriesError}
+              floating
+            />
+          </FloatingControlBubble>
 
-          <TagFilter
-            tags={tags}
-            isLoading={tagsLoading}
-            error={tagsError}
-            active={selectedTags}
-            onChange={onTagsChange}
-          />
+          <FloatingControlBubble className="min-w-0">
+            <TagsDropdown
+              tags={tags}
+              value={selectedTags}
+              onChange={onTagsChange}
+              isLoading={tagsLoading}
+              error={tagsError}
+              floating
+            />
+          </FloatingControlBubble>
 
-          {futureFilters}
+          <FloatingControlBubble className="min-w-0">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-full min-h-0 w-full shrink-0 gap-1.5 rounded-none px-2.5 text-sm hover:bg-muted/60"
+              disabled
+              aria-label="Additional filters — coming soon"
+              title="Additional filters coming soon"
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span className="hidden sm:inline">Filters</span>
+            </Button>
+          </FloatingControlBubble>
         </div>
       </div>
     </div>
