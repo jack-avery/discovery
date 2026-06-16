@@ -2,7 +2,7 @@
 
 ## Usage
 
-### Setting up your environment
+### Dependencies
 
 This project uses the following tools:
 - [Docker](https://www.docker.com) w/ docker-compose-v2
@@ -30,6 +30,10 @@ The ideal end-goal of this project is such so that users can simply:
 3. Run the application with `docker compose up -d`
 
 ## Development
+
+### Running
+
+First, install the dependencies. See the **Dependencies** section.
 
 The project provides a **Justfile** for easy administration.
 

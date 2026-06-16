@@ -1,0 +1,27 @@
+services:
+  front:
+    image: "caddy:2.11-alpine"
+    restart: no
+    volumes:
+      - ./conf/caddy:/etc/caddy:ro # Caddyfile
+      - ./front/dist:/usr/share/caddy:ro # Web content
+      - caddy-data:/data # Caddy managed data
+    ports:
+      - 80:80
+      - 443:443
+      - 443:443/udp
+
+  # TODO: develop and insert the backend here
+
+  db:
+    image: "mysql:8.0-debian"
+    command: --sql-mode="TRADITIONAL"
+    restart: no
+    environment:
+      - "MYSQL_ALLOW_EMPTY_PASSWORD=1"
+    volumes:
+      - mysql-data:/var/lib/mysql # MySQL DB data
+
+volumes:
+  caddy-data:
+  mysql-data:
