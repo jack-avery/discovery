@@ -15,6 +15,10 @@ initdb ENV=default_env:
     just down {{ENV}}
     echo "Database created and ready to use"
 
+front:
+    #!/usr/bin/env bash
+    cd front && docker run -it --rm -u1000 -v.:/app node:24-alpine sh -c "cd /app && npm i && npm run build"
+
 up ENV=default_env:
     #!/usr/bin/env bash
     docker compose -f ./conf/{{ENV}}/docker-compose.yml up -d
