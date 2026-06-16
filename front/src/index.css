@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import "./styles/tokens.css";
+
+@theme inline {
+  --color-primary: var(--ds-primary);
+  --color-primary-hover: var(--ds-primary-hover);
+  --color-primary-muted: var(--ds-primary-muted);
+  --color-primary-foreground: var(--ds-primary-foreground);
+
+  --color-interactive: var(--ds-interactive);
+  --color-interactive-hover: var(--ds-interactive-hover);
+  --color-interactive-muted: var(--ds-interactive-muted);
+  --color-interactive-foreground: var(--ds-interactive-foreground);
+
+  --color-pending: var(--ds-pending);
+  --color-pending-hover: var(--ds-pending-hover);
+  --color-pending-muted: var(--ds-pending-muted);
+  --color-pending-foreground: var(--ds-pending-foreground);
+
+  --color-background: var(--ds-background);
+  --color-foreground: var(--ds-foreground);
+
+  --color-surface: var(--ds-surface);
+  --color-surface-raised: var(--ds-surface-raised);
+  --color-surface-overlay: var(--ds-surface-overlay);
+
+  --color-border: var(--ds-border);
+  --color-border-subtle: var(--ds-border-subtle);
+
+  --color-muted: var(--ds-muted);
+  --color-muted-foreground: var(--ds-muted-foreground);
+
+  --color-success: var(--ds-success);
+  --color-success-foreground: var(--ds-success-foreground);
+  --color-warning: var(--ds-warning);
+  --color-warning-foreground: var(--ds-warning-foreground);
+  --color-danger: var(--ds-danger);
+  --color-danger-foreground: var(--ds-danger-foreground);
+
+  --font-heading: var(--ds-font-heading);
+  --font-body: var(--ds-font-body);
+  --font-sans: var(--ds-font-body);
+
+  --radius-sm: var(--ds-radius-sm);
+  --radius-md: var(--ds-radius-md);
+  --radius-lg: var(--ds-radius-lg);
+  --radius-xl: var(--ds-radius-xl);
+  --radius-full: var(--ds-radius-full);
+
+  --shadow-sm: var(--ds-shadow-sm);
+  --shadow-md: var(--ds-shadow-md);
+  --shadow-lg: var(--ds-shadow-lg);
+  --shadow-glow: var(--ds-shadow-glow);
+
+  --spacing-page: var(--ds-space-page);
+  --spacing-section: var(--ds-space-section);
+  --spacing-card: var(--ds-space-card);
+  --spacing-inline: var(--ds-space-inline);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}

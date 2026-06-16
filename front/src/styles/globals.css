@@ -1,0 +1,59 @@
+@layer base {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-heading);
+    color: var(--color-foreground);
+  }
+
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--ds-focus-ring);
+  }
+}
+
+@layer utilities {
+  .font-heading {
+    font-family: var(--font-heading);
+  }
+
+  .font-body {
+    font-family: var(--font-body);
+  }
+
+  .page-container {
+    padding: var(--spacing-page);
+  }
+
+  .section-gap {
+    gap: var(--spacing-section);
+  }
+
+  .app-header {
+    height: var(--ds-header-height);
+    min-height: var(--ds-header-height);
+  }
+
+  .focus-ring:focus-visible {
+    box-shadow: var(--ds-focus-ring);
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--color-muted-foreground) 40%, transparent)
+      transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: color-mix(in srgb, var(--color-muted-foreground) 40%, transparent);
+    border-radius: var(--radius-full);
+  }
+}
