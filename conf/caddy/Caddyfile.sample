@@ -1,5 +1,6 @@
 example.com {
     encode gzip
+    tls internal # remove this for proper TLS
     handle {
         root * /usr/share/caddy
         try_files {path} {path}/index.html =404
