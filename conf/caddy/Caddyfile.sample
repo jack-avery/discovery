@@ -1,4 +1,4 @@
-localhost {
+example.com {
     encode gzip
     handle {
         root * /usr/share/caddy
