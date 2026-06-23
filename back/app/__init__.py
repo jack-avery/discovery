@@ -12,6 +12,7 @@ def create_app(config_name: str = "development") -> Flask:
     config_name: key into config_map -> map to either the'development', 'testing', 'production'.
     """
     app = Flask(__name__)
+    app.url_map.strict_slashes = False
 
     # 1. Load config
     app.config.from_object(config_map[config_name])
@@ -45,5 +46,8 @@ def create_app(config_name: str = "development") -> Flask:
     app.register_blueprint(auth_bp)
     from app.routes.resources import resources_bp
     app.register_blueprint(resources_bp)
+    from app.routes.categories import categories_bp, tags_bp
+    app.register_blueprint(categories_bp)
+    app.register_blueprint(tags_bp)
 
     return app
