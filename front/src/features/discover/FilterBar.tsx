@@ -6,7 +6,7 @@ import { SearchBar } from '@/components/shared'
 import { CategoryDropdown, TagsDropdown } from '@/features/filters'
 import { Button } from '@/components/ui'
 import { useMediaQuery } from '@/hooks'
-import { RESOURCE_DETAIL_PANEL_WIDTH } from '@/features/discover/constants'
+import { RESOURCE_DETAIL_PANEL_WIDTH, FLOATING_FILTER_BAR_Z_CLASS } from '@/features/discover/constants'
 import { FloatingControlBubble } from '@/features/discover/FloatingControlBubble'
 import { cn } from '@/utils/cn'
 
@@ -51,7 +51,7 @@ export function FilterBar({
       role="toolbar"
       aria-label="Map filters"
       className={cn(
-        'pointer-events-none absolute top-3 z-[5] flex justify-center sm:top-4',
+        `pointer-events-none absolute top-3 ${FLOATING_FILTER_BAR_Z_CLASS} flex justify-center sm:top-4`,
         'transition-[right] duration-300 ease-out',
         'left-3 sm:left-4 md:left-14 lg:left-16',
         !recenterForPanel && 'right-3 sm:right-4',
@@ -81,7 +81,7 @@ export function FilterBar({
             />
           </FloatingControlBubble>
 
-          <FloatingControlBubble className="min-w-0">
+          <div className="pointer-events-auto min-w-0">
             <CategoryDropdown
               categories={categories}
               value={selectedCategories}
@@ -90,9 +90,9 @@ export function FilterBar({
               error={categoriesError}
               floating
             />
-          </FloatingControlBubble>
+          </div>
 
-          <FloatingControlBubble className="min-w-0">
+          <div className="pointer-events-auto min-w-0">
             <TagsDropdown
               tags={tags}
               value={selectedTags}
@@ -101,7 +101,7 @@ export function FilterBar({
               error={tagsError}
               floating
             />
-          </FloatingControlBubble>
+          </div>
 
           <FloatingControlBubble className="min-w-0">
             <Button

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useSearch } from '@/app/providers'
 import { SelectionProvider } from '@/app/providers/SelectionProvider'
 import { DiscoverLayout } from '@/app/layouts'
-import { useCategories, useTags } from '@/hooks'
+import { useCategories, useResourceMap, useTags } from '@/hooks'
 
 export function DiscoverPage() {
   return (
@@ -19,21 +19,27 @@ function DiscoverPageContent() {
 
   const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
+  const { items: mapItems, isLoading: mapLoading, error: mapError } = useResourceMap()
 
   return (
-    <DiscoverLayout
-      search={query}
-      onSearchChange={setQuery}
-      selectedCategories={selectedCategories}
-      onCategoriesChange={setSelectedCategories}
-      selectedTags={selectedTags}
-      onTagsChange={setSelectedTags}
-      categories={categories}
-      tags={tags}
-      categoriesLoading={categoriesLoading}
-      categoriesError={categoriesError}
-      tagsLoading={tagsLoading}
-      tagsError={tagsError}
-    />
+    <div className="h-full min-h-0">
+      <DiscoverLayout
+        search={query}
+        onSearchChange={setQuery}
+        selectedCategories={selectedCategories}
+        onCategoriesChange={setSelectedCategories}
+        selectedTags={selectedTags}
+        onTagsChange={setSelectedTags}
+        categories={categories}
+        tags={tags}
+        categoriesLoading={categoriesLoading}
+        categoriesError={categoriesError}
+        tagsLoading={tagsLoading}
+        tagsError={tagsError}
+        mapItems={mapItems}
+        mapLoading={mapLoading}
+        mapError={mapError}
+      />
+    </div>
   )
 }

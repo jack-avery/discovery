@@ -1,7 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import 'leaflet/dist/leaflet.css'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import '@/index.css'
 import '@/styles/globals.css'
+import '@/styles/leaflet-overrides.css'
 import App from '@/App'
 
 createRoot(document.getElementById('root')!).render(
