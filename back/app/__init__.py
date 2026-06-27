@@ -49,5 +49,7 @@ def create_app(config_name: str = "development") -> Flask:
     from app.routes.categories import categories_bp, tags_bp
     app.register_blueprint(categories_bp)
     app.register_blueprint(tags_bp)
+    from app.routes.submissions import submissions_bp
+    app.register_blueprint(submissions_bp)
 
     return app
