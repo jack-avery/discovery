@@ -10,22 +10,14 @@
 --   Ops:        resource_change_log, submission_rate_limits
 -- ============================================================================
 
-CREATE DATABASE IF NOT EXISTS sandboxv2
+CREATE DATABASE IF NOT EXISTS discovery
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
 
-USE sandboxv2;
+USE discovery;
 
-DROP USER IF EXISTS 'RRCRC_Admin'@'%';
-DROP USER IF EXISTS 'RRCRC_User'@'%';
-
-
-CREATE USER 'RRCRC_Admin'@'localhost' IDENTIFIED BY 'ACAdmin!2026';
-GRANT ALL PRIVILEGES ON sandboxv2.* TO 'RRCRC_Admin'@'localhost' WITH GRANT OPTION;
-
-
-CREATE USER 'RRCRC_User'@'localhost' IDENTIFIED BY 'ACUser!2026';
-GRANT CREATE, ALTER, DROP, SELECT, INSERT, UPDATE, DELETE ON sandboxv2.* TO 'RRCRC_User'@'localhost';
+CREATE USER 'discoverer'@'%' IDENTIFIED BY 'b1kcxz40';
+GRANT CREATE, ALTER, DROP, SELECT, INSERT, UPDATE, DELETE ON discovery.* TO 'discoverer'@'%';
 
 FLUSH PRIVILEGES;
 

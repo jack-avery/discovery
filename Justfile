@@ -1,7 +1,7 @@
 initdb:
     #!/usr/bin/env bash
     just down
-    docker rm discovery_mysql-data
+    docker volume rm discovery_mysql-data
     docker compose create db
     docker compose start db
     docker compose cp ./db/schema.sql db:/schema.sql
@@ -16,7 +16,7 @@ front:
     #!/usr/bin/env bash
     cd front && docker run -it --rm -u1000 -v.:/app node:24-alpine sh -c "cd /app && npm i && npm run build"
 
-up:
+up: front
     #!/usr/bin/env bash
     docker compose up -d
 

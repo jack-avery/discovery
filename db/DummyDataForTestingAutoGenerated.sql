@@ -4,7 +4,7 @@
 -- Run AFTER the schema script against sandboxv2.
 -- ============================================================================
 
-USE sandboxv2;
+USE discovery;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ============================================================================
