@@ -1,0 +1,1225 @@
+{
+  "info": {
+    "_postman_id": "ae5f7205-2103-47b6-90e0-8af3cdbdfe82",
+    "name": "RRCRC Backend Demo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "33096735"
+  },
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser4@rrcrc.ca\",\n  \"password\": \"password1234\",\n  \"first_name\": \"New\",\n  \"last_name\": \"User\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST http://localhost:5000/auth/register -H \"Content-Type: application/json\" -d '{\"email\": \"newuser@rrcrc.ca\", \"password\": \"password123\", \"full_name\": \"New User\"}'"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.access_token) {",
+                  "    pm.collectionVariables.set(\"access_token\", res.data.access_token);",
+                  "    pm.collectionVariables.set(\"accessToken\", res.data.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@rrcrc.ca\",\n  \"password\": \"password123\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST http://localhost:5000/auth/login -H \"Content-Type: application/json\" -d '{\"email\": \"test@rrcrc.ca\", \"password\": \"password123\"}'"
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST http://localhost:5000/auth/refresh"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST http://localhost:5000/auth/logout"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Resources",
+      "item": [
+        {
+          "name": "List Resources",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/resources?page=1&per_page=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "resources"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "per_page",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"http://localhost:5000/resources?page=1&per_page=5\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get Resource by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/resources/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "resources",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Resource by Slug",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/resources/slug/ottawa-food-bank-main",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "resources",
+                "slug",
+                "ottawa-food-bank-main"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"http://localhost:5000/resources/slug/ottawa-food-bank-main\""
+          },
+          "response": []
+        },
+        {
+          "name": "Map Resources",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/resources/map?lat=45.4215&lng=-75.6972&radius_km=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "resources",
+                "map"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "45.4215"
+                },
+                {
+                  "key": "lng",
+                  "value": "-75.6972"
+                },
+                {
+                  "key": "radius_km",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"http://localhost:5000/resources/map?lat=45.4215&lng=-75.6972&radius_km=10\""
+          },
+          "response": []
+        },
+        {
+          "name": "Update Resource",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Shelter Updated\",\n  \"description\": \"Updated description.\",\n  \"eligibility\": \"Not open anymore\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/resources/7",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "resources",
+                "7"
+              ]
+            },
+            "description": "Generated from cURL: curl -X PUT \"http://localhost:5000/resources/7\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer {{access_token}}\" -d \"{\\n  \\\"name\\\": \\\"Test Shelter Updated\\\",\\n  \\\"description\\\": \\\"Updated description.\\\"\\n}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Create Resource",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Shelter Create\",\n  \"resource_type\": \"Service\",\n  \"description\": \"Emergency shelter for adults.\",\n  \"locations\": [\n    {\n      \"address_line1\": \"123 Main St\",\n      \"city\": \"Ottawa\",\n      \"lat\": 45.4215,\n      \"lng\": -75.6972,\n      \"is_primary\": 1\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/resources",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "resources"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST \"http://localhost:5000/resources\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer {{access_token}}\" -d \"{\\n  \\\"name\\\": \\\"Test Shelter\\\",\\n  \\\"resource_type\\\": \\\"Service\\\",\\n  \\\"description\\\": \\\"Emergency shelter for adults.\\\",\\n  \\\"locations\\\": [\\n    {\\n      \\\"address_line1\\\": \\\"123 Main St\\\",\\n      \\\"city\\\": \\\"Ottawa\\\",\\n      \\\"lat\\\": 45.4215,\\n      \\\"lng\\\": -75.6972,\\n      \\\"is_primary\\\": 1\\n    }\\n  ]\\n}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Resource",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/resources/7",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "resources",
+                "7"
+              ]
+            },
+            "description": "Generated from cURL: curl -X DELETE \"http://localhost:5000/resources/7\" -H \"Authorization: Bearer {{access_token}}\""
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Categories",
+      "item": [
+        {
+          "name": "Public Category Tree",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Tree Shows Children",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Top Level Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();\r",
+                  "if (res.data && res.data.category_id) {\r",
+                  "    pm.collectionVariables.set(\"category_id\", res.data.category_id);\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Test2\",\r\n  \"slug\": \"Test2\",\r\n  \"description\": \"Munib's Shelter and housing support services\",\r\n  \"parent_category_id\": null,\r\n  \"icon_identifier\": \"home\",\r\n  \"color_hex\": \"#3B82F6\",\r\n  \"display_order\": 1\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Child Category",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Emergency Shelter2\",\r\n  \"slug\": \"emergency-shelter2\",\r\n  \"description\": \"Short-term emergency housing\",\r\n  \"icon_identifier\": \"bed\",\r\n  \"parent_category_id\": {{category_id}},\r\n  \"color_hex\": \"#6366F1\",\r\n  \"display_order\": 1\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/categories",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Categories",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"description\": \"Updated: Shelter, transitional housing, and rental support\",\r\n  \"display_order\": 2\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/categories/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Soft Delete",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/categories/{{category_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories",
+                "{{category_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Tags",
+      "item": [
+        {
+          "name": "List all tags",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tags",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tags"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Tag",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();\r",
+                  "if (res.data && res.data.tag_id) {\r",
+                  "    pm.collectionVariables.set(\"tag_id\", res.data.tag_id);\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\": \"Walk-in1\",\r\n    \"slug\": \"walk-in1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/tags",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tags"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Tag",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"name\":\"Walkin Service1\",\r\n    \"slug\": \"Walkin services1\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/tags/{{tag_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tags",
+                "{{tag_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Tag (Soft Delete)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/tags/{{tag_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tags",
+                "{{tag_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Submissions",
+      "item": [
+        {
+          "name": "Create new_resource (anonymous)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.submission_id) {",
+                  "  pm.collectionVariables.set('submission_id', json.data.submission_id);",
+                  "  pm.collectionVariables.set('resource_id', json.data.resource_id);",
+                  "  console.log('submission_id:', json.data.submission_id, '| resource_id:', json.data.resource_id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"submission_type\": \"new_resource\",\r\n  \"submitter_name\": \"Jane Doe\",\r\n  \"submitter_email\": \"jane@example.com\",\r\n  \"name\": \"Postman Food Bank\",\r\n  \"description\": \"A food bank submitted via Postman.\",\r\n  \"resource_type\": \"Service\",\r\n  \"category_ids\":{{category_id}},\r\n  \"tag_ids\": [],\r\n  \"locations\": [\r\n    {\r\n      \"address\": \"123 Test Street\",\r\n      \"city\": \"Ottawa\",\r\n      \"province\": \"Ontario\",\r\n      \"postal_code\": \"K1V 0A1\",\r\n      \"lat\": 45.4215,\r\n      \"lng\": -75.6972\r\n    }\r\n  ],\r\n  \"contacts\": [\r\n    {\r\n      \"contact_type\": \"phone\",\r\n      \"value\": \"613-555-0100\",\r\n      \"label\": \"Main Line\"\r\n    }\r\n  ],\r\n  \"hours\": [\r\n    {\r\n      \"day_of_week\": \"monday\",\r\n      \"open_time\": \"09:00\",\r\n      \"close_time\": \"17:00\",\r\n      \"is_closed\": false\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/submissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST \"{{base_url}}/submissions\" -H \"Content-Type: application/json\" -d \"{\\n  \\\"submission_type\\\": \\\"new_resource\\\",\\n  \\\"submitter_name\\\": \\\"Jane Doe\\\",\\n  \\\"submitter_email\\\": \\\"jane@example.com\\\",\\n  \\\"name\\\": \\\"Postman Food Bank\\\",\\n  \\\"description\\\": \\\"A food bank submitted via Postman.\\\",\\n  \\\"resource_type\\\": \\\"Service\\\",\\n  \\\"category_ids\\\": [1],\\n  \\\"tag_ids\\\": [],\\n  \\\"locations\\\": [\\n    {\\n      \\\"address\\\": \\\"123 Test Street\\\",\\n      \\\"city\\\": \\\"Ottawa\\\",\\n      \\\"province\\\": \\\"Ontario\\\",\\n      \\\"postal_code\\\": \\\"K1V 0A1\\\",\\n      \\\"lat\\\": 45.4215,\\n      \\\"lng\\\": -75.6972\\n    }\\n  ],\\n  \\\"contacts\\\": [\\n    {\\n      \\\"contact_type\\\": \\\"phone\\\",\\n      \\\"value\\\": \\\"613-555-0100\\\",\\n      \\\"label\\\": \\\"Main Line\\\"\\n    }\\n  ],\\n  \\\"hours\\\": [\\n    {\\n      \\\"day_of_week\\\": \\\"monday\\\",\\n      \\\"open_time\\\": \\\"09:00\\\",\\n      \\\"close_time\\\": \\\"17:00\\\",\\n      \\\"is_closed\\\": false\\n    }\\n  ]\\n}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Create update_resource (anonymous)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.data && json.data.submission_id) {",
+                  "  pm.collectionVariables.set('update_submission_id', json.data.submission_id);",
+                  "  console.log('update_submission_id:', json.data.submission_id);",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"submission_type\": \"update_resource\",\r\n  \"resource_id\": \"{{resource_id}}\",\r\n  \"submitter_name\": \"John Update\",\r\n  \"submitter_email\": \"john@example.com\",\r\n  \"name\": \"Postman Food Bank (Updated)\",\r\n  \"description\": \"Updated description via Flow B.\",\r\n  \"resource_type\": \"Service\",\r\n  \"locations\": [\r\n    {\r\n      \"address\": \"456 New Street\",\r\n      \"city\": \"Ottawa\",\r\n      \"province\": \"Ontario\",\r\n      \"postal_code\": \"K2P 1N5\",\r\n      \"lat\": 45.4230,\r\n      \"lng\": -75.7000\r\n    }\r\n  ]\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/submissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST \"{{base_url}}/submissions\" -H \"Content-Type: application/json\" -d \"{\\n  \\\"submission_type\\\": \\\"update_resource\\\",\\n  \\\"resource_id\\\": {{resource_id}},\\n  \\\"submitter_name\\\": \\\"John Update\\\",\\n  \\\"submitter_email\\\": \\\"john@example.com\\\",\\n  \\\"name\\\": \\\"Postman Food Bank (Updated)\\\",\\n  \\\"description\\\": \\\"Updated description via Flow B.\\\",\\n  \\\"resource_type\\\": \\\"Service\\\",\\n  \\\"locations\\\": [\\n    {\\n      \\\"address\\\": \\\"456 New Street\\\",\\n      \\\"city\\\": \\\"Ottawa\\\",\\n      \\\"province\\\": \\\"Ontario\\\",\\n      \\\"postal_code\\\": \\\"K2P 1N5\\\",\\n      \\\"lat\\\": 45.4230,\\n      \\\"lng\\\": -75.7000\\n    }\\n  ]\\n}\""
+          },
+          "response": []
+        },
+        {
+          "name": "List all pending_review (default)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/submissions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{base_url}}/submissions\" -H \"Authorization: Bearer {{access_token}}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by status=approved",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/submissions?status=approved",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "approved"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{base_url}}/submissions?status=approved\" -H \"Authorization: Bearer {{access_token}}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by status=rejected",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/submissions?status=rejected",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "rejected"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{base_url}}/submissions?status=rejected\" -H \"Authorization: Bearer {{access_token}}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Paginated (page=1, limit=5)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/submissions?page=1&limit=5",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{base_url}}/submissions?page=1&limit=5\" -H \"Authorization: Bearer {{access_token}}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by submission_type=new_resource",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/submissions?submission_type=new_resource",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions"
+              ],
+              "query": [
+                {
+                  "key": "submission_type",
+                  "value": "new_resource"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{base_url}}/submissions?submission_type=new_resource\" -H \"Authorization: Bearer {{access_token}}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Filter by submission_type=update_resource",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/submissions?submission_type=update_resource",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions"
+              ],
+              "query": [
+                {
+                  "key": "submission_type",
+                  "value": "update_resource"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{base_url}}/submissions?submission_type=update_resource\" -H \"Authorization: Bearer {{access_token}}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get update_resource submission detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/submissions/{{update_submission_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions",
+                "{{update_submission_id}}"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{base_url}}/submissions/{{update_submission_id}}\" -H \"Authorization: Bearer {{access_token}}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Get new_resource submission detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "disabled": false
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/submissions/{{submission_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions",
+                "{{submission_id}}"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{base_url}}/submissions/{{submission_id}}\" -H \"Authorization: Bearer {{access_token}}\""
+          },
+          "response": []
+        },
+        {
+          "name": "GET /resources/mapconfirm approved resource visible",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/resources/map?lat=45.4215&lng=-75.6972&radius_km=50",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "resources",
+                "map"
+              ],
+              "query": [
+                {
+                  "key": "lat",
+                  "value": "45.4215"
+                },
+                {
+                  "key": "lng",
+                  "value": "-75.6972"
+                },
+                {
+                  "key": "radius_km",
+                  "value": "50"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET \"{{base_url}}/resources/map?lat=45.4215&lng=-75.6972&radius_km=50\""
+          },
+          "response": []
+        },
+        {
+          "name": "Reject update_resource submission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "disabled": false
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"decision\": \"rejected\",\r\n  \"notes\": \"Does not meet submission criteria.\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/submissions/{{update_submission_id}}/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions",
+                "{{update_submission_id}}",
+                "review"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST \"{{base_url}}/submissions/{{update_submission_id}}/review\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer {{access_token}}\" -d \"{\\n  \\\"decision\\\": \\\"rejected\\\",\\n  \\\"notes\\\": \\\"Does not meet submission criteria.\\\"\\n}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Approve new_resource submission",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "disabled": false
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}",
+                "disabled": false
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"decision\": \"approved\",\r\n  \"notes\": \"Verified. Looks good.\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{base_url}}/submissions/{{submission_id}}/review",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions",
+                "{{submission_id}}",
+                "review"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST \"{{base_url}}/submissions/{{submission_id}}/review\" -H \"Content-Type: application/json\" -H \"Authorization: Bearer {{access_token}}\" -d \"{\\n  \\\"decision\\\": \\\"approved\\\",\\n  \\\"notes\\\": \\\"Verified. Looks good.\\\"\\n}\""
+          },
+          "response": []
+        },
+        {
+          "name": "Flush rate limits (dev only)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/submissions/dev/flush-rate-limits",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "submissions",
+                "dev",
+                "flush-rate-limits"
+              ]
+            },
+            "description": "Generated from cURL: curl -X DELETE \"{{base_url}}/submissions/dev/flush-rate-limits\""
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "packages": {},
+        "requests": {},
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "access_token",
+      "value": ""
+    },
+    {
+      "key": "base_url",
+      "value": ""
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "category_id",
+      "value": ""
+    },
+    {
+      "key": "tag_id",
+      "value": ""
+    },
+    {
+      "key": "submission_id",
+      "value": ""
+    },
+    {
+      "key": "resource_id",
+      "value": ""
+    },
+    {
+      "key": "update_submission_id",
+      "value": ""
+    }
+  ]
+}
