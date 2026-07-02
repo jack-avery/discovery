@@ -5,12 +5,15 @@ initdb:
     docker compose create db
     docker compose start db
     docker compose cp ./db/schema.sql db:/schema.sql
-    echo "Waiting 10 seconds for MySQL to start..."
-    sleep 10
+    # the image starts an initial temp server for an empty vol. wait for this to close
+    docker logs -f discovery-db-1 2>&1 | sed -e '/Temporary server stopped/q'
+    # now we can wait for the ready signal
+    docker logs -f discovery-db-1 2>&1 | sed -e '/ready for connections/q'
+    # sleep another 2 seconds just to be sure?
+    sleep 2
     docker compose exec db /bin/sh -c 'mysql < schema.sql'
     docker compose exec db rm schema.sql
     just down
-    echo "Database created and ready to use"
 
 front:
     #!/usr/bin/env bash
