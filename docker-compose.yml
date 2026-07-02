@@ -11,7 +11,10 @@ services:
       - 443:443
       - 443:443/udp
 
-  # TODO: develop and insert the backend here
+  back:
+    build:
+      context: back
+    stop_signal: SIGINT
 
   db:
     image: "mysql:8.0-debian"

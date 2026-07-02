@@ -40,8 +40,8 @@ def create_app(config_name: str = "development") -> Flask:
             return jsonify({"status": "ok", "message": "Database connection successful"}), 200
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
-        
-    #Blueprint registration    
+
+    #Blueprint registration
     from app.routes.auth import auth_bp
     app.register_blueprint(auth_bp)
     from app.routes.resources import resources_bp
