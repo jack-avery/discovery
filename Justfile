@@ -1,6 +1,5 @@
-initdb:
+initdb: down
     #!/usr/bin/env bash
-    just down
     docker volume rm discovery_mysql-data
     docker compose create db
     docker compose start db
@@ -14,6 +13,12 @@ initdb:
     docker compose exec db /bin/sh -c 'mysql < schema.sql'
     docker compose exec db rm schema.sql
     just down
+
+importsampledata: up
+    #!/usr/bin/env bash
+    docker compose cp ./db/sampledata.sql db:/sampledata.sql
+    docker compose exec db /bin/sh -c 'mysql < sampledata.sql'
+    docker compose exec db rm sampledata.sql
 
 front:
     #!/usr/bin/env bash
