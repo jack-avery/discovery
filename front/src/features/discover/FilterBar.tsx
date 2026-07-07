@@ -6,7 +6,8 @@ import { SearchBar } from '@/components/shared'
 import { CategoryDropdown, TagsDropdown } from '@/features/filters'
 import { Button } from '@/components/ui'
 import { useMediaQuery } from '@/hooks'
-import { RESOURCE_DETAIL_PANEL_WIDTH, FLOATING_FILTER_BAR_Z_CLASS } from '@/features/discover/constants'
+import { FLOATING_FILTER_BAR_Z_CLASS } from '@/features/discover/constants'
+import { getMapBehaviour } from '@/features/map/config'
 import { FloatingControlBubble } from '@/features/discover/FloatingControlBubble'
 import { cn } from '@/utils/cn'
 
@@ -45,6 +46,7 @@ export function FilterBar({
   const isMobile = useMediaQuery('(max-width: 767px)')
   const isPanelOpen = selectedResourceId !== null
   const recenterForPanel = isPanelOpen && !isMobile
+  const { panel } = getMapBehaviour()
 
   return (
     <div
@@ -52,11 +54,15 @@ export function FilterBar({
       aria-label="Map filters"
       className={cn(
         `pointer-events-none absolute top-3 ${FLOATING_FILTER_BAR_Z_CLASS} flex justify-center sm:top-4`,
-        'transition-[right] duration-300 ease-out',
         'left-3 sm:left-4 md:left-14 lg:left-16',
         !recenterForPanel && 'right-3 sm:right-4',
       )}
-      style={recenterForPanel ? { right: RESOURCE_DETAIL_PANEL_WIDTH } : undefined}
+      style={{
+        transitionProperty: 'right',
+        transitionDuration: `${panel.recenterTransitionDurationMs}ms`,
+        transitionTimingFunction: 'ease-out',
+        ...(recenterForPanel ? { right: panel.detailPanelWidth } : {}),
+      }}
     >
       <div className="flex max-w-full flex-wrap items-center justify-center gap-1.5 md:flex-nowrap">
         {onSidebarOpen && (

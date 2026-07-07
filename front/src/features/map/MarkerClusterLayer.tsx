@@ -1,6 +1,7 @@
 import { createLayerComponent } from '@react-leaflet/core'
 import L from 'leaflet'
 import type { PropsWithChildren } from 'react'
+import { getMapBehaviour } from '@/features/map/config'
 import 'leaflet.markercluster'
 
 type MarkerClusterGroupProps = PropsWithChildren<L.MarkerClusterGroupOptions>
@@ -10,10 +11,12 @@ export const MarkerClusterGroup = createLayerComponent<
   MarkerClusterGroupProps
 >(
   function createMarkerClusterGroup(props, context) {
+    const { cluster } = getMapBehaviour()
+
     const instance = new L.MarkerClusterGroup({
-      showCoverageOnHover: false,
-      spiderfyOnMaxZoom: true,
-      maxClusterRadius: 50,
+      showCoverageOnHover: cluster.showCoverageOnHover,
+      spiderfyOnMaxZoom: cluster.spiderfyOnMaxZoom,
+      maxClusterRadius: cluster.maxClusterRadius,
       ...props,
     })
     return {

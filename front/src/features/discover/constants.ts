@@ -1,5 +1,7 @@
+import { MAP_BEHAVIOUR } from '@/features/map/config'
+
 /** Matches OverlayPanel `max-w-md` — used to recenter map controls when the panel is open. */
-export const RESOURCE_DETAIL_PANEL_WIDTH = '28rem'
+export const RESOURCE_DETAIL_PANEL_WIDTH = MAP_BEHAVIOUR.panel.detailPanelWidth
 
 /** z-index for floating filter toolbar — above ResourceDetailPanel (z-20) and backdrop (z-10). */
 export const FLOATING_FILTER_BAR_Z_CLASS = 'z-[30]'
