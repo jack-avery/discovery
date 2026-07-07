@@ -114,7 +114,7 @@ def login():
 
     #run bcrypt check, prevents timing attacks on user lookup
     user = User.query.filter_by(email=email).first()
-    dummy_hash = "$2b$12$invalidhashhehehe000000000000000000000000000000000000"
+    dummy_hash = "$2b$12$CgUFx5qJbl8t8ey9j8m5P.eV1Zm5oZm5oZm5oZm5oZm5oZm5oZm5o"
     candidate_hash = user.password_hash if user else dummy_hash
 
     password_ok = bcrypt.check_password_hash(candidate_hash, password)

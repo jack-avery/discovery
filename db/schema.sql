@@ -431,4 +431,27 @@ CREATE FULLTEXT INDEX idx_ft_rv_content ON resource_versions (name, description)
 
 SET FOREIGN_KEY_CHECKS = 1;
 
+
+-- ============================================================================
+-- SECTION 7 — SEED DATA
+-- ============================================================================
+
+-- 1. Insert default roles
+INSERT INTO roles (role_name, description) VALUES 
+('contributor', 'Standard user'), 
+('staff_editor', 'Staff member who can edit resources'), 
+('moderator', 'Reviews submissions'), 
+('administrator', 'Full access');
+
+-- 2. Insert default admin user
+-- Password is 'admin123' (replace the hash below if you generated a new one)
+INSERT INTO users (email, password_hash, first_name, last_name, is_active)
+VALUES ('admin@rrcrc.ca', '$2b$12$w9CMXgEO0oncYsOlhDIRKeYwT9EAxc2MzNV/uvoHzVmqAAHASlexy', 'System', 'Admin', 1);
+
+-- 3. Assign administrator role to the default admin user
+INSERT INTO user_roles (user_id, role_id)
+VALUES (
+    (SELECT user_id FROM users WHERE email = 'admin@rrcrc.ca'),
+    (SELECT role_id FROM roles WHERE role_name = 'administrator')
+);
 -- END OF SCHEMA
