@@ -14,9 +14,15 @@ initdb: down
     docker compose exec db rm schema.sql
     just down
 
-importsampledata: up
+importsampledata: reup
     #!/usr/bin/env bash
     docker compose cp ./db/sampledata.sql db:/sampledata.sql
+    # the image starts an initial temp server for an empty vol. wait for this to close
+    docker logs -f discovery-db-1 2>&1 | sed -e '/Temporary server stopped/q'
+    # now we can wait for the ready signal
+    docker logs -f discovery-db-1 2>&1 | sed -e '/ready for connections/q'
+    # sleep another 2 seconds just to be sure?
+    sleep 2
     docker compose exec db /bin/sh -c 'mysql < sampledata.sql'
     docker compose exec db rm sampledata.sql
 
