@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui'
-import { getFilterSelectionSummary, toggleFilterSelection } from '@/utils/filter-selection'
+import { useResponsiveSelectionSummary } from '@/hooks/useResponsiveSelectionSummary'
+import { getSelectedItemNames, toggleFilterSelection } from '@/utils/filter-selection'
 import { cn } from '@/utils/cn'
 
 export interface FilterPopoverItem {
@@ -63,11 +64,17 @@ export function FilterPopover({
 
   const isDisabled = disabled || isLoading || Boolean(error) || items.length === 0
 
+  const selectedNames = useMemo(() => getSelectedItemNames(value, items), [value, items])
+  const { summary: responsiveSummary, textRef, measureRef } = useResponsiveSelectionSummary(
+    selectedNames,
+    emptySummary,
+  )
+
   const summary = isLoading
     ? 'Loading…'
     : error
       ? 'Unable to load'
-      : getFilterSelectionSummary(value, items, { emptyLabel: emptySummary })
+      : responsiveSummary
 
   const handleSelect = (slug: string) => {
     onChange(toggleFilterSelection(value, slug, allSlugs))
@@ -88,9 +95,15 @@ export function FilterPopover({
           onClick={() => setIsOpen((open) => !open)}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
-          className="h-9 w-full justify-between gap-2 px-3 text-sm font-normal"
+          className="h-9 w-full !justify-between gap-2 px-3 text-left text-sm font-normal"
         >
-          <span className={cn('min-w-0 truncate text-left', value.length === 0 && 'text-muted-foreground')}>
+          <span
+            ref={textRef}
+            className={cn(
+              'min-w-0 flex-1 truncate text-left',
+              value.length === 0 && 'text-muted-foreground',
+            )}
+          >
             {summary}
           </span>
           {isLoading ? (
@@ -99,6 +112,12 @@ export function FilterPopover({
             <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
           )}
         </Button>
+
+        <span
+          ref={measureRef}
+          aria-hidden
+          className="pointer-events-none invisible absolute left-0 top-0 -z-10 whitespace-nowrap text-sm"
+        />
 
         {error && (
           <p className="mt-1 text-xs text-danger" role="alert">

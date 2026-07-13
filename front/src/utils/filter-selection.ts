@@ -13,6 +13,15 @@ interface FilterSummaryItem {
   name: string
 }
 
+export function getSelectedItemNames(
+  selected: string[],
+  items: FilterSummaryItem[],
+): string[] {
+  return selected
+    .map((slug) => items.find((item) => item.slug === slug)?.name)
+    .filter((name): name is string => Boolean(name))
+}
+
 interface FilterSelectionSummaryOptions {
   emptyLabel?: string
   /** How many names to show before collapsing to "+N". */

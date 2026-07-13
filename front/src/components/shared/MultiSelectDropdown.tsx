@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui'
-import { getFilterTriggerLabel, isAllSelected, toggleFilterSelection } from '@/utils/filter-selection'
+import { useResponsiveSelectionSummary } from '@/hooks/useResponsiveSelectionSummary'
+import { getSelectedItemNames, isAllSelected, toggleFilterSelection } from '@/utils/filter-selection'
 import { cn } from '@/utils/cn'
 
 export interface MultiSelectItem {
@@ -34,6 +35,11 @@ export function MultiSelectDropdown({
   const [isOpen, setIsOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const allSlugs = items.map((item) => item.slug)
+  const selectedNames = useMemo(
+    () => (isAllSelected(value) ? [] : getSelectedItemNames(value, items)),
+    [value, items],
+  )
+  const { summary, textRef, measureRef } = useResponsiveSelectionSummary(selectedNames, label)
 
   useEffect(() => {
     if (!isOpen) return
@@ -57,7 +63,6 @@ export function MultiSelectDropdown({
   }, [isOpen])
 
   const isDisabled = disabled || isLoading || Boolean(error) || items.length === 0
-  const triggerLabel = getFilterTriggerLabel(label, value)
 
   const handleSelect = (slug: string | 'all') => {
     onChange?.(toggleFilterSelection(value, slug, allSlugs))
@@ -73,15 +78,22 @@ export function MultiSelectDropdown({
         onClick={() => setIsOpen((open) => !open)}
         aria-expanded={isOpen}
         aria-haspopup="listbox"
-        className="h-9 min-w-[6.5rem] justify-between gap-1.5 px-3 text-sm"
+        className="h-9 min-w-[6.5rem] w-full !justify-between gap-2 px-3 text-left text-sm"
       >
-        <span className="truncate">{triggerLabel}</span>
+        <span ref={textRef} className="min-w-0 flex-1 truncate text-left">
+          {summary}
+        </span>
         {isLoading ? (
           <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
         ) : (
           <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         )}
       </Button>
+      <span
+        ref={measureRef}
+        aria-hidden
+        className="pointer-events-none invisible absolute left-0 top-0 -z-10 whitespace-nowrap text-sm"
+      />
       {isOpen && (
         <div
           role="listbox"
