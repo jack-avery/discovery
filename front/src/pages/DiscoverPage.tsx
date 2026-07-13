@@ -1,24 +1,26 @@
 import { useState } from 'react'
 import { useSearch } from '@/app/providers'
-import { SelectionProvider } from '@/app/providers/SelectionProvider'
 import { DiscoverLayout } from '@/app/layouts'
-import { useCategories, useResourceMap, useTags } from '@/hooks'
+import { WorkspaceNavigationProvider } from '@/features/discover/providers/WorkspaceNavigationProvider'
+import { WorkspaceProvider } from '@/features/discover/providers/WorkspaceProvider'
+import { useCategories, useResourceMap } from '@/hooks'
 
 export function DiscoverPage() {
   return (
-    <SelectionProvider>
-      <DiscoverPageContent />
-    </SelectionProvider>
+    <WorkspaceProvider>
+      <WorkspaceNavigationProvider>
+        <DiscoverPageContent />
+      </WorkspaceNavigationProvider>
+    </WorkspaceProvider>
   )
 }
 
 function DiscoverPageContent() {
   const { query, setQuery } = useSearch()
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [selectedAdvancedFilters, setSelectedAdvancedFilters] = useState<string[]>([])
 
   const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories()
-  const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
   const { items: mapItems, isLoading: mapLoading, error: mapError } = useResourceMap()
 
   return (
@@ -28,14 +30,11 @@ function DiscoverPageContent() {
         onSearchChange={setQuery}
         selectedCategories={selectedCategories}
         onCategoriesChange={setSelectedCategories}
-        selectedTags={selectedTags}
-        onTagsChange={setSelectedTags}
+        selectedAdvancedFilters={selectedAdvancedFilters}
+        onAdvancedFiltersChange={setSelectedAdvancedFilters}
         categories={categories}
-        tags={tags}
         categoriesLoading={categoriesLoading}
         categoriesError={categoriesError}
-        tagsLoading={tagsLoading}
-        tagsError={tagsError}
         mapItems={mapItems}
         mapLoading={mapLoading}
         mapError={mapError}

@@ -1,6 +1,7 @@
 import { Navigate, type RouteObject } from 'react-router-dom'
 import { AppLayout } from '@/app/layouts'
 import { DiscoverPage } from '@/pages/DiscoverPage'
+import { HomePage } from '@/pages/HomePage'
 import { MapPage } from '@/pages/MapPage'
 import { ResourcesPage } from '@/pages/ResourcesPage'
 import { SubmissionsPage } from '@/pages/SubmissionsPage'
@@ -15,6 +16,7 @@ export const routes: RouteObject[] = [
     element: <AppLayout />,
     children: [
       { index: true, element: <DiscoverPage /> },
+      { path: 'home', element: <HomePage /> },
       { path: 'submit', element: <SubmitResourcePage /> },
       { path: 'request-update', element: <RequestResourceUpdatePage /> },
       { path: 'sign-in', element: <StaffSignInPage /> },

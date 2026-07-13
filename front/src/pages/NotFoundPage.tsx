@@ -1,17 +1,10 @@
 import { Link } from 'react-router-dom'
-import { useSidebar } from '@/app/providers/SidebarProvider'
-import { SidebarToggle } from '@/components/shared'
 import { Button } from '@/components/ui'
 
 export function NotFoundPage() {
-  const { openSidebar } = useSidebar()
-
   return (
     <div className="flex h-full flex-col">
       <header className="app-header flex shrink-0 items-center gap-3 border-b border-border bg-surface px-4 sm:px-5">
-        <div className="shrink-0 lg:hidden">
-          <SidebarToggle onClick={openSidebar} />
-        </div>
         <h1 className="font-heading text-base font-semibold text-foreground">Page not found</h1>
       </header>
 

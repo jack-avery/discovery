@@ -1,10 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Check, ChevronDown, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui'
-import {
-  FLOATING_CONTROL_CHROME_CLASSES,
-  FLOATING_CONTROL_HEIGHT_CLASS,
-} from '@/features/discover/constants'
 import { getFilterTriggerLabel, isAllSelected, toggleFilterSelection } from '@/utils/filter-selection'
 import { cn } from '@/utils/cn'
 
@@ -22,8 +18,6 @@ interface MultiSelectDropdownProps {
   isLoading?: boolean
   error?: string | null
   disabled?: boolean
-  /** Borderless trigger styling for use inside a floating control bubble. */
-  floating?: boolean
   className?: string
 }
 
@@ -35,7 +29,6 @@ export function MultiSelectDropdown({
   isLoading = false,
   error = null,
   disabled = false,
-  floating = false,
   className,
 }: MultiSelectDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -70,80 +63,47 @@ export function MultiSelectDropdown({
     onChange?.(toggleFilterSelection(value, slug, allSlugs))
   }
 
-  const triggerButton = (
-    <Button
-      type="button"
-      variant="outline"
-      size="sm"
-      disabled={isDisabled}
-      onClick={() => setIsOpen((open) => !open)}
-      aria-expanded={isOpen}
-      aria-haspopup="listbox"
-      className={cn(
-        'justify-between gap-1.5 text-sm',
-        floating
-          ? 'h-full min-h-0 w-full min-w-0 rounded-none px-2.5 border-0 bg-transparent shadow-none hover:bg-muted/60'
-          : 'h-9 min-w-[6.5rem] px-3',
-      )}
-    >
-      <span className="truncate">{triggerLabel}</span>
-      {isLoading ? (
-        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
-      ) : (
-        <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      )}
-    </Button>
-  )
-
-  const listbox = isOpen && (
-    <div
-      role="listbox"
-      aria-label={`Filter by ${label.toLowerCase()}`}
-      aria-multiselectable="true"
-      className={cn(
-        'absolute right-0 max-h-60 w-52 overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-md scrollbar-thin',
-        floating ? 'top-full z-40 mt-1' : 'z-30 mt-1',
-      )}
-    >
-      <OptionRow
-        name="All"
-        isSelected={isAllSelected(value)}
-        onSelect={() => handleSelect('all')}
-      />
-      {items.map((item) => (
-        <OptionRow
-          key={item.id}
-          name={item.name}
-          isSelected={!isAllSelected(value) && value.includes(item.slug)}
-          onSelect={() => handleSelect(item.slug)}
-        />
-      ))}
-    </div>
-  )
-
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        'relative shrink-0',
-        floating && 'h-full w-full min-w-0 overflow-visible',
-        className,
-      )}
-    >
-      {floating ? (
+    <div ref={containerRef} className={cn('relative shrink-0', className)}>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={isDisabled}
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        className="h-9 min-w-[6.5rem] justify-between gap-1.5 px-3 text-sm"
+      >
+        <span className="truncate">{triggerLabel}</span>
+        {isLoading ? (
+          <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" aria-hidden="true" />
+        ) : (
+          <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        )}
+      </Button>
+      {isOpen && (
         <div
-          className={cn(
-            'flex w-full items-center overflow-hidden',
-            FLOATING_CONTROL_CHROME_CLASSES,
-            FLOATING_CONTROL_HEIGHT_CLASS,
-          )}
+          role="listbox"
+          aria-label={`Filter by ${label.toLowerCase()}`}
+          aria-multiselectable="true"
+          className="absolute right-0 z-30 mt-1 max-h-60 w-52 overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-md scrollbar-thin"
         >
-          {triggerButton}
+          <OptionRow
+            name="All"
+            isSelected={isAllSelected(value)}
+            onSelect={() => handleSelect('all')}
+          />
+          {items.map((item) => (
+            <OptionRow
+              key={item.id}
+              name={item.name}
+              isSelected={!isAllSelected(value) && value.includes(item.slug)}
+              onSelect={() => handleSelect(item.slug)}
+            />
+          ))}
         </div>
-      ) : (
-        triggerButton
       )}
-      {listbox}
     </div>
   )
 }

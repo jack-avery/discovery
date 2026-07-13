@@ -10,9 +10,10 @@ import { ResourceMapMarkers } from './ResourceMapMarkers'
 
 interface LeafletMapProps {
   items: ResourceMapItem[]
+  layoutKey?: string
 }
 
-export function LeafletMap({ items }: LeafletMapProps) {
+export function LeafletMap({ items, layoutKey }: LeafletMapProps) {
   const basemap = getBasemapConfig()
   const { viewport, tileLayer, error, devFallback } = basemap
 
@@ -27,7 +28,7 @@ export function LeafletMap({ items }: LeafletMapProps) {
         zoomControl
       >
         {tileLayer && <BasemapTileLayer config={tileLayer} />}
-        <MapResizeHandler />
+        <MapResizeHandler layoutKey={layoutKey} />
         <MarkerClusterGroup>
           <ResourceMapMarkers items={items} />
         </MarkerClusterGroup>

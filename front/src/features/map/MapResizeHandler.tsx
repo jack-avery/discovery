@@ -1,12 +1,10 @@
 import { useEffect } from 'react'
 import { useMap } from 'react-leaflet'
-import { useSelection } from '@/app/providers/SelectionProvider'
 import { getMapBehaviour } from '@/features/map/config'
 
-/** Recalculates map dimensions when the detail panel opens or closes. */
-export function MapResizeHandler() {
+/** Recalculates map dimensions when the surrounding layout changes. */
+export function MapResizeHandler({ layoutKey }: { layoutKey?: string }) {
   const map = useMap()
-  const { selectedResourceId } = useSelection()
   const { resize } = getMapBehaviour()
 
   useEffect(() => {
@@ -15,7 +13,7 @@ export function MapResizeHandler() {
     }, resize.invalidateSizeDelayMs)
 
     return () => window.clearTimeout(timer)
-  }, [map, selectedResourceId, resize.invalidateSizeDelayMs])
+  }, [map, layoutKey, resize.invalidateSizeDelayMs])
 
   return null
 }

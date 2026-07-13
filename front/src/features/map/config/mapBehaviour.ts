@@ -4,7 +4,7 @@ import type { LatLngExpression } from 'leaflet'
 const RRCRC_CENTER: LatLngExpression = [45.4445, -75.6392]
 
 /**
- * Application defaults for map behaviour — viewport, clustering, panel coordination, and resize timing.
+ * Application defaults for map behaviour — viewport, clustering, and resize timing.
  * Provider-agnostic settings live here; basemap provider settings live in mapConfig.ts.
  */
 export const MAP_BEHAVIOUR = {
@@ -20,13 +20,8 @@ export const MAP_BEHAVIOUR = {
     showCoverageOnHover: false,
   },
   resize: {
-    /** Delay before invalidating map size — slightly after the panel transition completes. */
+    /** Delay before invalidating map size — slightly after the workspace transition completes. */
     invalidateSizeDelayMs: 320,
-  },
-  panel: {
-    /** Matches OverlayPanel `max-w-md` — recenter filter bar when the detail panel is open. */
-    detailPanelWidth: '28rem',
-    recenterTransitionDurationMs: 300,
   },
 } as const
 

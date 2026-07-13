@@ -8,15 +8,17 @@ interface MapContainerProps {
   items: ResourceMapItem[]
   isLoading?: boolean
   error?: string | null
+  /** Changes when surrounding layout changes (e.g. workspace collapse). */
+  layoutKey?: string
 }
 
 /**
  * Map shell wrapping the Leaflet canvas.
  *
- * Overlays (filter bar, detail panel) render as siblings in MapStage, not inside this section.
+ * Overlays (floating controls) render as siblings in MapCanvas, not inside this section.
  *
  * Reserved control zones for Leaflet:
- * - Top-left: zoom controls (FilterBar offsets with md:left-14)
+ * - Top-left: zoom controls
  * - Bottom-right: attribution
  */
 export function MapContainer({
@@ -24,13 +26,14 @@ export function MapContainer({
   items,
   isLoading = false,
   error = null,
+  layoutKey,
 }: MapContainerProps) {
   return (
     <section
       aria-label="Resource map"
       className={cn('relative h-full w-full overflow-hidden bg-surface-raised', className)}
     >
-      <LeafletMap items={items} />
+      <LeafletMap items={items} layoutKey={layoutKey} />
 
       {isLoading && (
         <div

@@ -10,6 +10,7 @@ interface SearchBarProps {
   /** Borderless styling for use inside a floating control bubble. */
   floating?: boolean
   className?: string
+  inputId?: string
 }
 
 export function SearchBar({
@@ -19,10 +20,11 @@ export function SearchBar({
   compact = false,
   floating = false,
   className,
+  inputId = 'resource-search',
 }: SearchBarProps) {
   return (
     <div className={cn('relative w-full', floating && 'h-full', className)}>
-      <label htmlFor="resource-search" className="sr-only">
+      <label htmlFor={inputId} className="sr-only">
         Search resources
       </label>
       <Search
@@ -33,7 +35,7 @@ export function SearchBar({
         aria-hidden="true"
       />
       <Input
-        id="resource-search"
+        id={inputId}
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
         placeholder={placeholder}

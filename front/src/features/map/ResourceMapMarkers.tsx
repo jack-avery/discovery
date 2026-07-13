@@ -1,5 +1,5 @@
 import { Marker } from 'react-leaflet'
-import { useSelection } from '@/app/providers/SelectionProvider'
+import { useResourceSelection } from '@/features/discover/useResourceSelection'
 import type { ResourceMapItem } from '@/types'
 import { getCategoryMarkerIcon } from './categoryIcons'
 
@@ -8,7 +8,7 @@ interface ResourceMapMarkersProps {
 }
 
 export function ResourceMapMarkers({ items }: ResourceMapMarkersProps) {
-  const { selectResource, selectedResourceId } = useSelection()
+  const { selectResource, selectedResourceId } = useResourceSelection()
 
   return (
     <>
