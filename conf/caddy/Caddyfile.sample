@@ -1,6 +1,12 @@
-example.com {
+localhost {
     encode gzip
     tls internal # remove this for proper TLS
+
+    handle /api/v1* {
+        uri strip_prefix /api/v1
+        reverse_proxy back:5000
+    }
+
     handle {
         root * /usr/share/caddy
         try_files {path} {path}/index.html =404
