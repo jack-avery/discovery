@@ -1,13 +1,14 @@
-import { PageShell } from '@/components/shared/PageShell'
-import { SubmitResourcePanel } from '@/features/submissions/SubmitResourcePanel'
+import { SubmitResourceExperience } from '@/features/submissions/SubmitResourceExperience'
+import { SubmissionDraftProvider } from '@/features/submissions/state/SubmissionDraftProvider'
 
+/**
+ * Public Submit Resource page.
+ * Hero owns the sole H1 — intentionally no PageShell title.
+ */
 export function SubmitResourcePage() {
   return (
-    <PageShell
-      title="Submit Resource"
-      description="Help others discover a community resource in the Rideau-Rockcliffe area."
-    >
-      <SubmitResourcePanel />
-    </PageShell>
+    <SubmissionDraftProvider>
+      <SubmitResourceExperience />
+    </SubmissionDraftProvider>
   )
 }

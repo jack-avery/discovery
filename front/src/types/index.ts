@@ -27,3 +27,17 @@ export type {
   MapPinsDto,
   ResourceMapItem,
 } from './resource-map'
+export type {
+  Contribution,
+  ContributionData,
+  ContributionStatus,
+  ContributionType,
+  ContributorInfo,
+  EditorSession,
+  PreferredContactMethod,
+  SubmissionDraft,
+  SubmissionDraftMeta,
+  SubmissionDraftUi,
+  SubmissionPhase,
+} from './submission'
+export { SUBMISSION_DRAFT_SCHEMA_VERSION } from './submission'
