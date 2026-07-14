@@ -1,5 +1,7 @@
+export { useAbortableQuery } from './useAbortableQuery'
 export { useCategories } from './useCategories'
 export { useMediaQuery } from './useMediaQuery'
+export { useResourceDetail } from './useResourceDetail'
 export { useResourceMap } from './useResourceMap'
 export { useResources, type ResourceFilters } from './useResources'
 export { useTags } from './useTags'

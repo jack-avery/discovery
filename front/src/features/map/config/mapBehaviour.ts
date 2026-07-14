@@ -13,6 +13,13 @@ export const MAP_BEHAVIOUR = {
     defaultZoom: 13,
     minZoom: 11,
     maxZoom: 18,
+    /**
+     * Initial / fallback radius (km) for GET /resources/map before Leaflet
+     * reports bounds. Matches the backend default.
+     */
+    defaultRadiusKm: 10,
+    /** Debounce pan/zoom before re-querying map pins. */
+    queryDebounceMs: 350,
   },
   cluster: {
     maxClusterRadius: 50,

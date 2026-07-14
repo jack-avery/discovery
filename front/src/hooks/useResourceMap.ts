@@ -1,38 +1,54 @@
-import { useEffect, useState } from 'react'
 import type { ResourceMapItem } from '@/types'
-import { fetchMapResources } from '@/services/resources/mapService'
+import {
+  fetchMapResources,
+  getDefaultMapQuery,
+  mapQueryKey,
+  type ResourceMapQuery,
+  type ResourceMapQueryLimitation,
+} from '@/services/mapService'
+import { useAbortableQuery } from '@/hooks/useAbortableQuery'
 
 interface UseResourceMapResult {
+  /** Live map markers (preferred name). */
+  markers: ResourceMapItem[]
+  /** Alias for markers — existing Discover/Map pages use `items`. */
   items: ResourceMapItem[]
+  count: number
+  limitations: ResourceMapQueryLimitation[]
   isLoading: boolean
   error: string | null
 }
 
-export function useResourceMap(): UseResourceMapResult {
-  const [items, setItems] = useState<ResourceMapItem[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+const EMPTY_RESULT = {
+  items: [] as ResourceMapItem[],
+  count: 0,
+  limitations: [] as ResourceMapQueryLimitation[],
+}
 
-  useEffect(() => {
-    let cancelled = false
+/**
+ * Load map pins for a lat/lng/radius query.
+ * Pass viewport-derived queries from MapViewportReporter; defaults to MAP_BEHAVIOUR centre.
+ */
+export function useResourceMap(
+  query: ResourceMapQuery = getDefaultMapQuery(),
+): UseResourceMapResult {
+  const key = mapQueryKey(query)
 
-    fetchMapResources()
-      .then((data) => {
-        if (!cancelled) setItems(data)
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load map resources')
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false)
-      })
+  const { data, isLoading, error } = useAbortableQuery(
+    (signal) => fetchMapResources(query, { signal }),
+    {
+      initialData: EMPTY_RESULT,
+      fallbackErrorMessage: 'Failed to load map resources',
+      deps: [key],
+    },
+  )
 
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  return { items, isLoading, error }
+  return {
+    markers: data.items,
+    items: data.items,
+    count: data.count,
+    limitations: data.limitations,
+    isLoading,
+    error,
+  }
 }

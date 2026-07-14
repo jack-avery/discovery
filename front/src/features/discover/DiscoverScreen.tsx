@@ -1,4 +1,5 @@
-import type { Category } from '@/types'
+import type { Category, Resource, Tag } from '@/types'
+import type { ResourceEmptyReason } from '@/features/resources'
 import { AdvancedFiltersSection } from './AdvancedFiltersSection'
 import { CategorySection } from './CategorySection'
 import { ResultsList } from './ResultsList'
@@ -15,6 +16,14 @@ export interface DiscoverScreenProps {
   categories: Category[]
   categoriesLoading?: boolean
   categoriesError?: string | null
+  tags: Tag[]
+  tagsLoading?: boolean
+  tagsError?: string | null
+  resources: Resource[]
+  resourcesTotal: number
+  resourcesLoading?: boolean
+  resourcesError?: string | null
+  resourcesEmptyReason?: ResourceEmptyReason
 }
 
 export function DiscoverScreen({
@@ -27,6 +36,14 @@ export function DiscoverScreen({
   categories,
   categoriesLoading,
   categoriesError,
+  tags,
+  tagsLoading,
+  tagsError,
+  resources,
+  resourcesTotal,
+  resourcesLoading,
+  resourcesError,
+  resourcesEmptyReason,
 }: DiscoverScreenProps) {
   return (
     <div className="workspace-content flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin">
@@ -39,11 +56,23 @@ export function DiscoverScreen({
         error={categoriesError}
       />
       <AdvancedFiltersSection
+        tags={tags}
         selectedFilters={selectedAdvancedFilters}
         onFiltersChange={onAdvancedFiltersChange}
+        isLoading={tagsLoading}
+        error={tagsError}
       />
-      <ResultsSummary />
-      <ResultsList />
+      <ResultsSummary
+        totalItems={resourcesTotal}
+        isLoading={resourcesLoading}
+        error={resourcesError}
+      />
+      <ResultsList
+        resources={resources}
+        isLoading={resourcesLoading}
+        error={resourcesError}
+        emptyReason={resourcesEmptyReason}
+      />
     </div>
   )
 }

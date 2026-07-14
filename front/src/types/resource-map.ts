@@ -1,11 +1,55 @@
-import type { ResourceLocation } from './resource-location'
+/**
+ * Backend GET /resources/map pin (`get_map_pins` in resources.py).
+ * Returned inside `data.pins` after envelope unwrap.
+ */
+export interface MapPinDto {
+  resource_id: number
+  slug: string
+  name: string
+  resource_type: string | null
+  lat: number
+  lng: number
+  is_virtual: boolean
+  category_name: string | null
+  color_hex: string | null
+  icon_identifier: string | null
+  distance_km: number
+}
 
-/** Lightweight pin payload — mirrors future GET /api/v1/resources/map response items. */
+/**
+ * Backend GET /resources/map success payload (`data` after unwrap).
+ */
+export interface MapPinsDto {
+  pins: MapPinDto[]
+  count: number
+}
+
+/**
+ * UI marker used by ResourceMapMarkers / clustering.
+ *
+ * Mapping from MapPinDto (see mapService):
+ * - `id` = String(resource_id)
+ * - `location.latitude/longitude` ← `lat`/`lng`
+ * - `distanceMeters` ← `distance_km * 1000`
+ * - `colorHex` ← `color_hex` (preferred for marker colour)
+ * - `categorySlug` ← soft slugify of `category_name` for icon fallback only
+ *   (backend does not return category slug on this endpoint)
+ * - `categoryName` ← `category_name`
+ */
 export interface ResourceMapItem {
   id: string
   slug: string
   name: string
   categorySlug: string
-  location: ResourceLocation
+  categoryName?: string | null
+  colorHex?: string | null
+  iconIdentifier?: string | null
+  resourceType?: string | null
+  isVirtual?: boolean
+  location: {
+    latitude: number
+    longitude: number
+    address?: string
+  }
   distanceMeters?: number
 }

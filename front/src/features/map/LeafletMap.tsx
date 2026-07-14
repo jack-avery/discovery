@@ -1,19 +1,22 @@
 import { MapContainer as LeafletMapContainer } from 'react-leaflet'
 import type { ResourceMapItem } from '@/types'
+import type { ResourceMapQuery } from '@/services/mapService'
 import { BasemapDevFallbackBanner } from '@/features/map/components/BasemapDevFallbackBanner'
 import { BasemapErrorOverlay } from '@/features/map/components/BasemapErrorOverlay'
 import { BasemapTileLayer } from '@/features/map/components/BasemapTileLayer'
 import { getBasemapConfig } from '@/features/map/services'
 import { MapResizeHandler } from './MapResizeHandler'
+import { MapViewportReporter } from './MapViewportReporter'
 import { MarkerClusterGroup } from './MarkerClusterLayer'
 import { ResourceMapMarkers } from './ResourceMapMarkers'
 
 interface LeafletMapProps {
   items: ResourceMapItem[]
   layoutKey?: string
+  onViewportQueryChange?: (query: ResourceMapQuery) => void
 }
 
-export function LeafletMap({ items, layoutKey }: LeafletMapProps) {
+export function LeafletMap({ items, layoutKey, onViewportQueryChange }: LeafletMapProps) {
   const basemap = getBasemapConfig()
   const { viewport, tileLayer, error, devFallback } = basemap
 
@@ -29,6 +32,9 @@ export function LeafletMap({ items, layoutKey }: LeafletMapProps) {
       >
         {tileLayer && <BasemapTileLayer config={tileLayer} />}
         <MapResizeHandler layoutKey={layoutKey} />
+        {onViewportQueryChange && (
+          <MapViewportReporter onQueryChange={onViewportQueryChange} />
+        )}
         <MarkerClusterGroup>
           <ResourceMapMarkers items={items} />
         </MarkerClusterGroup>

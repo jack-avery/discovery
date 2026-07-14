@@ -1,5 +1,6 @@
 import { Loader2 } from 'lucide-react'
 import type { ResourceMapItem } from '@/types'
+import type { ResourceMapQuery } from '@/services/mapService'
 import { cn } from '@/utils/cn'
 import { LeafletMap } from './LeafletMap'
 
@@ -10,6 +11,7 @@ interface MapContainerProps {
   error?: string | null
   /** Changes when surrounding layout changes (e.g. workspace collapse). */
   layoutKey?: string
+  onViewportQueryChange?: (query: ResourceMapQuery) => void
 }
 
 /**
@@ -27,13 +29,18 @@ export function MapContainer({
   isLoading = false,
   error = null,
   layoutKey,
+  onViewportQueryChange,
 }: MapContainerProps) {
   return (
     <section
       aria-label="Resource map"
       className={cn('relative h-full w-full overflow-hidden bg-surface-raised', className)}
     >
-      <LeafletMap items={items} layoutKey={layoutKey} />
+      <LeafletMap
+        items={items}
+        layoutKey={layoutKey}
+        onViewportQueryChange={onViewportQueryChange}
+      />
 
       {isLoading && (
         <div

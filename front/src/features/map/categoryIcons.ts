@@ -16,17 +16,22 @@ const DEFAULT_COLOR = '#3d6b8e'
 
 export interface CategoryIconOptions {
   selected?: boolean
+  /** Prefer backend `color_hex` when present on map pins. */
+  colorHex?: string | null
 }
 
 /**
  * Returns a Leaflet DivIcon for a map marker keyed by category slug.
- * Presentation-only — swappable when backend category icon management lands.
+ * When `colorHex` is provided (from GET /resources/map), it takes precedence.
  */
 export function getCategoryMarkerIcon(
   categorySlug: string,
   options: CategoryIconOptions = {},
 ): L.DivIcon {
-  const color = CATEGORY_COLORS[categorySlug] ?? DEFAULT_COLOR
+  const color =
+    options.colorHex && /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(options.colorHex)
+      ? options.colorHex
+      : (CATEGORY_COLORS[categorySlug] ?? DEFAULT_COLOR)
   const selectedClass = options.selected ? ' resource-map-marker__pin--selected' : ''
 
   return L.divIcon({

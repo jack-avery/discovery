@@ -1,4 +1,5 @@
 import type { Category, ResourceMapItem } from '@/types'
+import type { ResourceMapQuery } from '@/services/mapService'
 import { MapContainer } from '@/features/map'
 import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
 import { FloatingDiscoveryToolbar } from './FloatingDiscoveryToolbar'
@@ -15,6 +16,7 @@ interface MapCanvasProps {
   mapItems?: ResourceMapItem[]
   mapLoading?: boolean
   mapError?: string | null
+  onViewportQueryChange?: (query: ResourceMapQuery) => void
   className?: string
 }
 
@@ -33,6 +35,7 @@ export function MapCanvas({
   mapItems = [],
   mapLoading = false,
   mapError = null,
+  onViewportQueryChange,
   className,
 }: MapCanvasProps) {
   const { isExpanded } = useWorkspace()
@@ -44,6 +47,7 @@ export function MapCanvas({
         isLoading={mapLoading}
         error={mapError}
         layoutKey={isExpanded ? 'workspace-expanded' : 'workspace-collapsed'}
+        onViewportQueryChange={onViewportQueryChange}
       />
 
       {!isExpanded && (

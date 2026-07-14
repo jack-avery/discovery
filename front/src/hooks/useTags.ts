@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react'
 import type { Tag } from '@/types'
-import { fetchTags } from '@/features/resources/catalog'
+import { fetchTags } from '@/services/tagService'
+import { useAbortableQuery } from '@/hooks/useAbortableQuery'
+
+const EMPTY_TAGS: Tag[] = []
 
 interface UseTagsResult {
   tags: Tag[]
@@ -9,30 +11,13 @@ interface UseTagsResult {
 }
 
 export function useTags(): UseTagsResult {
-  const [tags, setTags] = useState<Tag[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    fetchTags()
-      .then((data) => {
-        if (!cancelled) setTags(data)
-      })
-      .catch((err: unknown) => {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Failed to load tags')
-        }
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false)
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  const { data: tags, isLoading, error } = useAbortableQuery(
+    (signal) => fetchTags({ signal }),
+    {
+      initialData: EMPTY_TAGS,
+      fallbackErrorMessage: 'Failed to load tags',
+    },
+  )
 
   return { tags, isLoading, error }
 }

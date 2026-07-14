@@ -18,6 +18,7 @@ export function ResourceMapMarkers({ items }: ResourceMapMarkersProps) {
           position={[item.location.latitude, item.location.longitude]}
           icon={getCategoryMarkerIcon(item.categorySlug, {
             selected: selectedResourceId === item.id,
+            colorHex: item.colorHex,
           })}
           title={item.name}
           eventHandlers={{
