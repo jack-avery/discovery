@@ -12,8 +12,9 @@ const MAP_QUERY_DEFAULTS = {
 } as const
 
 /**
- * Long-term map query. Today adapts to lat/lng/radius_km.
- * FUTURE bbox support should land only in {@link buildMapQueryParams}.
+ * Long-term map query. Geo fields adapt to lat/lng/radius_km.
+ * Filter fields mirror list filters so Discover can share one query state.
+ * Today's GET /resources/map may ignore filter params until the backend is extended.
  */
 export interface ResourceMapQuery {
   lat: number
@@ -30,12 +31,20 @@ export interface ResourceMapQuery {
     east: number
     west: number
   }
+  /** Empty / omitted = all categories. */
+  categoryIds?: number[]
+  /** Empty / omitted = all tags. */
+  tagIds?: number[]
+  search?: string
 }
 
-export type ResourceMapQueryLimitation = {
-  code: 'RADIUS_APPROXIMATES_VIEWPORT'
-  detail: string
-}
+export type ResourceMapQueryLimitation =
+  | {
+      code: 'RADIUS_APPROXIMATES_VIEWPORT'
+      detail: string
+    }
+  | { code: 'MULTI_CATEGORY_UNSUPPORTED'; selectedIds: number[] }
+  | { code: 'MULTI_TAG_UNSUPPORTED'; selectedIds: number[] }
 
 export interface FetchMapResourcesOptions {
   signal?: AbortSignal
@@ -82,11 +91,11 @@ export function mapPinToItem(pin: MapPinDto): ResourceMapItem {
 /**
  * Adapts {@link ResourceMapQuery} to today's GET /resources/map params.
  *
- * Backend today: required `lat`, `lng`; optional `radius_km` (default 10, max 50).
+ * Backend today (documented): required `lat`, `lng`; optional `radius_km`.
+ * Filter params (`category_id`, `tag_id`, `search`) are sent when supported by the
+ * long-term contract; if the backend ignores them, pins remain unfiltered.
  *
- * FUTURE bounding-box (change only this function):
- * When backend accepts north/south/east/west (or bbox), send `query.bounds`
- * and stop synthesizing radius from the viewport.
+ * Multi-select policy matches the list adapter (0 / 1 / 2+).
  */
 export function buildMapQueryParams(query: ResourceMapQuery): {
   params: Record<string, QueryParamValue>
@@ -107,14 +116,39 @@ export function buildMapQueryParams(query: ResourceMapQuery): {
     Math.max(1, query.radiusKm ?? MAP_QUERY_DEFAULTS.radiusKm),
   )
 
-  return {
-    params: {
-      lat: query.lat,
-      lng: query.lng,
-      radius_km: radiusKm,
-    },
-    limitations,
+  const params: Record<string, QueryParamValue> = {
+    lat: query.lat,
+    lng: query.lng,
+    radius_km: radiusKm,
   }
+
+  const categoryIds = query.categoryIds?.filter((id) => Number.isFinite(id)) ?? []
+  const tagIds = query.tagIds?.filter((id) => Number.isFinite(id)) ?? []
+
+  if (categoryIds.length === 1) {
+    params.category_id = categoryIds[0]
+  } else if (categoryIds.length > 1) {
+    limitations.push({
+      code: 'MULTI_CATEGORY_UNSUPPORTED',
+      selectedIds: categoryIds,
+    })
+  }
+
+  if (tagIds.length === 1) {
+    params.tag_id = tagIds[0]
+  } else if (tagIds.length > 1) {
+    limitations.push({
+      code: 'MULTI_TAG_UNSUPPORTED',
+      selectedIds: tagIds,
+    })
+  }
+
+  const search = query.search?.trim()
+  if (search) {
+    params.search = search
+  }
+
+  return { params, limitations }
 }
 
 /** Initial map query from configured Discover map centre (before Leaflet reports bounds). */
@@ -147,11 +181,6 @@ export function haversineKm(
 
 /**
  * Derive a radius query that covers the visible rectangular viewport.
- * Uses centre → NE corner distance (circumradius of the bbox) clamped to [1, 50] km.
- *
- * Limitation: a circle cannot match a rectangular viewport exactly — pins near
- * corner gaps of a smaller inscribed circle are included; extra pins may appear
- * slightly outside the visible rectangle on the short sides.
  */
 export function viewportToMapQuery(input: {
   lat: number
@@ -177,21 +206,23 @@ export function viewportToMapQuery(input: {
 }
 
 /**
- * Quantize query values so sub-pixel pan noise does not re-fetch.
+ * Quantize geo query values so sub-pixel pan noise does not re-fetch.
+ * Filter fields are preserved as provided.
  */
 export function stabilizeMapQuery(query: ResourceMapQuery): ResourceMapQuery {
   return {
+    ...query,
     lat: Math.round(query.lat * 10000) / 10000,
     lng: Math.round(query.lng * 10000) / 10000,
     radiusKm:
       query.radiusKm === undefined
         ? undefined
         : Math.round(query.radiusKm * 10) / 10,
-    bounds: query.bounds,
   }
 }
 
-export function mapQueryKey(query: ResourceMapQuery): string {
+/** Geo-only key — used when merging viewport updates without resetting filters. */
+export function mapViewportQueryKey(query: ResourceMapQuery): string {
   const stable = stabilizeMapQuery(query)
   return JSON.stringify({
     lat: stable.lat,
@@ -200,8 +231,21 @@ export function mapQueryKey(query: ResourceMapQuery): string {
   })
 }
 
+export function mapQueryKey(query: ResourceMapQuery): string {
+  const stable = stabilizeMapQuery(query)
+  return JSON.stringify({
+    lat: stable.lat,
+    lng: stable.lng,
+    radiusKm: stable.radiusKm ?? null,
+    categoryIds: query.categoryIds ?? [],
+    tagIds: query.tagIds ?? [],
+    search: query.search?.trim() ?? '',
+  })
+}
+
 /**
  * Fetch map pins from GET /resources/map.
+ * Builds params, calls the backend, maps DTOs — no client-side pin filtering.
  */
 export async function fetchMapResources(
   query: ResourceMapQuery = getDefaultMapQuery(),

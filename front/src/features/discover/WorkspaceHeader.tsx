@@ -49,7 +49,7 @@ export function WorkspaceHeader() {
   return (
     <PanelHeader
       title={
-        <h2 className="font-heading text-base font-semibold text-foreground">Discover</h2>
+        <h2 className="font-heading text-base font-semibold text-foreground">Discover Resources</h2>
       }
       trailing={collapseButton}
     />

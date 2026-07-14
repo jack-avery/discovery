@@ -1,15 +1,27 @@
+import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import {
+  Accessibility,
+  Banknote,
+  ChevronDown,
   Clock,
   FileText,
   Globe,
+  Info,
   Loader2,
   Mail,
   MapPin,
+  Navigation,
   Phone,
-  ShieldCheck,
+  Settings,
+  Users,
 } from 'lucide-react'
+import resourcePlaceholder from '@/assets/resource-placeholder.svg'
 import { EmptyState } from '@/components/shared'
 import { Badge } from '@/components/ui'
+import {
+  DetailGlanceRow,
+  DetailSectionCard,
+} from '@/features/discover/DetailInfoCard'
 import { WorkspaceSection } from '@/features/discover/WorkspaceSection'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { useResourceDetail } from '@/hooks/useResourceDetail'
@@ -18,7 +30,9 @@ import type {
   ResourceDetail,
   ResourceHourDto,
   ResourceLocationDto,
+  ResourceVersionTagDto,
 } from '@/types/resource'
+import { cn } from '@/utils/cn'
 
 const DAY_LABELS = [
   'Sunday',
@@ -30,34 +44,31 @@ const DAY_LABELS = [
   'Saturday',
 ] as const
 
-/** Presentation-only: format backend ISO timestamps for display. */
-function formatDate(iso: string | null | undefined): string | null {
-  if (!iso) return null
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return iso
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  })
-}
+type ContactKind = 'phone' | 'email' | 'website' | 'other'
 
-/** Presentation-only: truncate backend time strings like "09:00:00". */
+/** Presentation-only: truncate backend time strings like "09:00:00" to 12-hour display. */
 function formatTime(value: string | null): string | null {
   if (!value) return null
-  return value.length >= 5 ? value.slice(0, 5) : value
+  const raw = value.length >= 5 ? value.slice(0, 5) : value
+  const match = /^(\d{1,2}):(\d{2})$/.exec(raw)
+  if (!match) return raw
+  const hour = Number(match[1])
+  const minute = match[2]
+  if (Number.isNaN(hour) || hour > 23) return raw
+  const period = hour >= 12 ? 'PM' : 'AM'
+  const hour12 = hour % 12 || 12
+  return `${hour12}:${minute} ${period}`
 }
 
-function formatHourLine(hour: ResourceHourDto): string {
-  const day = DAY_LABELS[hour.day_of_week] ?? `Day ${hour.day_of_week}`
-  if (hour.is_closed) return `${day}: Closed`
-  if (hour.by_appointment_only) return `${day}: By appointment`
+function formatHourRange(hour: ResourceHourDto): string {
+  if (hour.is_closed) return 'Closed'
+  if (hour.by_appointment_only) return 'By appointment'
   const opens = formatTime(hour.opens_at)
   const closes = formatTime(hour.closes_at)
-  if (opens && closes) return `${day}: ${opens} – ${closes}`
-  if (opens) return `${day}: Opens ${opens}`
-  if (closes) return `${day}: Closes ${closes}`
-  return day
+  if (opens && closes) return `${opens} – ${closes}`
+  if (opens) return `Opens ${opens}`
+  if (closes) return `Closes ${closes}`
+  return 'Hours unavailable'
 }
 
 function formatLocationAddress(location: ResourceLocationDto): string {
@@ -72,22 +83,56 @@ function formatLocationAddress(location: ResourceLocationDto): string {
     .join(', ')
 }
 
-function contactHref(contact: ResourceContactDto): string | null {
+function classifyContact(contact: ResourceContactDto): ContactKind {
   const type = contact.contact_type.toLowerCase()
   const value = contact.contact_value.trim()
-  if (!value) return null
-  if (type.includes('email') || value.includes('@')) return `mailto:${value}`
-  if (type.includes('phone') || type.includes('tel')) {
-    return `tel:${value.replace(/[^\d+]/g, '')}`
-  }
+  if (type.includes('email') || value.includes('@')) return 'email'
+  if (type.includes('phone') || type.includes('tel')) return 'phone'
   if (type.includes('web') || type.includes('url') || /^https?:\/\//i.test(value)) {
+    return 'website'
+  }
+  return 'other'
+}
+
+function contactHref(contact: ResourceContactDto): string | null {
+  const kind = classifyContact(contact)
+  const value = contact.contact_value.trim()
+  if (!value) return null
+  if (kind === 'email') return `mailto:${value}`
+  if (kind === 'phone') return `tel:${value.replace(/[^\d+]/g, '')}`
+  if (kind === 'website') {
     return value.startsWith('http') ? value : `https://${value}`
   }
   return null
 }
 
+function directionsHref(location: ResourceLocationDto): string | null {
+  if (location.lat != null && location.lng != null) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${location.lat},${location.lng}`
+  }
+  const address = formatLocationAddress(location)
+  if (!address) return null
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`
+}
+
 function hasText(value: string | null | undefined): value is string {
   return Boolean(value && value.trim())
+}
+
+/** First concise clause for glance summaries — not a full paragraph. */
+function conciseFact(value: string, maxLength = 42): string {
+  const normalized = value.trim().replace(/\s+/g, ' ')
+  const clause = normalized.split(/(?<=[.!;])\s+|,\s+|;\s+|\n+/)[0]?.trim() || normalized
+  if (clause.length <= maxLength) return clause.replace(/[.!;]+$/, '')
+  return `${clause.slice(0, maxLength).trimEnd()}…`
+}
+
+function pickPrimaryContact(
+  contacts: ResourceContactDto[],
+  kind: ContactKind,
+): ResourceContactDto | undefined {
+  const matches = contacts.filter((c) => classifyContact(c) === kind)
+  return matches.find((c) => c.is_primary) ?? matches[0]
 }
 
 /**
@@ -105,7 +150,7 @@ export function ResourceDetailScreen() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin">
-      <div className="workspace-content flex-1">
+      <div className="workspace-content flex-1 !gap-3">
         {!resourceId ? (
           <EmptyState
             title="No resource selected"
@@ -152,21 +197,47 @@ function ResourceDetailContent({ resource }: { resource: ResourceDetail }) {
   const contacts = version.contacts.filter((c) => hasText(c.contact_value))
   const hours = [...version.hours].sort((a, b) => a.day_of_week - b.day_of_week)
 
-  const approvedAt = formatDate(version.approved_at)
-  const submittedAt = formatDate(version.submitted_at)
-  const expiresAt = formatDate(version.expires_at)
-  const hasVerification = Boolean(approvedAt || submittedAt || expiresAt || version.moderation_status)
+  const primaryLocation =
+    locations.find((location) => location.is_primary) ?? locations[0] ?? null
+  const phoneContact = pickPrimaryContact(contacts, 'phone')
+  const emailContact = pickPrimaryContact(contacts, 'email')
+  const websiteContact = pickPrimaryContact(contacts, 'website')
+  const directionsUrl = primaryLocation ? directionsHref(primaryLocation) : null
+
+  /**
+   * Backend has no separate organization-name field today.
+   * When that field exists and differs from the resource name, render it under the title.
+   */
+  const organizationName: string | null = null
+
+  const hasServiceDetails =
+    hasText(version.eligibility) ||
+    hasText(version.cost_description) ||
+    hasText(version.accessibility_notes) ||
+    hours.length > 0 ||
+    tags.length > 0 ||
+    contacts.length > 0
 
   return (
-    <div className="flex flex-col gap-[var(--ds-workspace-section-gap)]">
-      <WorkspaceSection divider>
-        <div className="space-y-2">
-          <h3 className="font-heading text-lg font-semibold text-foreground">{version.name}</h3>
-          {version.resource_type && (
-            <p className="text-sm text-muted-foreground">{version.resource_type}</p>
-          )}
-          {categories.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
+    <div className="flex flex-col gap-3">
+      {/* Hero */}
+      <ResourceHero imageUrl={version.image_url} alt={`${version.name} photo`} />
+
+      {/* Identity + primary actions */}
+      <WorkspaceSection aria-label="General information" divider className="pb-3">
+        <div className="space-y-2.5">
+          <div className="space-y-1">
+            <h2 className="font-heading text-lg font-semibold leading-tight text-foreground">
+              {version.name}
+            </h2>
+            {/* Organization name: render when a dedicated org field exists and differs from version.name */}
+            {organizationName && (
+              <p className="text-xs text-muted-foreground">{organizationName}</p>
+            )}
+            <div className="flex flex-wrap items-center gap-1 pt-0.5">
+              {hasText(version.resource_type) && (
+                <Badge variant="primary">{version.resource_type}</Badge>
+              )}
               {categories.map((category) => (
                 <Badge
                   key={category.category_id}
@@ -176,172 +247,504 @@ function ResourceDetailContent({ resource }: { resource: ResourceDetail }) {
                 </Badge>
               ))}
             </div>
-          )}
+          </div>
+
+          <PrimaryActions
+            phone={phoneContact}
+            website={websiteContact}
+            email={emailContact}
+            directionsUrl={directionsUrl}
+          />
         </div>
       </WorkspaceSection>
 
-      {hasText(version.description) && (
-        <WorkspaceSection title="About">
-          <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-            {version.description}
-          </p>
-        </WorkspaceSection>
+      {/* About card */}
+      {(hasText(version.description) || hasText(version.general_notes)) && (
+        <AboutSection
+          description={version.description}
+          notes={version.general_notes}
+        />
       )}
 
-      {hasText(version.eligibility) && (
-        <WorkspaceSection title="Eligibility">
-          <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-            {version.eligibility}
-          </p>
-        </WorkspaceSection>
-      )}
-
-      {hasText(version.cost_description) && (
-        <WorkspaceSection title="Cost">
-          <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-            {version.cost_description}
-          </p>
-        </WorkspaceSection>
-      )}
-
-      {hasText(version.accessibility_notes) && (
-        <WorkspaceSection title="Accessibility">
-          <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-            {version.accessibility_notes}
-          </p>
-        </WorkspaceSection>
-      )}
-
-      {hasText(version.general_notes) && (
-        <WorkspaceSection title="Notes">
-          <p className="text-sm leading-relaxed text-muted-foreground whitespace-pre-wrap">
-            {version.general_notes}
-          </p>
-        </WorkspaceSection>
-      )}
-
+      {/* Location card — address only; map beside workspace is source of truth.
+          Future: optional “Center on map” control can attach here. */}
       {locations.length > 0 && (
-        <WorkspaceSection title="Locations">
-          <ul className="space-y-3 p-0 list-none">
+        <DetailSectionCard
+          icon={<MapPin className="h-4 w-4" strokeWidth={2} />}
+          title={locations.length > 1 ? 'Locations' : 'Location'}
+        >
+          <ul className="space-y-2.5 p-0 list-none">
             {locations.map((location) => (
               <LocationRow key={location.location_id} location={location} />
             ))}
           </ul>
-        </WorkspaceSection>
+        </DetailSectionCard>
       )}
 
-      {contacts.length > 0 && (
-        <WorkspaceSection title="Contact">
-          <ul className="space-y-2 p-0 list-none">
-            {contacts.map((contact) => (
-              <ContactRow key={contact.contact_id} contact={contact} />
-            ))}
-          </ul>
-        </WorkspaceSection>
+      {/* Service Details — collapsed by default */}
+      {hasServiceDetails && (
+        <ServiceDetailsSection
+          eligibility={version.eligibility}
+          cost={version.cost_description}
+          accessibility={version.accessibility_notes}
+          hours={hours}
+          contacts={contacts}
+          tags={tags}
+        />
       )}
 
-      {hours.length > 0 && (
-        <WorkspaceSection title="Hours">
-          <ul className="space-y-1.5 p-0 list-none text-sm text-muted-foreground">
-            {hours.map((hour) => (
-              <li key={hour.day_of_week} className="flex items-start gap-2">
-                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>
-                  {formatHourLine(hour)}
-                  {hasText(hour.notes) ? ` — ${hour.notes}` : ''}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </WorkspaceSection>
-      )}
+      {/* Disclaimer */}
+      <WorkspaceSection aria-label="Disclaimer">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Information may change over time. Please contact the organization
+          directly to confirm hours, availability, and eligibility before visiting.
+        </p>
+      </WorkspaceSection>
 
-      {tags.length > 0 && (
-        <WorkspaceSection title="Tags">
-          <div className="flex flex-wrap gap-1.5">
-            {tags.map((tag) => (
-              <Badge key={tag.tag_id} variant="outline">
-                {tag.name}
-              </Badge>
-            ))}
-          </div>
-        </WorkspaceSection>
-      )}
+      {/*
+        Future extension point: Staff Status / moderation section.
+        Insert staff-only verification UI here (moderation status, approval dates,
+        submitted dates, image metadata) without restructuring public sections above.
+      */}
+    </div>
+  )
+}
 
-      {hasText(version.image_url) && (
-        <WorkspaceSection title="Image">
-          <a
-            href={version.image_url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-sm text-interactive hover:underline break-all"
-          >
-            {version.image_url}
-          </a>
-        </WorkspaceSection>
-      )}
+function ResourceHero({
+  imageUrl,
+  alt,
+}: {
+  imageUrl: string | null
+  alt: string
+}) {
+  const [failed, setFailed] = useState(false)
+  const src = hasText(imageUrl) && !failed ? imageUrl : resourcePlaceholder
+  const usingFallback = src === resourcePlaceholder
 
-      {hasVerification && (
-        <WorkspaceSection title="Verification">
-          <ul className="space-y-1.5 p-0 list-none text-sm text-muted-foreground">
-            {version.moderation_status && (
-              <li className="flex items-center gap-2">
-                <ShieldCheck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                <span>Status: {version.moderation_status.replace(/_/g, ' ')}</span>
-              </li>
-            )}
-            {approvedAt && <li>Approved: {approvedAt}</li>}
-            {submittedAt && <li>Submitted: {submittedAt}</li>}
-            {expiresAt && <li>Expires: {expiresAt}</li>}
-          </ul>
-        </WorkspaceSection>
+  return (
+    <div
+      className={cn(
+        '-mx-[var(--ds-workspace-padding)] -mt-[var(--ds-workspace-padding)]',
+        'mb-0 overflow-hidden rounded-b-xl bg-muted',
       )}
+    >
+      {/* ~25% shorter than the previous 16/10 hero */}
+      <div className="aspect-[17/8] w-full">
+        <img
+          src={src}
+          alt={usingFallback ? 'Community resource placeholder' : alt}
+          className="h-full w-full object-cover"
+          onError={() => setFailed(true)}
+        />
+      </div>
+    </div>
+  )
+}
+
+function PrimaryActions({
+  phone,
+  website,
+  email,
+  directionsUrl,
+}: {
+  phone?: ResourceContactDto
+  website?: ResourceContactDto
+  email?: ResourceContactDto
+  directionsUrl: string | null
+}) {
+  const actions: Array<{
+    key: string
+    href: string
+    label: string
+    icon: ReactNode
+    external?: boolean
+  }> = []
+
+  if (phone) {
+    const href = contactHref(phone)
+    if (href) {
+      actions.push({
+        key: 'call',
+        href,
+        label: 'Call',
+        icon: <Phone className="h-4 w-4" aria-hidden="true" />,
+      })
+    }
+  }
+  if (website) {
+    const href = contactHref(website)
+    if (href) {
+      actions.push({
+        key: 'website',
+        href,
+        label: 'Website',
+        icon: <Globe className="h-4 w-4" aria-hidden="true" />,
+        external: true,
+      })
+    }
+  }
+  if (email) {
+    const href = contactHref(email)
+    if (href) {
+      actions.push({
+        key: 'email',
+        href,
+        label: 'Email',
+        icon: <Mail className="h-4 w-4" aria-hidden="true" />,
+      })
+    }
+  }
+  if (directionsUrl) {
+    actions.push({
+      key: 'directions',
+      href: directionsUrl,
+      label: 'Directions',
+      icon: <Navigation className="h-4 w-4" aria-hidden="true" />,
+      external: true,
+    })
+  }
+
+  if (actions.length === 0) return null
+
+  return (
+    <div
+      className="flex items-stretch overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+      role="group"
+      aria-label="Primary actions"
+    >
+      {actions.map((action, index) => (
+        <a
+          key={action.key}
+          href={action.href}
+          className={cn(
+            'flex min-h-[var(--ds-min-touch)] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-2',
+            'text-[11px] font-medium text-foreground transition-colors focus-ring',
+            'hover:bg-interactive-muted hover:text-interactive',
+            index > 0 && 'border-l border-border',
+          )}
+          {...(action.external ? { target: '_blank', rel: 'noreferrer' } : {})}
+        >
+          <span className="text-interactive">{action.icon}</span>
+          <span>{action.label}</span>
+        </a>
+      ))}
     </div>
   )
 }
 
 function LocationRow({ location }: { location: ResourceLocationDto }) {
   const address = formatLocationAddress(location)
+
   return (
-    <li className="flex items-start gap-2 text-sm text-muted-foreground">
-      <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-      <div className="min-w-0 space-y-0.5">
-        {hasText(location.location_name) && (
-          <p className="font-medium text-foreground">{location.location_name}</p>
-        )}
-        {address && <p>{address}</p>}
-        {location.is_virtual && <p className="text-xs">Virtual / online</p>}
-        {hasText(location.service_area_notes) && (
-          <p className="text-xs">{location.service_area_notes}</p>
-        )}
-      </div>
+    <li className="min-w-0 space-y-0.5 text-sm">
+      {hasText(location.location_name) && (
+        <p className="font-medium leading-snug text-foreground">{location.location_name}</p>
+      )}
+      {address && (
+        <p className="leading-snug text-muted-foreground">{address}</p>
+      )}
     </li>
   )
 }
 
-function ContactRow({ contact }: { contact: ResourceContactDto }) {
-  const href = contactHref(contact)
-  const type = contact.contact_type.toLowerCase()
-  const Icon = type.includes('email')
-    ? Mail
-    : type.includes('web') || type.includes('url')
-      ? Globe
-      : Phone
+function AboutSection({
+  description,
+  notes,
+}: {
+  description: string | null
+  notes: string | null
+}) {
+  const [expanded, setExpanded] = useState(false)
+  const textRef = useRef<HTMLParagraphElement>(null)
+  const [isClampable, setIsClampable] = useState(false)
+
+  useLayoutEffect(() => {
+    const node = textRef.current
+    if (!node || !hasText(description)) {
+      setIsClampable(false)
+      return
+    }
+    if (expanded) return
+    setIsClampable(node.scrollHeight > node.clientHeight + 1)
+  }, [description, expanded])
 
   return (
-    <li className="flex items-start gap-2 text-sm text-muted-foreground">
-      <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+    <DetailSectionCard
+      icon={<Info className="h-4 w-4" strokeWidth={2} />}
+      title="About"
+    >
+      <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
+        {hasText(description) && (
+          <div>
+            <p
+              ref={textRef}
+              className={cn('whitespace-pre-wrap', !expanded && 'line-clamp-4')}
+            >
+              {description}
+            </p>
+            {(isClampable || expanded) && (
+              <button
+                type="button"
+                className="mt-1 inline-flex min-h-[var(--ds-min-touch)] items-center text-xs font-medium text-interactive hover:underline focus-ring rounded-md sm:min-h-0"
+                aria-expanded={expanded}
+                onClick={() => setExpanded((value) => !value)}
+              >
+                {expanded ? 'Show less' : 'Show more'}
+              </button>
+            )}
+          </div>
+        )}
+        {hasText(notes) && <p className="whitespace-pre-wrap">{notes}</p>}
+      </div>
+    </DetailSectionCard>
+  )
+}
+
+function ServiceDetailsSection({
+  eligibility,
+  cost,
+  accessibility,
+  hours,
+  contacts,
+  tags,
+}: {
+  eligibility: string | null
+  cost: string | null
+  accessibility: string | null
+  hours: ResourceHourDto[]
+  contacts: ResourceContactDto[]
+  tags: ResourceVersionTagDto[]
+}) {
+  const panelId = useId()
+  const [expanded, setExpanded] = useState(false)
+
+  const todayIndex = new Date().getDay()
+  const today = hours.find((hour) => hour.day_of_week === todayIndex)
+  const todayRange = today ? formatHourRange(today) : null
+  const todayStatus = today
+    ? today.is_closed
+      ? 'Closed today'
+      : !today.is_closed && (Boolean(today.opens_at) || today.by_appointment_only)
+        ? 'Open today'
+        : 'Today'
+    : null
+
+  const costSummary = hasText(cost) ? conciseFact(cost, 36) : null
+  const accessibilitySummary = hasText(accessibility)
+    ? conciseFact(accessibility)
+    : null
+
+  const informationalContacts = contacts.filter((contact) => {
+    const kind = classifyContact(contact)
+    return kind === 'phone' || kind === 'email' || kind === 'website'
+  })
+  const visibleTags = tags.filter((tag) => hasText(tag.name))
+
+  const hasCollapsedPreview =
+    Boolean(costSummary) || hours.length > 0 || Boolean(accessibilitySummary)
+  const hasExpandedExtras =
+    hasText(eligibility) ||
+    informationalContacts.length > 0 ||
+    visibleTags.length > 0 ||
+    hours.length > 0 ||
+    hasText(cost) ||
+    hasText(accessibility)
+
+  return (
+    <DetailSectionCard
+      icon={<Settings className="h-4 w-4" strokeWidth={2} />}
+      title="Service Details"
+    >
+      <div className="space-y-3">
+        <div id={panelId} className="divide-y divide-border">
+          {expanded ? (
+            <>
+              {hasText(eligibility) && (
+                <DetailGlanceRow
+                  label="Eligibility"
+                  icon={<Users className="h-3.5 w-3.5" strokeWidth={2} />}
+                >
+                  <p className="whitespace-pre-wrap text-muted-foreground">
+                    {eligibility}
+                  </p>
+                </DetailGlanceRow>
+              )}
+
+              {hasText(cost) && (
+                <DetailGlanceRow
+                  label="Cost"
+                  icon={<Banknote className="h-3.5 w-3.5" strokeWidth={2} />}
+                >
+                  <p className="whitespace-pre-wrap text-muted-foreground">{cost}</p>
+                </DetailGlanceRow>
+              )}
+
+              {hasText(accessibility) && (
+                <DetailGlanceRow
+                  label="Accessibility"
+                  icon={<Accessibility className="h-3.5 w-3.5" strokeWidth={2} />}
+                >
+                  <p className="whitespace-pre-wrap text-muted-foreground">
+                    {accessibility}
+                  </p>
+                </DetailGlanceRow>
+              )}
+
+              {hours.length > 0 && (
+                <DetailGlanceRow
+                  label="Hours"
+                  icon={<Clock className="h-3.5 w-3.5" strokeWidth={2} />}
+                >
+                  <ul className="space-y-1 list-none p-0">
+                    {hours.map((hour) => (
+                      <li
+                        key={hour.day_of_week}
+                        className="flex items-start justify-between gap-2 text-xs text-muted-foreground"
+                      >
+                        <span className="font-medium text-foreground">
+                          {DAY_LABELS[hour.day_of_week] ?? `Day ${hour.day_of_week}`}
+                        </span>
+                        <span className="text-right">
+                          {formatHourRange(hour)}
+                          {hasText(hour.notes) ? ` — ${hour.notes}` : ''}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </DetailGlanceRow>
+              )}
+            </>
+          ) : (
+            <>
+              {costSummary && (
+                <DetailGlanceRow
+                  label="Cost"
+                  icon={<Banknote className="h-3.5 w-3.5" strokeWidth={2} />}
+                >
+                  <p>{costSummary}</p>
+                </DetailGlanceRow>
+              )}
+
+              {accessibilitySummary && (
+                <DetailGlanceRow
+                  label="Accessibility"
+                  icon={<Accessibility className="h-3.5 w-3.5" strokeWidth={2} />}
+                >
+                  <p>{accessibilitySummary}</p>
+                </DetailGlanceRow>
+              )}
+
+              {hours.length > 0 && (
+                <DetailGlanceRow
+                  label="Hours"
+                  icon={<Clock className="h-3.5 w-3.5" strokeWidth={2} />}
+                >
+                  <div>
+                    <p className="font-medium">{todayStatus ?? 'Hours'}</p>
+                    {todayRange && (
+                      <p className="text-muted-foreground">{todayRange}</p>
+                    )}
+                    {!today && hours[0] && (
+                      <p className="text-muted-foreground">
+                        {formatHourRange(hours[0])}
+                      </p>
+                    )}
+                  </div>
+                </DetailGlanceRow>
+              )}
+            </>
+          )}
+        </div>
+
+        {expanded && informationalContacts.length > 0 && (
+          <div
+            className={cn(
+              (hasText(eligibility) ||
+                hasText(cost) ||
+                hasText(accessibility) ||
+                hours.length > 0) &&
+                'border-t border-border pt-2.5',
+            )}
+          >
+            <p className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Contact
+            </p>
+            <ul className="space-y-2.5 p-0 list-none">
+              {informationalContacts.map((contact) => (
+                <CompactContactRow key={contact.contact_id} contact={contact} />
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {expanded && visibleTags.length > 0 && (
+          <div
+            className={cn(
+              (hasText(eligibility) ||
+                hasText(cost) ||
+                hasText(accessibility) ||
+                hours.length > 0 ||
+                informationalContacts.length > 0) &&
+                'border-t border-border pt-2.5',
+            )}
+          >
+            <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+              Tags
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {visibleTags.map((tag) => (
+                <Badge key={tag.tag_id} variant="outline">
+                  {tag.name}
+                </Badge>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasExpandedExtras && (
+          <div
+            className={cn(
+              (hasCollapsedPreview || expanded) && 'border-t border-border pt-2',
+            )}
+          >
+            <button
+              type="button"
+              className="inline-flex min-h-[var(--ds-min-touch)] items-center gap-1 text-xs font-medium text-interactive hover:underline focus-ring rounded-md sm:min-h-0"
+              aria-expanded={expanded}
+              aria-controls={panelId}
+              onClick={() => setExpanded((value) => !value)}
+            >
+              {expanded ? 'Hide service details' : 'View complete service details'}
+              <ChevronDown
+                className={cn(
+                  'h-3.5 w-3.5 transition-transform',
+                  expanded && 'rotate-180',
+                )}
+                aria-hidden="true"
+              />
+            </button>
+          </div>
+        )}
+      </div>
+    </DetailSectionCard>
+  )
+}
+
+function CompactContactRow({ contact }: { contact: ResourceContactDto }) {
+  const kind = classifyContact(contact)
+  const Icon = kind === 'email' ? Mail : kind === 'website' ? Globe : Phone
+  const kindLabel =
+    kind === 'email' ? 'Email' : kind === 'website' ? 'Website' : 'Phone'
+  const label = hasText(contact.contact_label) ? contact.contact_label : kindLabel
+
+  return (
+    <li className="flex items-start gap-2 text-sm">
+      <span className="mt-0.5 inline-flex shrink-0 text-interactive" aria-hidden="true">
+        <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+      </span>
       <div className="min-w-0">
-        {hasText(contact.contact_label) && (
-          <p className="text-xs text-muted-foreground">{contact.contact_label}</p>
-        )}
-        {href ? (
-          <a href={href} className="text-interactive hover:underline break-all" {...(href.startsWith('http') ? { target: '_blank', rel: 'noreferrer' } : {})}>
-            {contact.contact_value}
-          </a>
-        ) : (
-          <span className="break-all">{contact.contact_value}</span>
-        )}
+        <p className="text-[11px] font-medium text-muted-foreground">{label}</p>
+        <p className="break-all leading-snug text-foreground">{contact.contact_value}</p>
       </div>
     </li>
   )

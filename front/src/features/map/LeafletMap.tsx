@@ -5,6 +5,7 @@ import { BasemapDevFallbackBanner } from '@/features/map/components/BasemapDevFa
 import { BasemapErrorOverlay } from '@/features/map/components/BasemapErrorOverlay'
 import { BasemapTileLayer } from '@/features/map/components/BasemapTileLayer'
 import { getBasemapConfig } from '@/features/map/services'
+import { FlyToSelectedResource } from './FlyToSelectedResource'
 import { MapResizeHandler } from './MapResizeHandler'
 import { MapViewportReporter } from './MapViewportReporter'
 import { MarkerClusterGroup } from './MarkerClusterLayer'
@@ -35,6 +36,7 @@ export function LeafletMap({ items, layoutKey, onViewportQueryChange }: LeafletM
         {onViewportQueryChange && (
           <MapViewportReporter onQueryChange={onViewportQueryChange} />
         )}
+        <FlyToSelectedResource items={items} />
         <MarkerClusterGroup>
           <ResourceMapMarkers items={items} />
         </MarkerClusterGroup>

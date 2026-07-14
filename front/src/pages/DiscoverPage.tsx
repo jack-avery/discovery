@@ -6,7 +6,7 @@ import { WorkspaceProvider } from '@/features/discover/providers/WorkspaceProvid
 import { useCategories, useResourceMap, useResources, useTags } from '@/hooks'
 import {
   getDefaultMapQuery,
-  mapQueryKey,
+  mapViewportQueryKey,
   type ResourceMapQuery,
 } from '@/services/mapService'
 import {
@@ -29,16 +29,20 @@ function DiscoverPageContent() {
   const { query, setQuery } = useSearch()
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedAdvancedFilters, setSelectedAdvancedFilters] = useState<string[]>([])
-  const [mapQuery, setMapQuery] = useState<ResourceMapQuery>(() => getDefaultMapQuery())
+  const [viewportQuery, setViewportQuery] = useState<ResourceMapQuery>(() =>
+    getDefaultMapQuery(),
+  )
 
   const handleViewportQueryChange = useCallback((next: ResourceMapQuery) => {
-    setMapQuery((prev) => (mapQueryKey(prev) === mapQueryKey(next) ? prev : next))
+    setViewportQuery((prev) =>
+      mapViewportQueryKey(prev) === mapViewportQueryKey(next) ? prev : next,
+    )
   }, [])
 
   const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
-  const { items: mapItems, isLoading: mapLoading, error: mapError } = useResourceMap(mapQuery)
 
+  /** Shared Discover filter state — drives both the resource list and map pins. */
   const resourceFilters = useMemo(
     () => ({
       categoryIds: resolveCategoryIds(selectedCategories, categories),
@@ -47,6 +51,18 @@ function DiscoverPageContent() {
     }),
     [selectedCategories, selectedAdvancedFilters, categories, tags, query],
   )
+
+  const mapQuery = useMemo<ResourceMapQuery>(
+    () => ({
+      ...viewportQuery,
+      categoryIds: resourceFilters.categoryIds,
+      tagIds: resourceFilters.tagIds,
+      search: resourceFilters.search,
+    }),
+    [viewportQuery, resourceFilters],
+  )
+
+  const { items: mapItems, isLoading: mapLoading, error: mapError } = useResourceMap(mapQuery)
 
   const {
     resources,

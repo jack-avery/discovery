@@ -5,6 +5,7 @@ import { cn } from '@/utils/cn'
 interface SearchBarProps {
   value?: string
   onChange?: (value: string) => void
+  onFocus?: () => void
   placeholder?: string
   compact?: boolean
   /** Borderless styling for use inside a floating control bubble. */
@@ -16,6 +17,7 @@ interface SearchBarProps {
 export function SearchBar({
   value = '',
   onChange,
+  onFocus,
   placeholder = 'Search resources…',
   compact = false,
   floating = false,
@@ -38,6 +40,7 @@ export function SearchBar({
         id={inputId}
         value={value}
         onChange={(e) => onChange?.(e.target.value)}
+        onFocus={onFocus}
         placeholder={placeholder}
         className={cn(
           'text-sm',
