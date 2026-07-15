@@ -7,9 +7,16 @@ interface ContributionEditorSheetProps {
   open: boolean
   title: string
   description?: string
+  /** Optional sticky progress indicator rendered under the title. */
+  progress?: ReactNode
   onClose: () => void
-  onSave: () => void
+  /** Primary footer action (save / submit). Omit with hidePrimary for close-only sheets. */
+  onSave?: () => void
   saveLabel?: string
+  cancelLabel?: string
+  /** When true, the primary footer button is not rendered. */
+  hidePrimary?: boolean
+  primaryDisabled?: boolean
   children: ReactNode
 }
 
@@ -25,20 +32,27 @@ const FOCUSABLE_SELECTOR = [
 /**
  * Large contribution editor surface.
  * Desktop: wide right sheet. Mobile: full-screen.
+ * Sticky header (title + progress + close) stays visible while the form scrolls.
  * Focus trap, Escape, body scroll lock, and focus return included.
  */
 export function ContributionEditorSheet({
   open,
   title,
   description,
+  progress,
   onClose,
   onSave,
   saveLabel = 'Save contribution',
+  cancelLabel = 'Cancel',
+  hidePrimary = false,
+  primaryDisabled = false,
   children,
 }: ContributionEditorSheetProps) {
   const titleId = useId()
   const descriptionId = useId()
   const panelRef = useRef<HTMLDivElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
 
   useEffect(() => {
@@ -98,6 +112,25 @@ export function ContributionEditorSheet({
     }
   }, [open, onClose])
 
+  // Keep scroll-margin in sync with sticky header height so sections/errors
+  // are not hidden underneath when focused or navigated to.
+  useEffect(() => {
+    if (!open) return
+    const header = headerRef.current
+    const scroll = scrollRef.current
+    if (!header || !scroll) return
+
+    const syncOffset = () => {
+      const offset = header.offsetHeight + 12
+      scroll.style.setProperty('--editor-sticky-offset', `${offset}px`)
+    }
+
+    syncOffset()
+    const observer = new ResizeObserver(syncOffset)
+    observer.observe(header)
+    return () => observer.disconnect()
+  }, [open, progress, description, title])
+
   if (!open) return null
 
   return (
@@ -122,43 +155,67 @@ export function ContributionEditorSheet({
           'border-l border-border',
         )}
       >
-        <header className="flex shrink-0 items-start justify-between gap-3 border-b border-border px-4 py-4 sm:px-6">
-          <div className="min-w-0 space-y-1">
-            <h2
-              id={titleId}
-              className="font-heading text-lg font-semibold text-foreground sm:text-xl"
+        <header
+          ref={headerRef}
+          className={cn(
+            'shrink-0 border-b border-border bg-surface px-4 py-4 sm:px-6',
+            'shadow-sm',
+          )}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 space-y-1">
+              <h2
+                id={titleId}
+                className="font-heading text-lg font-semibold text-foreground sm:text-xl"
+              >
+                {title}
+              </h2>
+              {description ? (
+                <p id={descriptionId} className="text-sm text-muted-foreground">
+                  {description}
+                </p>
+              ) : null}
+            </div>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              aria-label="Close editor"
+              className="shrink-0"
             >
-              {title}
-            </h2>
-            {description ? (
-              <p id={descriptionId} className="text-sm text-muted-foreground">
-                {description}
-              </p>
-            ) : null}
+              <X className="h-5 w-5" aria-hidden="true" />
+            </Button>
           </div>
 
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            onClick={onClose}
-            aria-label="Close editor"
-          >
-            <X className="h-5 w-5" aria-hidden="true" />
-          </Button>
+          {progress ? <div className="mt-3">{progress}</div> : null}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 scrollbar-thin sm:px-6">
+        <div
+          ref={scrollRef}
+          className={cn(
+            'min-h-0 flex-1 overflow-y-auto px-4 py-5 scrollbar-thin sm:px-6',
+            '[&_[id]]:scroll-mt-[var(--editor-sticky-offset,8rem)]',
+          )}
+        >
           {children}
         </div>
 
         <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-surface px-4 py-3 sm:px-6">
           <Button type="button" variant="secondary" onClick={onClose}>
-            Cancel
+            {cancelLabel}
           </Button>
-          <Button type="button" variant="primary" onClick={onSave}>
-            {saveLabel}
-          </Button>
+          {!hidePrimary && onSave ? (
+            <Button
+              type="button"
+              variant="primary"
+              onClick={onSave}
+              disabled={primaryDisabled}
+            >
+              {saveLabel}
+            </Button>
+          ) : null}
         </footer>
       </div>
     </div>

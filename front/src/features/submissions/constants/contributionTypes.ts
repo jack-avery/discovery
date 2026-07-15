@@ -1,6 +1,7 @@
 import type {
   Contribution,
   ContributionType,
+  SavedContributionPayload,
   SubmissionDraft,
 } from '@/types/submission'
 import { SUBMISSION_DRAFT_SCHEMA_VERSION } from '@/types/submission'
@@ -10,6 +11,12 @@ import {
   HandHeart,
   type LucideIcon,
 } from 'lucide-react'
+import {
+  createEmptyExistingResourceData,
+  createPlaceholderData,
+} from '../existingResource/emptyState'
+import { createEmptySkillsServicesData } from '../skillsServices/emptyState'
+import { createEmptyEventData } from '../event/emptyState'
 
 export interface ContributionTypeMeta {
   type: ContributionType
@@ -78,13 +85,23 @@ export function createSubmissionId(): string {
 
 export function createEmptyContribution(type: ContributionType): Contribution {
   const meta = CONTRIBUTION_TYPE_META[type]
+  const data =
+    type === 'existing_resource'
+      ? createEmptyExistingResourceData()
+      : type === 'community_asset'
+        ? createEmptySkillsServicesData()
+        : type === 'event'
+          ? createEmptyEventData()
+          : createPlaceholderData()
+
   return {
     id: createContributionId(),
     type,
     status: 'incomplete',
     title: meta.placeholderTitle,
     summary: 'Details will appear here once the editor is completed.',
-    data: {},
+    highlights: [],
+    data,
   }
 }
 
@@ -96,12 +113,14 @@ export function createEmptySubmissionDraft(): SubmissionDraft {
       name: '',
       email: '',
       phone: '',
-      preferredContactMethod: 'email',
+      preferredContactMethod: null,
     },
     consent: false,
     ui: {
       editor: null,
       showTypePicker: false,
+      showContributorEditor: false,
+      showReview: false,
       phase: 'editing',
     },
     meta: {
@@ -110,3 +129,5 @@ export function createEmptySubmissionDraft(): SubmissionDraft {
     },
   }
 }
+
+export type { SavedContributionPayload }

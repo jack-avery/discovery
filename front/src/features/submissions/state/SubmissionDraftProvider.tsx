@@ -11,6 +11,8 @@ import {
 import type {
   Contribution,
   ContributionType,
+  ContributorInfo,
+  SavedContributionPayload,
   SubmissionDraft,
 } from '@/types/submission'
 import { SUBMISSION_DRAFT_SCHEMA_VERSION } from '@/types/submission'
@@ -23,27 +25,51 @@ import {
 } from './draftStorage'
 import {
   CONTRIBUTION_TYPE_META,
-  createEmptyContribution,
+  createContributionId,
   createEmptySubmissionDraft,
 } from '../constants/contributionTypes'
+import {
+  canAddContribution,
+  CONTRIBUTION_LIMIT_RESTORE_NOTICE,
+  MAX_CONTRIBUTIONS_PER_SUBMISSION,
+} from '../constants/contributionLimits'
+import { normalizeExistingResourceData } from '../existingResource/emptyState'
+import { normalizeSkillsServicesData } from '../skillsServices/emptyState'
+import { normalizeEventContributionData } from '../event/emptyState'
+import { normalizeContributorInfo } from '../contributor/emptyState'
 
 interface SubmissionDraftContextValue {
   draft: SubmissionDraft
   showRestoreBanner: boolean
-  /** Open create flow for a contribution type (does not add to draft yet). */
+  /** Set when a restored draft was truncated to the contribution maximum. */
+  restoreNotice: string | null
+  clearRestoreNotice: () => void
   beginCreateContribution: (type: ContributionType) => void
-  /** Open editor for an existing saved contribution. */
   beginEditContribution: (id: string) => void
   closeEditor: () => void
   /**
-   * Persist the in-progress editor session to the draft.
-   * Create mode adds a new contribution; edit mode updates the existing one.
-   * Foundation shell saves a placeholder until real editors supply values.
+   * Persist editor payload into the draft.
+   * Returns false when a new create would exceed the contribution limit.
    */
-  saveEditorContribution: () => void
+  saveEditorContribution: (payload: SavedContributionPayload) => boolean
   openTypePicker: () => void
   closeTypePicker: () => void
   removeContribution: (id: string) => void
+  openContributorEditor: () => void
+  closeContributorEditor: () => void
+  saveContributor: (contributor: ContributorInfo) => void
+  openReview: () => void
+  closeReview: () => void
+  setConsent: (consent: boolean) => void
+  /**
+   * After partial success: remove accepted contributions from the draft so
+   * retry cannot duplicate them. Keeps contributor details and consent.
+   */
+  retainFailedContributions: (failedContributionIds: string[]) => void
+  /** Full success: clear persisted draft and show the success phase. */
+  completeSuccessfulSubmission: () => void
+  /** Start a clean draft after success (Submit another contribution). */
+  startNewSubmission: () => void
   continueDraft: () => void
   discardDraft: () => void
   dismissRestoreBanner: () => void
@@ -69,6 +95,7 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
     createEmptySubmissionDraft(),
   )
   const [showRestoreBanner, setShowRestoreBanner] = useState(false)
+  const [restoreNotice, setRestoreNotice] = useState<string | null>(null)
   const persistenceEnabledRef = useRef(true)
 
   const draftRef = useRef(draft)
@@ -111,18 +138,32 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
 
   const beginCreateContribution = useCallback(
     (type: ContributionType) => {
-      updateDraft((current) => ({
-        ...current,
-        ui: {
-          ...current.ui,
-          showTypePicker: false,
-          editor: {
-            mode: 'create',
-            type,
-            contributionId: null,
+      updateDraft((current) => {
+        if (!canAddContribution(current.contributions.length)) {
+          return {
+            ...current,
+            ui: {
+              ...current.ui,
+              showTypePicker: false,
+              editor: null,
+            },
+          }
+        }
+        return {
+          ...current,
+          ui: {
+            ...current.ui,
+            showTypePicker: false,
+            showContributorEditor: false,
+            showReview: false,
+            editor: {
+              mode: 'create',
+              type,
+              contributionId: null,
+            },
           },
-        },
-      }))
+        }
+      })
     },
     [updateDraft],
   )
@@ -137,6 +178,8 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
           ui: {
             ...current.ui,
             showTypePicker: false,
+            showContributorEditor: false,
+            showReview: false,
             editor: {
               mode: 'edit',
               type: existing.type,
@@ -159,45 +202,109 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
     }))
   }, [updateDraft])
 
-  const saveEditorContribution = useCallback(() => {
-    updateDraft((current) => {
+  const saveEditorContribution = useCallback(
+    (payload: SavedContributionPayload): boolean => {
+      const current = draftRef.current
       const session = current.ui.editor
-      if (!session) return current
+      if (!session) return false
 
       if (session.mode === 'create') {
-        const contribution = createEmptyContribution(session.type)
+        if (!canAddContribution(current.contributions.length)) {
+          updateDraft((latest) => ({
+            ...latest,
+            ui: {
+              ...latest.ui,
+              editor: null,
+              showTypePicker: false,
+            },
+          }))
+          return false
+        }
+
+        const contribution: Contribution = {
+          id: createContributionId(),
+          type: session.type,
+          status: payload.status,
+          title: payload.title,
+          summary: payload.summary,
+          highlights: payload.highlights,
+          data: payload.data,
+        }
+        const previousCount = current.contributions.length
+
+        updateDraft((latest) => {
+          if (!canAddContribution(latest.contributions.length)) {
+            return {
+              ...latest,
+              ui: {
+                ...latest.ui,
+                editor: null,
+                showTypePicker: false,
+              },
+            }
+          }
+          return {
+            ...latest,
+            contributions: [...latest.contributions, contribution],
+            ui: {
+              ...latest.ui,
+              editor: null,
+              showTypePicker: false,
+            },
+          }
+        })
+
+        return draftRef.current.contributions.length > previousCount
+      }
+
+      updateDraft((latest) => ({
+        ...latest,
+        contributions: latest.contributions.map((c) =>
+          c.id === session.contributionId
+            ? {
+                ...c,
+                status: payload.status,
+                title: payload.title,
+                summary: payload.summary,
+                highlights: payload.highlights,
+                data: payload.data,
+              }
+            : c,
+        ),
+        ui: {
+          ...latest.ui,
+          editor: null,
+          showTypePicker: false,
+        },
+      }))
+      return true
+    },
+    [updateDraft],
+  )
+
+  const openTypePicker = useCallback(() => {
+    updateDraft((current) => {
+      if (!canAddContribution(current.contributions.length)) {
         return {
           ...current,
-          contributions: [...current.contributions, contribution],
           ui: {
             ...current.ui,
-            editor: null,
             showTypePicker: false,
+            editor: null,
           },
         }
       }
-
-      // Edit mode: keep existing values for Foundation; later milestones update fields.
       return {
         ...current,
         ui: {
           ...current.ui,
+          showTypePicker: true,
           editor: null,
-          showTypePicker: false,
+          showContributorEditor: false,
+          showReview: false,
         },
       }
     })
-  }, [updateDraft])
-
-  const openTypePicker = useCallback(() => {
-    updateDraft((current) => ({
-      ...current,
-      ui: {
-        ...current.ui,
-        showTypePicker: true,
-        editor: null,
-      },
-    }))
   }, [updateDraft])
 
   const closeTypePicker = useCallback(() => {
@@ -206,6 +313,118 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
       ui: { ...current.ui, showTypePicker: false },
     }))
   }, [updateDraft])
+
+  const openContributorEditor = useCallback(() => {
+    updateDraft((current) => ({
+      ...current,
+      ui: {
+        ...current.ui,
+        showTypePicker: false,
+        editor: null,
+        showReview: false,
+        showContributorEditor: true,
+      },
+    }))
+  }, [updateDraft])
+
+  const closeContributorEditor = useCallback(() => {
+    updateDraft((current) => ({
+      ...current,
+      ui: {
+        ...current.ui,
+        showContributorEditor: false,
+      },
+    }))
+  }, [updateDraft])
+
+  const saveContributor = useCallback(
+    (contributor: ContributorInfo) => {
+      updateDraft((current) => ({
+        ...current,
+        contributor: normalizeContributorInfo(contributor),
+        ui: {
+          ...current.ui,
+          showContributorEditor: false,
+        },
+      }))
+    },
+    [updateDraft],
+  )
+
+  const openReview = useCallback(() => {
+    updateDraft((current) => ({
+      ...current,
+      ui: {
+        ...current.ui,
+        showTypePicker: false,
+        editor: null,
+        showContributorEditor: false,
+        showReview: true,
+      },
+    }))
+  }, [updateDraft])
+
+  const closeReview = useCallback(() => {
+    updateDraft((current) => ({
+      ...current,
+      ui: {
+        ...current.ui,
+        showReview: false,
+      },
+    }))
+  }, [updateDraft])
+
+  const setConsent = useCallback(
+    (consent: boolean) => {
+      updateDraft((current) => ({
+        ...current,
+        consent,
+      }))
+    },
+    [updateDraft],
+  )
+
+  const retainFailedContributions = useCallback(
+    (failedContributionIds: string[]) => {
+      const failed = new Set(failedContributionIds)
+      updateDraft((current) => ({
+        ...current,
+        contributions: current.contributions.filter((c) => failed.has(c.id)),
+        // Keep review open so the caller can show a partial-success surface.
+        // Successful items are removed so retry cannot duplicate them.
+        ui: {
+          ...current.ui,
+          editor: null,
+          showTypePicker: false,
+          showContributorEditor: false,
+          phase: 'editing',
+        },
+      }))
+    },
+    [updateDraft],
+  )
+
+  const completeSuccessfulSubmission = useCallback(() => {
+    clearStoredDraft()
+    const empty = createEmptySubmissionDraft()
+    empty.ui.phase = 'success'
+    setDraft(empty)
+    draftRef.current = empty
+    // Do not persist the empty success shell — prevents refresh restoring an empty "success" draft.
+    persistenceEnabledRef.current = false
+    setShowRestoreBanner(false)
+    setRestoreNotice(null)
+  }, [])
+
+  const startNewSubmission = useCallback(() => {
+    clearStoredDraft()
+    const empty = createEmptySubmissionDraft()
+    setDraft(empty)
+    draftRef.current = empty
+    persistenceEnabledRef.current = true
+    setShowRestoreBanner(false)
+    setRestoreNotice(null)
+  }, [])
 
   const removeContribution = useCallback(
     (id: string) => {
@@ -220,8 +439,8 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
           ui: {
             ...current.ui,
             editor: editingRemoved ? null : editor,
-            // If nothing left, picker shows automatically via UI logic.
-            showTypePicker: contributions.length === 0 ? false : current.ui.showTypePicker,
+            showTypePicker:
+              contributions.length === 0 ? false : current.ui.showTypePicker,
           },
         }
       })
@@ -232,9 +451,12 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
   const continueDraft = useCallback(() => {
     const stored = readStoredDraft()
     if (stored) {
-      const normalized = normalizeDraft(stored)
+      const { draft: normalized, truncated } = normalizeDraft(stored)
       setDraft(normalized)
       draftRef.current = normalized
+      setRestoreNotice(
+        truncated ? CONTRIBUTION_LIMIT_RESTORE_NOTICE : null,
+      )
     }
     persistenceEnabledRef.current = true
     setShowRestoreBanner(false)
@@ -248,10 +470,15 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
     draftRef.current = empty
     persistenceEnabledRef.current = true
     setShowRestoreBanner(false)
+    setRestoreNotice(null)
   }, [])
 
   const dismissRestoreBanner = useCallback(() => {
     setShowRestoreBanner(false)
+  }, [])
+
+  const clearRestoreNotice = useCallback(() => {
+    setRestoreNotice(null)
   }, [])
 
   useEffect(() => {
@@ -266,6 +493,8 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
     () => ({
       draft,
       showRestoreBanner,
+      restoreNotice,
+      clearRestoreNotice,
       beginCreateContribution,
       beginEditContribution,
       closeEditor,
@@ -273,6 +502,15 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
       openTypePicker,
       closeTypePicker,
       removeContribution,
+      openContributorEditor,
+      closeContributorEditor,
+      saveContributor,
+      openReview,
+      closeReview,
+      setConsent,
+      retainFailedContributions,
+      completeSuccessfulSubmission,
+      startNewSubmission,
       continueDraft,
       discardDraft,
       dismissRestoreBanner,
@@ -280,6 +518,8 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
     [
       draft,
       showRestoreBanner,
+      restoreNotice,
+      clearRestoreNotice,
       beginCreateContribution,
       beginEditContribution,
       closeEditor,
@@ -287,6 +527,15 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
       openTypePicker,
       closeTypePicker,
       removeContribution,
+      openContributorEditor,
+      closeContributorEditor,
+      saveContributor,
+      openReview,
+      closeReview,
+      setConsent,
+      retainFailedContributions,
+      completeSuccessfulSubmission,
+      startNewSubmission,
       continueDraft,
       discardDraft,
       dismissRestoreBanner,
@@ -300,24 +549,60 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
   )
 }
 
-/** Soft-normalize older/partial drafts so Continue remains resilient. */
-function normalizeDraft(draft: SubmissionDraft): SubmissionDraft {
+function normalizeContributionData(
+  data: Contribution['data'] | undefined,
+): Contribution['data'] {
+  if (!data) return { kind: 'placeholder' }
+  if (data.kind === 'existing_resource') {
+    return normalizeExistingResourceData(data)
+  }
+  if (data.kind === 'community_asset') {
+    return normalizeSkillsServicesData(data)
+  }
+  if (data.kind === 'event') {
+    return normalizeEventContributionData(data)
+  }
+  return data
+}
+
+function normalizeDraft(draft: SubmissionDraft): {
+  draft: SubmissionDraft
+  truncated: boolean
+} {
+  const truncated =
+    draft.contributions.length > MAX_CONTRIBUTIONS_PER_SUBMISSION
+  const contributions = (
+    truncated
+      ? draft.contributions.slice(0, MAX_CONTRIBUTIONS_PER_SUBMISSION)
+      : draft.contributions
+  ).map((c) => ({
+    ...c,
+    highlights: c.highlights ?? [],
+    summary:
+      c.summary ??
+      'Details will appear here once the editor is completed.',
+    data: normalizeContributionData(c.data),
+  }))
+
   return {
-    ...draft,
-    contributions: draft.contributions.map((c) => ({
-      ...c,
-      summary:
-        c.summary ??
-        'Details will appear here once the editor is completed.',
-    })),
-    ui: {
-      editor: draft.ui.editor ?? null,
-      showTypePicker: draft.ui.showTypePicker ?? false,
-      phase: draft.ui.phase ?? 'editing',
-    },
-    meta: {
-      ...draft.meta,
-      version: SUBMISSION_DRAFT_SCHEMA_VERSION,
+    truncated,
+    draft: {
+      ...draft,
+      contributions,
+      contributor: normalizeContributorInfo(draft.contributor),
+      consent: draft.consent === true,
+      ui: {
+        // Transient sheet UI is always closed on restore.
+        editor: null,
+        showTypePicker: false,
+        showContributorEditor: false,
+        showReview: false,
+        phase: draft.ui.phase ?? 'editing',
+      },
+      meta: {
+        ...draft.meta,
+        version: SUBMISSION_DRAFT_SCHEMA_VERSION,
+      },
     },
   }
 }

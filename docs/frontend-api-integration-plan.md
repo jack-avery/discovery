@@ -257,14 +257,15 @@ These endpoints are referenced in supplementary documentation. The `ReportedIssu
 
 | Aspect | Detail |
 |--------|--------|
-| **Feature** | Public form to submit a new community resource |
-| **Backend endpoint(s)** | `POST /submissions` (`submission_type: "new_resource"`) |
+| **Feature** | Public form to submit a new community resource (logical multi-contribution submission) |
+| **Backend endpoint(s)** | `POST /submissions` (one request per contribution; orchestrated by `submissionService`) |
 | **Models returned** | `data.{ submission_id, resource_id, proposed_version_id }` |
-| **Service file** | Future `services/submissionService.ts` |
-| **Hook** | Future `useSubmitResource()` |
-| **Components** | `SubmitResourcePage`, `SubmitResourcePanel` |
-| **Current status** | Stub empty state: "Submission form coming soon" |
-| **Future improvements** | Form fields per submission POST body contract; rate-limit error handling (429); success confirmation state |
+| **Service file** | `services/submissionService.ts` |
+| **Mappers** | `features/submissions/mappers/` (Existing Resource, Skills/Services, Event) |
+| **Hook** | UI calls `submitSubmission(draft)` from the review sheet (no dedicated hook required) |
+| **Components** | `SubmitResourcePage`, `SubmitResourceExperience`, contribution editors, review + success panels |
+| **Current status** | Connected to public POST. Fallback field mapping documented in `docs/submit-resource-backend-recommendations.md`. |
+| **Future improvements** | Batch submission API; first-class Event fields; persist consent / preferred contact; PDF / email summary |
 
 ### Request Resource Update
 

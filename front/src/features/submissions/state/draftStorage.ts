@@ -84,16 +84,31 @@ export function createDraftAutosave(
 function isValidDraftShape(value: unknown): value is SubmissionDraft {
   if (!value || typeof value !== 'object') return false
   const draft = value as Partial<SubmissionDraft>
+  if (
+    !(
+      typeof draft.id === 'string' &&
+      Array.isArray(draft.contributions) &&
+      typeof draft.contributor === 'object' &&
+      draft.contributor !== null &&
+      typeof draft.consent === 'boolean' &&
+      typeof draft.ui === 'object' &&
+      draft.ui !== null &&
+      typeof draft.meta === 'object' &&
+      draft.meta !== null &&
+      draft.meta.version === SUBMISSION_DRAFT_SCHEMA_VERSION
+    )
+  ) {
+    return false
+  }
+
+  const contributor = draft.contributor as unknown as Record<string, unknown>
   return (
-    typeof draft.id === 'string' &&
-    Array.isArray(draft.contributions) &&
-    typeof draft.contributor === 'object' &&
-    draft.contributor !== null &&
-    typeof draft.consent === 'boolean' &&
-    typeof draft.ui === 'object' &&
-    draft.ui !== null &&
-    typeof draft.meta === 'object' &&
-    draft.meta !== null &&
-    draft.meta.version === SUBMISSION_DRAFT_SCHEMA_VERSION
+    typeof contributor.name === 'string' &&
+    typeof contributor.email === 'string' &&
+    typeof contributor.phone === 'string' &&
+    (contributor.preferredContactMethod === null ||
+      contributor.preferredContactMethod === 'email' ||
+      contributor.preferredContactMethod === 'phone' ||
+      contributor.preferredContactMethod === 'either')
   )
 }

@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui'
 import type { ContributionType } from '@/types/submission'
 import { CONTRIBUTION_TYPE_ORDER } from '../constants/contributionTypes'
+import { CONTRIBUTION_LIMIT_HELPER } from '../constants/contributionLimits'
 import { ContributionTypeCard } from './ContributionTypeCard'
 
 interface ContributionTypePickerProps {
@@ -37,12 +38,16 @@ export function ContributionTypePicker({
 
         <h2
           id="contribution-type-picker-heading"
-          className="font-heading text-xl font-semibold tracking-tight text-foreground sm:text-2xl"
+          tabIndex={-1}
+          className="font-heading text-xl font-semibold tracking-tight text-foreground outline-none focus-visible:ring-2 focus-visible:ring-interactive/40 sm:text-2xl"
         >
           What would you like to contribute?
         </h2>
         <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           Choose the option that best fits what you&apos;d like to share.
+        </p>
+        <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+          {CONTRIBUTION_LIMIT_HELPER}
         </p>
       </div>
 
