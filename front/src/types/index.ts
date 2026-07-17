@@ -52,6 +52,14 @@ export type {
   ApiFieldErrors,
   ApiSuccessEnvelope,
 } from './api'
+export type {
+  AuthUser,
+  BackendStaffRole,
+  LoginRequest,
+  LoginResult,
+  RefreshResult,
+} from './auth'
+export { displayName } from './auth'
 export type { Category, CategoryTreeNode } from './category'
 export type { Tag, TagDto } from './tag'
 export type {

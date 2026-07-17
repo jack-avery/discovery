@@ -1,5 +1,6 @@
 import { Navigate, type RouteObject } from 'react-router-dom'
-import { AppLayout } from '@/app/layouts'
+import { AppLayout, StaffLayout } from '@/app/layouts'
+import { RequireAuth } from '@/app/router/RequireAuth'
 import { DiscoverPage } from '@/pages/DiscoverPage'
 import { HomePage } from '@/pages/HomePage'
 import { MapPage } from '@/pages/MapPage'
@@ -8,6 +9,7 @@ import { SubmissionsPage } from '@/pages/SubmissionsPage'
 import { SubmitResourcePage } from '@/pages/SubmitResourcePage'
 import { RequestResourceUpdatePage } from '@/pages/RequestResourceUpdatePage'
 import { StaffSignInPage } from '@/pages/StaffSignInPage'
+import { StaffHomePage } from '@/pages/StaffHomePage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
 export const routes: RouteObject[] = [
@@ -23,6 +25,19 @@ export const routes: RouteObject[] = [
       { path: 'map', element: <MapPage /> },
       { path: 'resources', element: <ResourcesPage /> },
       { path: 'submissions', element: <SubmissionsPage /> },
+      {
+        path: 'staff',
+        element: <RequireAuth />,
+        children: [
+          {
+            element: <StaffLayout />,
+            children: [
+              { index: true, element: <StaffHomePage /> },
+              // Milestone 2: dashboard, submissions, update-requests
+            ],
+          },
+        ],
+      },
       { path: '404', element: <NotFoundPage /> },
       { path: '*', element: <Navigate to="/404" replace /> },
     ],

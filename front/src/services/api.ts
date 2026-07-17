@@ -1,4 +1,5 @@
 import type { ApiEnvelope, ApiErrorEnvelope, ApiFieldErrors } from '@/types/api'
+import { getAccessToken } from '@/services/authToken'
 
 /**
  * Canonical HTTP client for all backend communication.
@@ -7,7 +8,8 @@ import type { ApiEnvelope, ApiErrorEnvelope, ApiFieldErrors } from '@/types/api'
  *
  * - Unwraps `{ status, message, data }` on success and returns `data`
  * - Throws `ApiError` for HTTP failures and `{ status: "error" }` bodies
- * - Supports query params, credentials (JWT refresh cookies), and AbortSignal
+ * - Supports query params, credentials (JWT refresh cookies), AbortSignal,
+ *   and Authorization: Bearer when an in-memory access token is set
  *
  * Health endpoints do not use the standard envelope — pass `parseEnvelope: false`.
  */
@@ -184,6 +186,7 @@ async function request<T>(
   }
 
   const { body, params, parseEnvelope = true, headers, credentials, signal, ...rest } = options
+  const token = getAccessToken()
 
   const response = await fetch(buildUrl(endpoint, params), {
     ...rest,
@@ -193,6 +196,7 @@ async function request<T>(
     headers: {
       Accept: 'application/json',
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...headers,
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,

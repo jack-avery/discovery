@@ -1,6 +1,5 @@
 import {
   Home,
-  LogIn,
   MapPin,
   PanelLeftClose,
   PanelLeftOpen,
@@ -18,7 +17,6 @@ const navItems = [
   { to: '/', label: 'Discover Resources', icon: MapPin, end: true as const },
   { to: '/submit', label: 'Submit Resource', icon: PlusCircle, end: false as const },
   { to: '/request-update', label: 'Request Update', icon: RefreshCw, end: false as const },
-  { to: '/sign-in', label: 'Staff Sign In', icon: LogIn, end: false as const },
 ]
 
 function NavigationRailLogo() {
