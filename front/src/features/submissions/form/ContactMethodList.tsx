@@ -1,8 +1,14 @@
+import { useState } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button, Input } from '@/components/ui'
 import type { ResourceContactMethod, ResourceContactType } from '@/types/submission'
+import {
+  isValidNorthAmericanPhone,
+  PHONE_VALIDATION_MESSAGE,
+} from '@/utils/phone'
 import { createContactMethod } from '../existingResource/emptyState'
 import { Field } from './Field'
+import { PhoneInput } from './PhoneInput'
 
 const CONTACT_TYPES: { value: ResourceContactType; label: string }[] = [
   { value: 'phone', label: 'Phone' },
@@ -88,26 +94,12 @@ export function ContactMethodList({
               </select>
             </Field>
 
-            <Field
-              id={`contact-value-${contact.id}`}
-              label="Value"
-              required
-              error={showErrors ? valueErrors[contact.id] : undefined}
-            >
-              <Input
-                id={`contact-value-${contact.id}`}
-                value={contact.value}
-                onChange={(e) => update(contact.id, { value: e.target.value })}
-                placeholder={
-                  contact.type === 'email'
-                    ? 'info@example.org'
-                    : contact.type === 'phone'
-                      ? '613-555-0100'
-                      : 'https://'
-                }
-                aria-invalid={Boolean(showErrors && valueErrors[contact.id])}
-              />
-            </Field>
+            <ContactValueField
+              contact={contact}
+              error={valueErrors[contact.id]}
+              forceShowError={Boolean(showErrors)}
+              onChange={(value) => update(contact.id, { value })}
+            />
 
             <Field
               id={`contact-label-${contact.id}`}
@@ -145,5 +137,66 @@ export function ContactMethodList({
         </p>
       ) : null}
     </div>
+  )
+}
+
+function ContactValueField({
+  contact,
+  error,
+  forceShowError,
+  onChange,
+}: {
+  contact: ResourceContactMethod
+  error?: string
+  forceShowError: boolean
+  onChange: (value: string) => void
+}) {
+  const [blurred, setBlurred] = useState(false)
+  const show = forceShowError || blurred
+  const localPhoneError =
+    contact.type === 'phone' &&
+    contact.value.trim() &&
+    !isValidNorthAmericanPhone(contact.value)
+      ? PHONE_VALIDATION_MESSAGE
+      : undefined
+  const displayError = show ? (error ?? localPhoneError) : undefined
+
+  if (contact.type === 'phone') {
+    return (
+      <Field
+        id={`contact-value-${contact.id}`}
+        label="Value"
+        required
+        hint="Canada and US numbers only."
+        error={displayError}
+      >
+        <PhoneInput
+          id={`contact-value-${contact.id}`}
+          value={contact.value}
+          onChange={onChange}
+          onBlur={() => setBlurred(true)}
+          aria-invalid={Boolean(displayError)}
+        />
+      </Field>
+    )
+  }
+
+  return (
+    <Field
+      id={`contact-value-${contact.id}`}
+      label="Value"
+      required
+      error={forceShowError ? error : undefined}
+    >
+      <Input
+        id={`contact-value-${contact.id}`}
+        value={contact.value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={
+          contact.type === 'email' ? 'info@example.org' : 'https://'
+        }
+        aria-invalid={Boolean(forceShowError && error)}
+      />
+    </Field>
   )
 }

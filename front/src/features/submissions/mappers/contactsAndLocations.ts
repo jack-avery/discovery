@@ -6,6 +6,7 @@ import type {
   PublicSubmissionContactDto,
   PublicSubmissionLocationDto,
 } from '@/types/submissionApi'
+import { normalizePhoneE164 } from '@/utils/phone'
 import { formatNoteSections, line, trimText, type NoteSection } from './notes'
 
 const CONTACT_TYPE_MAP: Record<ResourceContactMethod['type'], string> = {
@@ -21,8 +22,12 @@ export function mapPublicContacts(
   const mapped: PublicSubmissionContactDto[] = []
 
   for (const contact of contacts) {
-    const value = trimText(contact.value)
-    if (!value) continue
+    const raw = trimText(contact.value)
+    if (!raw) continue
+
+    const value =
+      contact.type === 'phone' ? (normalizePhoneE164(raw) ?? raw) : raw
+
     mapped.push({
       contact_type: CONTACT_TYPE_MAP[contact.type] ?? 'other',
       value,

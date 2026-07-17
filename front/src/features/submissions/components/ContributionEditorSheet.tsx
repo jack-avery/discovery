@@ -54,6 +54,9 @@ export function ContributionEditorSheet({
   const headerRef = useRef<HTMLElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const previousFocusRef = useRef<HTMLElement | null>(null)
+  // Keep latest onClose without re-running the open/focus effect on every parent render.
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   useEffect(() => {
     if (!open) return
@@ -76,7 +79,7 @@ export function ContributionEditorSheet({
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
-        onClose()
+        onCloseRef.current()
         return
       }
 
@@ -110,7 +113,7 @@ export function ContributionEditorSheet({
       document.body.style.overflow = previousOverflow
       previousFocusRef.current?.focus()
     }
-  }, [open, onClose])
+  }, [open])
 
   // Keep scroll-margin in sync with sticky header height so sections/errors
   // are not hidden underneath when focused or navigated to.

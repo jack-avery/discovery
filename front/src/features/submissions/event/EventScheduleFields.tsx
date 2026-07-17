@@ -1,3 +1,4 @@
+import { useState, type FocusEvent } from 'react'
 import { Input } from '@/components/ui'
 import type {
   EventContributionData,
@@ -5,7 +6,11 @@ import type {
   EventScheduleKind,
   RecurrenceEndKind,
 } from '@/types/submission'
-import type { EventFieldErrors } from './validation'
+import {
+  getEndDateOrderError,
+  getEndTimeOrderError,
+  type EventFieldErrors,
+} from './validation'
 import { Field } from '../form/Field'
 import { OptionCardGroup } from '../form/OptionCardGroup'
 import { TimeSelect } from '../form/TimeSelect'
@@ -14,6 +19,8 @@ interface EventScheduleFieldsProps {
   data: EventContributionData
   onChange: (partial: Partial<EventContributionData>) => void
   errors: EventFieldErrors
+  /** When true (Save/Continue), force-show schedule order errors. */
+  showErrors?: boolean
 }
 
 const SCHEDULE_KIND_OPTIONS: {
@@ -42,13 +49,53 @@ const RECURRENCE_END_OPTIONS: {
   { value: 'not_sure', label: 'Not sure' },
 ]
 
+type ScheduleOrderField =
+  | 'startDate'
+  | 'endDate'
+  | 'startTime'
+  | 'endTime'
+
 export function EventScheduleFields({
   data,
   onChange,
   errors,
+  showErrors = false,
 }: EventScheduleFieldsProps) {
+  const [scheduleOrderTouched, setScheduleOrderTouched] = useState(false)
+
+  const markScheduleOrderTouched = () => {
+    setScheduleOrderTouched(true)
+  }
+
+  const handleScheduleOrderChange = (
+    field: ScheduleOrderField,
+    value: string,
+  ) => {
+    onChange({ [field]: value })
+    // Discrete date/time controls: reveal order errors after the user changes a value.
+    markScheduleOrderTouched()
+  }
+
+  const handleSectionFocusOut = (event: FocusEvent<HTMLDivElement>) => {
+    const next = event.relatedTarget
+    if (next instanceof Node && event.currentTarget.contains(next)) return
+    // Leaving the schedule section — never silently block progression.
+    markScheduleOrderTouched()
+  }
+
+  const showScheduleOrderErrors = showErrors || scheduleOrderTouched
+  const endDateOrderError = showScheduleOrderErrors
+    ? getEndDateOrderError(data)
+    : undefined
+  const endTimeOrderError = showScheduleOrderErrors
+    ? getEndTimeOrderError(data)
+    : undefined
+
+  const endDateError = endDateOrderError ?? errors.endDate
+  const endTimeError = endTimeOrderError ?? errors.endTime
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" onBlur={handleSectionFocusOut}>
       <OptionCardGroup<EventScheduleKind>
         name="event-schedule-kind"
         legend="Is this event:"
@@ -71,7 +118,10 @@ export function EventScheduleFields({
               id="event-start-date"
               type="date"
               value={data.startDate}
-              onChange={(e) => onChange({ startDate: e.target.value })}
+              onChange={(e) =>
+                handleScheduleOrderChange('startDate', e.target.value)
+              }
+              onBlur={markScheduleOrderTouched}
             />
           </Field>
           <Field
@@ -83,22 +133,31 @@ export function EventScheduleFields({
             <TimeSelect
               id="event-start-time"
               value={data.startTime}
-              onChange={(startTime) => onChange({ startTime })}
+              onChange={(startTime) =>
+                handleScheduleOrderChange('startTime', startTime)
+              }
+              onBlur={markScheduleOrderTouched}
             />
           </Field>
-          <Field id="event-end-date" label="End date" error={errors.endDate}>
+          <Field id="event-end-date" label="End date" error={endDateError}>
             <Input
               id="event-end-date"
               type="date"
               value={data.endDate}
-              onChange={(e) => onChange({ endDate: e.target.value })}
+              onChange={(e) =>
+                handleScheduleOrderChange('endDate', e.target.value)
+              }
+              onBlur={markScheduleOrderTouched}
             />
           </Field>
-          <Field id="event-end-time" label="End time" error={errors.endTime}>
+          <Field id="event-end-time" label="End time" error={endTimeError}>
             <TimeSelect
               id="event-end-time"
               value={data.endTime}
-              onChange={(endTime) => onChange({ endTime })}
+              onChange={(endTime) =>
+                handleScheduleOrderChange('endTime', endTime)
+              }
+              onBlur={markScheduleOrderTouched}
             />
           </Field>
         </div>
@@ -129,18 +188,24 @@ export function EventScheduleFields({
               <TimeSelect
                 id="event-recurring-start-time"
                 value={data.startTime}
-                onChange={(startTime) => onChange({ startTime })}
+                onChange={(startTime) =>
+                  handleScheduleOrderChange('startTime', startTime)
+                }
+                onBlur={markScheduleOrderTouched}
               />
             </Field>
             <Field
               id="event-recurring-end-time"
               label="End time"
-              error={errors.endTime}
+              error={endTimeError}
             >
               <TimeSelect
                 id="event-recurring-end-time"
                 value={data.endTime}
-                onChange={(endTime) => onChange({ endTime })}
+                onChange={(endTime) =>
+                  handleScheduleOrderChange('endTime', endTime)
+                }
+                onBlur={markScheduleOrderTouched}
               />
             </Field>
           </div>

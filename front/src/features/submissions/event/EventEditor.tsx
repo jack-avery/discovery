@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Input, Textarea } from '@/components/ui'
 import { useCategories } from '@/hooks/useCategories'
 import { useTags } from '@/hooks/useTags'
@@ -39,6 +39,7 @@ import { Field } from '../form/Field'
 import { LookupMultiSelect } from '../form/LookupMultiSelect'
 import { OptionCardGroup } from '../form/OptionCardGroup'
 import { PhysicalLocationList } from '../form/PhysicalLocationList'
+import type { PhysicalLocationGeocodingHandle } from '../form/PhysicalLocationList'
 
 interface EventEditorProps {
   initialContribution: Contribution | null
@@ -121,6 +122,8 @@ export function EventEditor({
   const [baseline] = useState(() =>
     JSON.stringify(initialDataFromContribution(initialContribution)),
   )
+  const locationGeocodingRef = useRef<PhysicalLocationGeocodingHandle>(null)
+  const [locationsVerified, setLocationsVerified] = useState(true)
 
   useEffect(() => {
     onDirtyChange(JSON.stringify(data) !== baseline)
@@ -130,7 +133,19 @@ export function EventEditor({
     setData((current) => ({ ...current, ...partial }))
   }
 
-  const revealed = getRevealedEventSections(data)
+  const needsPhysical =
+    data.accessMode === 'physical' || data.accessMode === 'both'
+
+  useEffect(() => {
+    if (!needsPhysical) setLocationsVerified(true)
+  }, [needsPhysical])
+
+  const syncRevealed = getRevealedEventSections(data)
+  // Hold progressive unlock on Location until MapTiler verifies physical addresses.
+  const revealed =
+    needsPhysical && !locationsVerified
+      ? Math.min(syncRevealed, 3)
+      : syncRevealed
 
   useEffect(() => {
     onProgressChange?.({
@@ -177,6 +192,16 @@ export function EventEditor({
     onRegisterSave(() => {
       onShowErrorsChange(true)
       if (!isEventContributionComplete(data)) return null
+      const needsSites =
+        data.accessMode === 'physical' || data.accessMode === 'both'
+      if (needsSites && locationGeocodingRef.current) {
+        if (!locationGeocodingRef.current.canProceed()) {
+          void locationGeocodingRef.current.ensureValidated({
+            focusOnFailure: true,
+          })
+          return null
+        }
+      }
       const meta = buildEventContributionSummary(data, categories, tags)
       return {
         title: meta.title,
@@ -188,8 +213,6 @@ export function EventEditor({
     })
   }, [data, categories, tags, onRegisterSave, onShowErrorsChange])
 
-  const needsPhysical =
-    data.accessMode === 'physical' || data.accessMode === 'both'
   const needsOnline =
     data.accessMode === 'online' || data.accessMode === 'both'
   const needsCostDetails =
@@ -244,6 +267,7 @@ export function EventEditor({
             data={data}
             onChange={patch}
             errors={scheduleErrors}
+            showErrors={showErrors}
           />
         </EditorSection>
       ) : null}
@@ -272,12 +296,14 @@ export function EventEditor({
 
           {needsPhysical ? (
             <PhysicalLocationList
+              ref={locationGeocodingRef}
               locations={data.locations}
               onChange={(locations) => patch({ locations })}
               showErrors={showErrors}
               locationFields={locationErrors.locationFields}
               listError={locationErrors.locations}
               requireAtLeastOne
+              onVerifiedChange={setLocationsVerified}
             />
           ) : null}
 

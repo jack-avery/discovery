@@ -14,6 +14,7 @@ import {
 import { EditorSection } from '../form/EditorSection'
 import { Field } from '../form/Field'
 import { OptionCardGroup } from '../form/OptionCardGroup'
+import { PhoneInput } from '../form/PhoneInput'
 
 interface ContributorEditorProps {
   initialContributor: ContributorInfo
@@ -45,6 +46,7 @@ export function ContributorEditor({
   const [baseline] = useState(() =>
     JSON.stringify(normalizeContributorInfo(initialContributor)),
   )
+  const [phoneBlurred, setPhoneBlurred] = useState(false)
 
   useEffect(() => {
     onDirtyChange(JSON.stringify(data) !== baseline)
@@ -54,9 +56,15 @@ export function ContributorEditor({
     setData((current) => ({ ...current, ...partial }))
   }
 
-  const errors: ContributorFieldErrors = showErrors
-    ? validateContributor(data)
-    : {}
+  const allErrors = validateContributor(data)
+  const errors: ContributorFieldErrors = {
+    ...(showErrors ? allErrors : {}),
+    ...(showErrors || phoneBlurred
+      ? allErrors.phone
+        ? { phone: allErrors.phone }
+        : {}
+      : {}),
+  }
 
   useEffect(() => {
     onRegisterSave(() => {
@@ -128,18 +136,16 @@ export function ContributorEditor({
           required={phoneRequired}
           hint={
             phoneRequired
-              ? 'Required because you prefer to be contacted by phone.'
-              : 'Optional'
+              ? 'Required because you prefer to be contacted by phone. Canada and US numbers only.'
+              : 'Optional. Canada and US numbers only.'
           }
           error={errors.phone}
         >
-          <Input
+          <PhoneInput
             id="contributor-phone"
-            type="tel"
             value={data.phone}
-            onChange={(e) => patch({ phone: e.target.value })}
-            autoComplete="tel"
-            placeholder="613-555-0100"
+            onChange={(phone) => patch({ phone })}
+            onBlur={() => setPhoneBlurred(true)}
             aria-required={phoneRequired}
           />
         </Field>

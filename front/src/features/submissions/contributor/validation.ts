@@ -1,9 +1,10 @@
 import type { ContributorInfo } from '@/types/submission'
 import { CONTRIBUTOR_NAME_MAX_LENGTH } from '@/types/submission'
 import {
-  isValidEmail,
-  isValidPhone,
-} from '../existingResource/validation'
+  isValidNorthAmericanPhone,
+  PHONE_VALIDATION_MESSAGE,
+} from '@/utils/phone'
+import { isValidEmail } from '../existingResource/validation'
 
 export interface ContributorFieldErrors {
   name?: string
@@ -36,14 +37,14 @@ export function validateContributor(
     if (!contributor.phone.trim()) {
       errors.phone =
         'Enter a phone number so we can reach you that way.'
-    } else if (!isValidPhone(contributor.phone)) {
-      errors.phone = 'Enter a phone number with at least 7 digits.'
+    } else if (!isValidNorthAmericanPhone(contributor.phone)) {
+      errors.phone = PHONE_VALIDATION_MESSAGE
     }
   } else if (
     contributor.phone.trim() &&
-    !isValidPhone(contributor.phone)
+    !isValidNorthAmericanPhone(contributor.phone)
   ) {
-    errors.phone = 'Enter a phone number with at least 7 digits.'
+    errors.phone = PHONE_VALIDATION_MESSAGE
   }
 
   return errors

@@ -233,9 +233,14 @@ export function SkillsServicesEditor({
           <EditorSection
             id="skills-about"
             title="Tell us a little about yourself"
-            description="Optional, but encouraged. Help us understand your background and why you'd like to contribute."
+            description="Help us understand your background and why you'd like to contribute."
           >
-            <Field id="skills-about-you" label="About you (optional)">
+            <Field
+              id="skills-about-you"
+              label="About you"
+              required
+              error={errors.aboutYou}
+            >
               <Textarea
                 id="skills-about-you"
                 value={data.aboutYou}

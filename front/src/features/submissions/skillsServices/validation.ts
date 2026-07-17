@@ -4,6 +4,7 @@ import { SKILLS_TITLE_MAX_LENGTH } from '@/types/submission'
 export interface SkillsFieldErrors {
   title?: string
   description?: string
+  aboutYou?: string
 }
 
 export function validateSkillsServices(
@@ -18,6 +19,9 @@ export function validateSkillsServices(
   if (!data.description.trim()) {
     errors.description =
       'Tell us a little about what you would like to offer.'
+  }
+  if (!data.aboutYou.trim()) {
+    errors.aboutYou = 'Tell us a little about yourself.'
   }
   return errors
 }

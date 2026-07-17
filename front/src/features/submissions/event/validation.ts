@@ -3,8 +3,15 @@ import type {
   ExistingResourceLocation,
 } from '@/types/submission'
 import { EVENT_NAME_MAX_LENGTH } from '@/types/submission'
-import { getLocationHeading } from '../existingResource/emptyState'
-import type { LocationFieldErrors } from '../existingResource/validation'
+import { PHONE_VALIDATION_MESSAGE } from '@/utils/phone'
+import {
+  DUPLICATE_LOCATION_MESSAGE,
+  isDuplicateLocation,
+} from '../form/locationIdentity'
+import {
+  validateLocationFields,
+  type LocationFieldErrors,
+} from '../form/locationFieldValidation'
 import {
   isValidEmail,
   isValidPhone,
@@ -53,21 +60,7 @@ function validateOneLocation(
   location: ExistingResourceLocation,
   index: number,
 ): LocationFieldErrors {
-  const label = getLocationHeading(location, index)
-  const errors: LocationFieldErrors = {}
-  if (!location.streetAddress.trim()) {
-    errors.streetAddress = `${label}: Street address is required.`
-  }
-  if (!location.city.trim()) {
-    errors.city = `${label}: City is required.`
-  }
-  if (!location.province.trim()) {
-    errors.province = `${label}: Province is required.`
-  }
-  if (!location.postalCode.trim()) {
-    errors.postalCode = `${label}: Postal code is required.`
-  }
-  return errors
+  return validateLocationFields(location, index)
 }
 
 export function validateSectionOverview(
@@ -83,6 +76,53 @@ export function validateSectionOverview(
     errors.description = 'Describe what the event is about and who it is for.'
   }
   return errors
+}
+
+export const END_TIME_ORDER_MESSAGE =
+  'End time must be after the start time.'
+
+export const END_DATE_ORDER_MESSAGE =
+  'End date must be on or after the start date.'
+
+/**
+ * One-time events: end date cannot be before start date.
+ */
+export function getEndDateOrderError(
+  data: EventContributionData,
+): string | undefined {
+  if (data.scheduleKind !== 'one_time') return undefined
+  if (!data.startDate.trim() || !data.endDate.trim()) return undefined
+  if (data.endDate < data.startDate) {
+    return END_DATE_ORDER_MESSAGE
+  }
+  return undefined
+}
+
+/**
+ * Returns an error when end time is not after start time on the same calendar day
+ * (one-time) or for the occurrence window (recurring).
+ */
+export function getEndTimeOrderError(
+  data: EventContributionData,
+): string | undefined {
+  if (!data.startTime.trim() || !data.endTime.trim()) return undefined
+
+  if (data.scheduleKind === 'one_time') {
+    const sameDay =
+      !data.endDate.trim() || data.endDate.trim() === data.startDate.trim()
+    if (sameDay && data.endTime <= data.startTime) {
+      return END_TIME_ORDER_MESSAGE
+    }
+    return undefined
+  }
+
+  if (data.scheduleKind === 'recurring') {
+    if (data.endTime <= data.startTime) {
+      return END_TIME_ORDER_MESSAGE
+    }
+  }
+
+  return undefined
 }
 
 export function validateSectionSchedule(
@@ -105,17 +145,9 @@ export function validateSectionSchedule(
   }
 
   if (data.scheduleKind === 'one_time') {
-    if (data.endDate.trim() && data.startDate.trim()) {
-      if (data.endDate < data.startDate) {
-        errors.endDate = 'End date cannot be before the start date.'
-      }
-    }
-    if (data.startTime.trim() && data.endTime.trim()) {
-      const sameDay =
-        !data.endDate.trim() || data.endDate.trim() === data.startDate.trim()
-      if (sameDay && data.endTime <= data.startTime) {
-        errors.endTime = 'End time must be after the start time on the same day.'
-      }
+    const endDateOrder = getEndDateOrderError(data)
+    if (endDateOrder) {
+      errors.endDate = endDateOrder
     }
   }
 
@@ -124,12 +156,6 @@ export function validateSectionSchedule(
       errors.frequency = 'Choose how often the event repeats.'
     } else if (data.frequency === 'other' && !data.frequencyOther.trim()) {
       errors.frequencyOther = 'Describe the schedule.'
-    }
-
-    if (data.startTime.trim() && data.endTime.trim()) {
-      if (data.endTime <= data.startTime) {
-        errors.endTime = 'End time must be after the start time.'
-      }
     }
 
     if (data.recurrenceEndKind === 'end_date') {
@@ -151,6 +177,11 @@ export function validateSectionSchedule(
           'Enter a positive whole number of occurrences.'
       }
     }
+  }
+
+  const endTimeOrder = getEndTimeOrderError(data)
+  if (endTimeOrder) {
+    errors.endTime = endTimeOrder
   }
 
   return errors
@@ -176,6 +207,17 @@ export function validateSectionLocation(
           locationFields[location.id] = fieldErrors
         }
       })
+      for (let i = 0; i < data.locations.length; i++) {
+        const current = data.locations[i]
+        const duplicateOfEarlier = data.locations
+          .slice(0, i)
+          .some((earlier) => isDuplicateLocation(earlier, current))
+        if (!duplicateOfEarlier) continue
+        locationFields[current.id] = {
+          ...locationFields[current.id],
+          streetAddress: DUPLICATE_LOCATION_MESSAGE,
+        }
+      }
       if (Object.keys(locationFields).length > 0) {
         errors.locationFields = locationFields
         errors.locations = 'Fix the highlighted location details.'
@@ -229,8 +271,7 @@ export function validateSectionRegistration(
       if (contact.type === 'email' && !isValidEmail(value)) {
         contactValues[contact.id] = 'Enter a valid email address.'
       } else if (contact.type === 'phone' && !isValidPhone(value)) {
-        contactValues[contact.id] =
-          'Enter a phone number with at least 7 digits.'
+        contactValues[contact.id] = PHONE_VALIDATION_MESSAGE
       } else if (
         (contact.type === 'website' || contact.type === 'other') &&
         !isValidUrl(value)

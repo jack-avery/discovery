@@ -3,14 +3,20 @@ import type {
   ExistingResourceLocation,
 } from '@/types/submission'
 import { RESOURCE_NAME_MAX_LENGTH } from '@/types/submission'
-import { getLocationHeading } from './emptyState'
+import {
+  isValidNorthAmericanPhone,
+  PHONE_VALIDATION_MESSAGE,
+} from '@/utils/phone'
+import {
+  DUPLICATE_LOCATION_MESSAGE,
+  isDuplicateLocation,
+} from '../form/locationIdentity'
+import {
+  validateLocationFields,
+  type LocationFieldErrors,
+} from '../form/locationFieldValidation'
 
-export interface LocationFieldErrors {
-  streetAddress?: string
-  city?: string
-  province?: string
-  postalCode?: string
-}
+export type { LocationFieldErrors }
 
 export interface FieldErrors {
   name?: string
@@ -46,9 +52,26 @@ export function isValidUrl(value: string): boolean {
   }
 }
 
+/** Canada/US numbers via libphonenumber — kept name for existing imports. */
 export function isValidPhone(value: string): boolean {
-  const digits = value.replace(/\D/g, '')
-  return digits.length >= 7 && digits.length <= 15
+  return isValidNorthAmericanPhone(value)
+}
+
+function applyDuplicateLocationErrors(
+  locations: ExistingResourceLocation[],
+  locationFields: Record<string, LocationFieldErrors>,
+): void {
+  for (let i = 0; i < locations.length; i++) {
+    const current = locations[i]
+    const duplicateOfEarlier = locations
+      .slice(0, i)
+      .some((earlier) => isDuplicateLocation(earlier, current))
+    if (!duplicateOfEarlier) continue
+    locationFields[current.id] = {
+      ...locationFields[current.id],
+      streetAddress: DUPLICATE_LOCATION_MESSAGE,
+    }
+  }
 }
 
 export function isValidEmail(value: string): boolean {
@@ -67,21 +90,7 @@ function validateOneLocation(
   location: ExistingResourceLocation,
   index: number,
 ): LocationFieldErrors {
-  const label = getLocationHeading(location, index)
-  const errors: LocationFieldErrors = {}
-  if (!location.streetAddress.trim()) {
-    errors.streetAddress = `${label}: Street address is required.`
-  }
-  if (!location.city.trim()) {
-    errors.city = `${label}: City is required.`
-  }
-  if (!location.province.trim()) {
-    errors.province = `${label}: Province is required.`
-  }
-  if (!location.postalCode.trim()) {
-    errors.postalCode = `${label}: Postal code is required.`
-  }
-  return errors
+  return validateLocationFields(location, index)
 }
 
 export function validateSectionAbout(data: ExistingResourceData): FieldErrors {
@@ -125,6 +134,7 @@ export function validateSectionAccess(data: ExistingResourceData): FieldErrors {
           locationFields[location.id] = fieldErrors
         }
       })
+      applyDuplicateLocationErrors(data.locations, locationFields)
       if (Object.keys(locationFields).length > 0) {
         errors.locationFields = locationFields
         errors.locations = 'Fix the highlighted location details.'
@@ -171,7 +181,7 @@ export function validateSectionContacts(
     if (contact.type === 'email' && !isValidEmail(value)) {
       contactValues[contact.id] = 'Enter a valid email address.'
     } else if (contact.type === 'phone' && !isValidPhone(value)) {
-      contactValues[contact.id] = 'Enter a phone number with at least 7 digits.'
+      contactValues[contact.id] = PHONE_VALIDATION_MESSAGE
     } else if (
       (contact.type === 'website' || contact.type === 'other') &&
       !isValidUrl(value)

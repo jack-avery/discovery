@@ -1,4 +1,5 @@
 import type { ContributorInfo } from '@/types/submission'
+import { normalizePhoneE164 } from '@/utils/phone'
 import { PREFERRED_CONTACT_LABELS } from './labels'
 import { line, trimText } from './notes'
 
@@ -13,7 +14,7 @@ export function mapSubmitterFields(
 ): SubmitterFields {
   const name = trimText(contributor.name)
   const email = trimText(contributor.email)
-  const phone = trimText(contributor.phone)
+  const phone = normalizePhoneE164(contributor.phone) ?? undefined
 
   return {
     ...(name ? { submitter_name: name } : {}),
