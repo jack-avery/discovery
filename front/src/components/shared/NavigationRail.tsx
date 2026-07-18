@@ -1,5 +1,8 @@
 import {
+  ClipboardList,
+  FilePenLine,
   Home,
+  LayoutDashboard,
   MapPin,
   PanelLeftClose,
   PanelLeftOpen,
@@ -7,16 +10,33 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
+import { useAuth } from '@/app/providers/AuthProvider'
 import { useNavigationRail } from '@/app/providers/NavigationRailProvider'
 import { PanelHeader } from '@/components/shared/PanelHeader'
 import { Button } from '@/components/ui'
 import { cn } from '@/utils/cn'
 
-const navItems = [
+const publicNavItems = [
   { to: '/home', label: 'Home', icon: Home, end: true as const },
   { to: '/', label: 'Discover Resources', icon: MapPin, end: true as const },
   { to: '/submit', label: 'Submit Resource', icon: PlusCircle, end: false as const },
   { to: '/request-update', label: 'Request Update', icon: RefreshCw, end: false as const },
+]
+
+const staffNavItems = [
+  { to: '/staff', label: 'Dashboard', icon: LayoutDashboard, end: true as const },
+  {
+    to: '/staff/submissions',
+    label: 'Review Submissions',
+    icon: ClipboardList,
+    end: false as const,
+  },
+  {
+    to: '/staff/update-requests',
+    label: 'Review Update Requests',
+    icon: FilePenLine,
+    end: false as const,
+  },
 ]
 
 function NavigationRailLogo() {
@@ -30,8 +50,20 @@ function NavigationRailLogo() {
   )
 }
 
+function navLinkClassName(isActive: boolean, isCollapsed: boolean, nested = false) {
+  return cn(
+    'flex min-h-[var(--ds-min-touch)] items-center rounded-lg text-sm font-medium transition-colors focus-ring',
+    isCollapsed ? 'justify-center px-2' : 'gap-3 py-2.5',
+    !isCollapsed && (nested ? 'px-3 pl-8' : 'px-3'),
+    isActive
+      ? 'bg-interactive-muted font-semibold text-interactive'
+      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+  )
+}
+
 export function NavigationRail() {
   const { isCollapsed, toggleCollapsed } = useNavigationRail()
+  const { isAuthenticated } = useAuth()
 
   return (
     <aside
@@ -58,26 +90,51 @@ export function NavigationRail() {
       />
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-2 scrollbar-thin">
-        {navItems.map(({ to, label, icon: Icon, end }) => (
+        {publicNavItems.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             title={isCollapsed ? label : undefined}
-            className={({ isActive }) =>
-              cn(
-                'flex min-h-[var(--ds-min-touch)] items-center rounded-lg text-sm font-medium transition-colors focus-ring',
-                isCollapsed ? 'justify-center px-2' : 'gap-3 px-3 py-2.5',
-                isActive
-                  ? 'bg-interactive-muted font-semibold text-interactive'
-                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-              )
-            }
+            className={({ isActive }) => navLinkClassName(isActive, isCollapsed)}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
             {!isCollapsed && <span className="truncate">{label}</span>}
           </NavLink>
         ))}
+
+        {isAuthenticated ? (
+          <div className={cn('pt-3', !isCollapsed && 'mt-1 border-t border-border')}>
+            {!isCollapsed ? (
+              <p className="px-3 pb-1.5 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Staff Workspace
+              </p>
+            ) : (
+              <div
+                className="mb-1 flex justify-center py-1"
+                title="Staff Workspace"
+                aria-hidden="true"
+              >
+                <span className="h-px w-6 bg-border" />
+              </div>
+            )}
+
+            <div className="space-y-1" role="group" aria-label="Staff Workspace">
+              {staffNavItems.map(({ to, label, icon: Icon, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  title={isCollapsed ? label : undefined}
+                  className={({ isActive }) => navLinkClassName(isActive, isCollapsed, true)}
+                >
+                  <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {!isCollapsed && <span className="truncate">{label}</span>}
+                </NavLink>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </nav>
 
       <div className="border-t border-border p-2">

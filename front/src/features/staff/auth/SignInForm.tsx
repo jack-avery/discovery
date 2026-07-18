@@ -73,7 +73,7 @@ export function SignInForm() {
   }
 
   return (
-    <Card className="mx-auto w-full max-w-md">
+    <Card className="w-full">
       <CardHeader>
         <h2 className="font-heading text-lg font-semibold text-foreground">
           RRCRC Staff Portal

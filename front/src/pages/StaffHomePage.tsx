@@ -1,24 +1,16 @@
 import { PageShell } from '@/components/shared/PageShell'
-import { EmptyState } from '@/components/shared'
-import { LayoutDashboard } from 'lucide-react'
 
 /**
- * Temporary authenticated landing page for Milestone 1.
- * Milestone 2 replaces this with the staff dashboard.
+ * Staff dashboard scaffold.
+ * Statistic cards and activity content arrive in a later milestone.
  */
 export function StaffHomePage() {
   return (
     <PageShell
-      title="Staff Workspace"
-      description="You are signed in to the RRCRC Staff Portal."
+      title="Dashboard"
+      description="Overview of RRCRC community resource activity and moderation work."
     >
-      <EmptyState
-        title="Staff workspace coming next"
-        description="The dashboard, review queue, and update-request tools will appear here in the next milestone."
-        icon={
-          <LayoutDashboard className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />
-        }
-      />
+      <div className="min-h-[12rem] w-full" aria-hidden="true" />
     </PageShell>
   )
 }

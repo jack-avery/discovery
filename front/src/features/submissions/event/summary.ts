@@ -1,16 +1,6 @@
 import type { Category, Tag } from '@/types'
 import type { EventContributionData } from '@/types/submission'
-
-const FREQUENCY_LABELS: Record<
-  NonNullable<EventContributionData['frequency']>,
-  string
-> = {
-  daily: 'Daily',
-  weekly: 'Weekly',
-  biweekly: 'Every two weeks',
-  monthly: 'Monthly',
-  other: 'Custom schedule',
-}
+import { formatRecurrencePhrase } from '@/features/submissions/mappers/eventRecurrence'
 
 function formatDisplayDate(iso: string): string {
   if (!iso.trim()) return ''
@@ -29,14 +19,21 @@ function buildScheduleLabel(data: EventContributionData): string {
     return date ? `One-time · ${date}` : 'One-time'
   }
   if (data.scheduleKind === 'recurring') {
-    const freq =
-      data.frequency === 'other' && data.frequencyOther.trim()
-        ? data.frequencyOther.trim()
-        : data.frequency
-          ? FREQUENCY_LABELS[data.frequency]
-          : 'Recurring'
+    const phrase =
+      formatRecurrencePhrase({
+        frequency: data.frequency,
+        frequencyOther: data.frequencyOther,
+        weekdays: data.recurrenceWeekdays,
+      }) || 'Recurring'
     const first = formatDisplayDate(data.startDate)
-    return first ? `Recurring ${freq.toLowerCase()} · from ${first}` : `Recurring · ${freq}`
+    const until =
+      data.recurrenceEndKind === 'end_date'
+        ? formatDisplayDate(data.recurrenceEndDate)
+        : ''
+    const parts = [phrase]
+    if (first) parts.push(`from ${first}`)
+    if (until) parts.push(`until ${until}`)
+    return parts.join(' · ')
   }
   return ''
 }

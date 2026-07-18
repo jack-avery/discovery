@@ -14,13 +14,15 @@ import {
 import { mapEventCostDescription } from './cost'
 import {
   ACCESS_MODE_LABELS,
-  CAPACITY_LABELS,
   EVENT_RELATIONSHIP_LABELS,
   FREQUENCY_LABELS,
   RECURRENCE_END_LABELS,
   REGISTRATION_LABELS,
   SCHEDULE_KIND_LABELS,
 } from './labels'
+import {
+  formatOccursOnNoteLine,
+} from './eventRecurrence'
 import { compactPayload, line, trimText, type NoteSection } from './notes'
 import {
   joinMessageParts,
@@ -118,7 +120,6 @@ function buildEventNotes(data: EventContributionData): string | undefined {
 
   sections.push(buildScheduleSection(data))
   sections.push(buildRegistrationSection(data))
-  sections.push(buildCapacitySection(data))
 
   if (data.accessMode) {
     const accessLines = [
@@ -201,11 +202,14 @@ function buildScheduleSection(data: EventContributionData): NoteSection | null {
       lines.push(`Frequency: ${FREQUENCY_LABELS[data.frequency]}`)
     }
 
+    const occursOn = formatOccursOnNoteLine(data.recurrenceWeekdays)
+    if (occursOn) lines.push(occursOn)
+
     if (data.recurrenceEndKind === 'end_date') {
       const end = formatDisplayDate(data.recurrenceEndDate)
-      lines.push(
-        `Recurrence end: ${end || RECURRENCE_END_LABELS.end_date}`,
-      )
+      if (end) {
+        lines.push(`Recurrence end: ${end}`)
+      }
     } else if (data.recurrenceEndKind === 'occurrences') {
       const count = trimText(data.recurrenceOccurrences)
       lines.push(
@@ -213,11 +217,8 @@ function buildScheduleSection(data: EventContributionData): NoteSection | null {
           ? `Recurrence end: After ${count} occurrences`
           : `Recurrence end: ${RECURRENCE_END_LABELS.occurrences}`,
       )
-    } else if (data.recurrenceEndKind) {
-      lines.push(
-        `Recurrence end: ${RECURRENCE_END_LABELS[data.recurrenceEndKind]}`,
-      )
     }
+    // Never / not_sure: omit Recurrence end so presentation stays clean.
   }
 
   return {
@@ -230,27 +231,8 @@ function buildRegistrationSection(
   data: EventContributionData,
 ): NoteSection | null {
   if (!data.registrationMode) return null
-  const lines = [REGISTRATION_LABELS[data.registrationMode]]
-  if (trimText(data.registrationDetails)) {
-    lines.push(`Instructions: ${trimText(data.registrationDetails)}`)
-  }
   return {
     heading: 'Registration:',
-    lines,
-  }
-}
-
-function buildCapacitySection(data: EventContributionData): NoteSection | null {
-  if (!data.capacityMode) return null
-  const lines = [CAPACITY_LABELS[data.capacityMode]]
-  if (
-    data.capacityMode === 'limited' &&
-    trimText(data.capacityLimit)
-  ) {
-    lines.push(`Limit: ${trimText(data.capacityLimit)}`)
-  }
-  return {
-    heading: 'Capacity:',
-    lines,
+    lines: [REGISTRATION_LABELS[data.registrationMode]],
   }
 }

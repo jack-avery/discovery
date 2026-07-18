@@ -64,6 +64,13 @@ export interface ExistingResourceLocation {
   city: string
   province: string
   postalCode: string
+  /**
+   * MapTiler-verified coordinates for this address fingerprint.
+   * Cleared when address fields change; required in the submission payload
+   * for physical locations.
+   */
+  lat: number | null
+  lng: number | null
 }
 
 /** @deprecated Prefer ExistingResourceLocation — kept for draft migration typing. */
@@ -139,16 +146,27 @@ export type EventFrequency =
   | 'monthly'
   | 'other'
 
+/** Weekdays for weekly / every-two-weeks recurrence (Mon–Sun). */
+export type EventWeekday =
+  | 'monday'
+  | 'tuesday'
+  | 'wednesday'
+  | 'thursday'
+  | 'friday'
+  | 'saturday'
+  | 'sunday'
+
 export type RecurrenceEndKind =
   | 'none'
   | 'end_date'
+  /** @deprecated Kept for older drafts; UI uses Never / On date. */
   | 'occurrences'
+  /** @deprecated Kept for older drafts; UI uses Never / On date. */
   | 'not_sure'
 
 export type RegistrationMode =
-  | 'none'
   | 'required'
-  | 'optional'
+  | 'not_required'
   | 'not_sure'
 
 export type EventCostOption =
@@ -168,8 +186,6 @@ export type EventRelationshipOption =
   | 'someone_told_me'
   | 'other'
 
-export type EventCapacityMode = 'limited' | 'not_sure'
-
 /** Frontend-only Event editor model (not an API payload). */
 export interface EventContributionData {
   kind: 'event'
@@ -184,9 +200,11 @@ export interface EventContributionData {
   endTime: string
   frequency: EventFrequency | null
   frequencyOther: string
+  /** Selected weekdays when frequency is weekly or biweekly. */
+  recurrenceWeekdays: EventWeekday[]
   recurrenceEndKind: RecurrenceEndKind | null
   recurrenceEndDate: string
-  /** Whole-number string when recurrence ends after N occurrences. */
+  /** Whole-number string when recurrence ends after N occurrences (legacy drafts). */
   recurrenceOccurrences: string
   accessMode: AccessMode | null
   locations: ExistingResourceLocation[]
@@ -194,14 +212,11 @@ export interface EventContributionData {
   categoryIds: number[]
   filterIds: number[]
   registrationMode: RegistrationMode | null
-  registrationDetails: string
   contacts: ResourceContactMethod[]
   costOption: EventCostOption | null
   costDetails: string
   accessibilityNotes: string
   eligibility: string
-  capacityMode: EventCapacityMode | null
-  capacityLimit: string
   moreInfoUrl: string
   generalNotes: string
   relationship: EventRelationshipOption | null

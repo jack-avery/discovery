@@ -1,4 +1,4 @@
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   Accessibility,
   Banknote,
@@ -22,14 +22,24 @@ import {
   DetailGlanceRow,
   DetailSectionCard,
 } from '@/features/discover/DetailInfoCard'
+import { mapResourceVersionForPresentation } from '@/features/discover/mapResourceVersionForPresentation'
+import {
+  externalHref,
+  resolveOnlineLocationUrl,
+} from '@/features/discover/locationPresentation'
 import { WorkspaceSection } from '@/features/discover/WorkspaceSection'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
+import { EventDetailPresentation } from '@/features/staff/submissions/EventDetailPresentation'
+import {
+  isEventProposedVersion,
+  mapEventVersionForPresentation,
+} from '@/features/staff/submissions/mapEventVersionForPresentation'
 import { useResourceDetail } from '@/hooks/useResourceDetail'
 import type {
   ResourceContactDto,
-  ResourceDetail,
   ResourceHourDto,
   ResourceLocationDto,
+  ResourceVersionDto,
   ResourceVersionTagDto,
 } from '@/types/resource'
 import { cn } from '@/utils/cn'
@@ -175,7 +185,7 @@ export function ResourceDetailScreen() {
             className="py-12"
           />
         ) : resource ? (
-          <ResourceDetailContent resource={resource} />
+          <DiscoverResourceOrEventPresentation version={resource.version} />
         ) : (
           <EmptyState
             title="Resource not found"
@@ -189,8 +199,55 @@ export function ResourceDetailScreen() {
   )
 }
 
-function ResourceDetailContent({ resource }: { resource: ResourceDetail }) {
-  const { version } = resource
+/**
+ * Public Discover detail: events use EventDetailPresentation so recurrence
+ * and schedule match moderator review; everything else uses ResourceDetailPresentation.
+ */
+function DiscoverResourceOrEventPresentation({
+  version,
+}: {
+  version: ResourceVersionDto
+}) {
+  const eventPresentation = useMemo(() => {
+    if (!isEventProposedVersion(version)) return null
+    return mapEventVersionForPresentation(version)
+  }, [version])
+
+  if (eventPresentation) {
+    return (
+      <EventDetailPresentation
+        presentation={eventPresentation}
+        audience="public"
+      />
+    )
+  }
+
+  return <ResourceDetailPresentation version={version} />
+}
+
+/**
+ * Resident-facing resource detail presentation.
+ *
+ * Always runs {@link mapResourceVersionForPresentation} so Discover and staff
+ * review share one mapping path (seeded and newly approved resources alike).
+ */
+export function ResourceDetailPresentation({
+  version: rawVersion,
+}: {
+  version: ResourceVersionDto
+  /** @deprecated Mapping now always runs internally; ignored when provided. */
+  hoursSummary?: string | null
+}) {
+  const presentation = useMemo(
+    () => mapResourceVersionForPresentation(rawVersion),
+    [rawVersion],
+  )
+  const version = presentation.version
+  const hoursSummary = presentation.hoursSummary
+  const accessModeLabel = presentation.accessModeLabel
+  const isOnlineOnly = presentation.isOnlineOnly
+  const onlineAccessUrl = presentation.onlineAccessUrl
+
   const categories = version.categories.filter((c) => hasText(c.name))
   const tags = version.tags.filter((t) => hasText(t.name))
   const locations = version.locations
@@ -203,6 +260,10 @@ function ResourceDetailContent({ resource }: { resource: ResourceDetail }) {
   const emailContact = pickPrimaryContact(contacts, 'email')
   const websiteContact = pickPrimaryContact(contacts, 'website')
   const directionsUrl = primaryLocation ? directionsHref(primaryLocation) : null
+  const locationOnlineUrl = resolveOnlineLocationUrl(
+    onlineAccessUrl,
+    isOnlineOnly ? websiteContact?.contact_value : null,
+  )
 
   /**
    * Backend has no separate organization-name field today.
@@ -215,8 +276,15 @@ function ResourceDetailContent({ resource }: { resource: ResourceDetail }) {
     hasText(version.cost_description) ||
     hasText(version.accessibility_notes) ||
     hours.length > 0 ||
+    hasText(hoursSummary) ||
     tags.length > 0 ||
     contacts.length > 0
+
+  const hasLocation =
+    locations.length > 0 ||
+    isOnlineOnly ||
+    Boolean(accessModeLabel) ||
+    Boolean(locationOnlineUrl)
 
   return (
     <div className="flex flex-col gap-3">
@@ -258,7 +326,7 @@ function ResourceDetailContent({ resource }: { resource: ResourceDetail }) {
         </div>
       </WorkspaceSection>
 
-      {/* About card */}
+      {/* About card — description + narrative notes only (not hours/cost/location). */}
       {(hasText(version.description) || hasText(version.general_notes)) && (
         <AboutSection
           description={version.description}
@@ -266,18 +334,40 @@ function ResourceDetailContent({ resource }: { resource: ResourceDetail }) {
         />
       )}
 
-      {/* Location card — address only; map beside workspace is source of truth.
-          Future: optional “Center on map” control can attach here. */}
-      {locations.length > 0 && (
+      {/* Location — physical venues and/or online access from presentation mapping. */}
+      {hasLocation && (
         <DetailSectionCard
           icon={<MapPin className="h-4 w-4" strokeWidth={2} />}
           title={locations.length > 1 ? 'Locations' : 'Location'}
         >
-          <ul className="space-y-2.5 p-0 list-none">
-            {locations.map((location) => (
-              <LocationRow key={location.location_id} location={location} />
-            ))}
-          </ul>
+          {locations.length > 0 ? (
+            <ul className="space-y-2.5 p-0 list-none">
+              {locations.map((location) => (
+                <LocationRow key={location.location_id} location={location} />
+              ))}
+              {accessModeLabel && !isOnlineOnly ? (
+                <li className="space-y-1 text-sm text-muted-foreground">
+                  <p>{accessModeLabel}</p>
+                  {locationOnlineUrl ? (
+                    <OnlineAccessLink url={locationOnlineUrl} />
+                  ) : null}
+                </li>
+              ) : locationOnlineUrl && !isOnlineOnly ? (
+                <li className="text-sm">
+                  <OnlineAccessLink url={locationOnlineUrl} />
+                </li>
+              ) : null}
+            </ul>
+          ) : (
+            <div className="space-y-1 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">
+                {isOnlineOnly ? 'Online' : accessModeLabel || 'Location'}
+              </p>
+              {locationOnlineUrl ? (
+                <OnlineAccessLink url={locationOnlineUrl} />
+              ) : null}
+            </div>
+          )}
         </DetailSectionCard>
       )}
 
@@ -288,6 +378,7 @@ function ResourceDetailContent({ resource }: { resource: ResourceDetail }) {
           cost={version.cost_description}
           accessibility={version.accessibility_notes}
           hours={hours}
+          hoursSummary={hoursSummary}
           contacts={contacts}
           tags={tags}
         />
@@ -443,7 +534,23 @@ function LocationRow({ location }: { location: ResourceLocationDto }) {
       {address && (
         <p className="leading-snug text-muted-foreground">{address}</p>
       )}
+      {hasText(location.service_area_notes) && (
+        <p className="leading-snug text-muted-foreground">{location.service_area_notes}</p>
+      )}
     </li>
+  )
+}
+
+function OnlineAccessLink({ url }: { url: string }) {
+  return (
+    <a
+      href={externalHref(url)}
+      target="_blank"
+      rel="noreferrer"
+      className="break-all text-interactive underline-offset-2 hover:underline focus-ring rounded-sm"
+    >
+      {url}
+    </a>
   )
 }
 
@@ -505,6 +612,7 @@ function ServiceDetailsSection({
   cost,
   accessibility,
   hours,
+  hoursSummary = null,
   contacts,
   tags,
 }: {
@@ -512,6 +620,7 @@ function ServiceDetailsSection({
   cost: string | null
   accessibility: string | null
   hours: ResourceHourDto[]
+  hoursSummary?: string | null
   contacts: ResourceContactDto[]
   tags: ResourceVersionTagDto[]
 }) {
@@ -533,6 +642,9 @@ function ServiceDetailsSection({
   const accessibilitySummary = hasText(accessibility)
     ? conciseFact(accessibility)
     : null
+  const hoursSummaryLine = hasText(hoursSummary)
+    ? conciseFact(hoursSummary, 42)
+    : null
 
   const informationalContacts = contacts.filter((contact) => {
     const kind = classifyContact(contact)
@@ -541,12 +653,16 @@ function ServiceDetailsSection({
   const visibleTags = tags.filter((tag) => hasText(tag.name))
 
   const hasCollapsedPreview =
-    Boolean(costSummary) || hours.length > 0 || Boolean(accessibilitySummary)
+    Boolean(costSummary) ||
+    hours.length > 0 ||
+    Boolean(hoursSummaryLine) ||
+    Boolean(accessibilitySummary)
   const hasExpandedExtras =
     hasText(eligibility) ||
     informationalContacts.length > 0 ||
     visibleTags.length > 0 ||
     hours.length > 0 ||
+    hasText(hoursSummary) ||
     hasText(cost) ||
     hasText(accessibility)
 
@@ -590,7 +706,7 @@ function ServiceDetailsSection({
                 </DetailGlanceRow>
               )}
 
-              {hours.length > 0 && (
+              {hours.length > 0 ? (
                 <DetailGlanceRow
                   label="Hours"
                   icon={<Clock className="h-3.5 w-3.5" strokeWidth={2} />}
@@ -612,7 +728,16 @@ function ServiceDetailsSection({
                     ))}
                   </ul>
                 </DetailGlanceRow>
-              )}
+              ) : hasText(hoursSummary) ? (
+                <DetailGlanceRow
+                  label="Hours"
+                  icon={<Clock className="h-3.5 w-3.5" strokeWidth={2} />}
+                >
+                  <p className="whitespace-pre-wrap text-muted-foreground">
+                    {hoursSummary}
+                  </p>
+                </DetailGlanceRow>
+              ) : null}
             </>
           ) : (
             <>
@@ -634,7 +759,7 @@ function ServiceDetailsSection({
                 </DetailGlanceRow>
               )}
 
-              {hours.length > 0 && (
+              {hours.length > 0 ? (
                 <DetailGlanceRow
                   label="Hours"
                   icon={<Clock className="h-3.5 w-3.5" strokeWidth={2} />}
@@ -651,7 +776,14 @@ function ServiceDetailsSection({
                     )}
                   </div>
                 </DetailGlanceRow>
-              )}
+              ) : hoursSummaryLine ? (
+                <DetailGlanceRow
+                  label="Hours"
+                  icon={<Clock className="h-3.5 w-3.5" strokeWidth={2} />}
+                >
+                  <p>{hoursSummaryLine}</p>
+                </DetailGlanceRow>
+              ) : null}
             </>
           )}
         </div>
@@ -662,7 +794,8 @@ function ServiceDetailsSection({
               (hasText(eligibility) ||
                 hasText(cost) ||
                 hasText(accessibility) ||
-                hours.length > 0) &&
+                hours.length > 0 ||
+                hasText(hoursSummary)) &&
                 'border-t border-border pt-2.5',
             )}
           >
@@ -684,6 +817,7 @@ function ServiceDetailsSection({
                 hasText(cost) ||
                 hasText(accessibility) ||
                 hours.length > 0 ||
+                hasText(hoursSummary) ||
                 informationalContacts.length > 0) &&
                 'border-t border-border pt-2.5',
             )}

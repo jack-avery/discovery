@@ -9,12 +9,12 @@ export type {
   CostOption,
   DayHours,
   EditorSession,
-  EventCapacityMode,
   EventContributionData,
   EventCostOption,
   EventFrequency,
   EventRelationshipOption,
   EventScheduleKind,
+  EventWeekday,
   ExistingResourceData,
   ExistingResourceLocation,
   FutureSuccessMetadata,
@@ -92,3 +92,14 @@ export type {
   PublicSubmissionHourDto,
   PublicSubmissionLocationDto,
 } from './submissionApi'
+export type {
+  ListSubmissionsQuery,
+  ModerationStatus,
+  ReviewDecision,
+  ReviewSubmissionRequestDto,
+  ReviewSubmissionResultDto,
+  SubmissionDetailDto,
+  SubmissionListDto,
+  SubmissionReviewDto,
+  SubmissionSummaryDto,
+} from './moderationSubmission'

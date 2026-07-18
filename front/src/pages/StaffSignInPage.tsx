@@ -11,11 +11,15 @@ export function StaffSignInPage() {
   }
 
   return (
-    <PageShell
-      title="Staff Sign In"
-      description="Authorized RRCRC staff only. Public visitors can browse and submit resources without an account."
-    >
-      <SignInForm />
+    <PageShell title="Staff Sign In">
+      <div className="mx-auto w-full max-w-md space-y-section">
+        <p className="text-center text-sm text-muted-foreground">
+          Authorized RRCRC staff only.
+          <br />
+          Public visitors can browse and submit resources without an account.
+        </p>
+        <SignInForm />
+      </div>
     </PageShell>
   )
 }

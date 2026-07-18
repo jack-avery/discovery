@@ -10,6 +10,8 @@ import { SubmitResourcePage } from '@/pages/SubmitResourcePage'
 import { RequestResourceUpdatePage } from '@/pages/RequestResourceUpdatePage'
 import { StaffSignInPage } from '@/pages/StaffSignInPage'
 import { StaffHomePage } from '@/pages/StaffHomePage'
+import { StaffSubmissionsPage } from '@/pages/StaffSubmissionsPage'
+import { StaffUpdateRequestsPage } from '@/pages/StaffUpdateRequestsPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
 export const routes: RouteObject[] = [
@@ -33,7 +35,8 @@ export const routes: RouteObject[] = [
             element: <StaffLayout />,
             children: [
               { index: true, element: <StaffHomePage /> },
-              // Milestone 2: dashboard, submissions, update-requests
+              { path: 'submissions', element: <StaffSubmissionsPage /> },
+              { path: 'update-requests', element: <StaffUpdateRequestsPage /> },
             ],
           },
         ],

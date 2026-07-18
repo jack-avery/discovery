@@ -1,0 +1,77 @@
+import { useCallback, useState } from 'react'
+import { ApiError } from '@/services/api'
+import {
+  reviewSubmission,
+} from '@/services/staffSubmissionService'
+import type {
+  ReviewDecision,
+  ReviewSubmissionResultDto,
+} from '@/types/moderationSubmission'
+
+interface UseReviewSubmissionResult {
+  isSubmitting: boolean
+  error: string | null
+  lastResult: ReviewSubmissionResultDto | null
+  clearError: () => void
+  clearResult: () => void
+  submitDecision: (
+    submissionId: number,
+    decision: ReviewDecision,
+    notes?: string,
+  ) => Promise<ReviewSubmissionResultDto | null>
+}
+
+/**
+ * Approve/reject mutation for a selected submission.
+ */
+export function useReviewSubmission(): UseReviewSubmissionResult {
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [lastResult, setLastResult] = useState<ReviewSubmissionResultDto | null>(
+    null,
+  )
+
+  const clearError = useCallback(() => setError(null), [])
+  const clearResult = useCallback(() => setLastResult(null), [])
+
+  const submitDecision = useCallback(
+    async (
+      submissionId: number,
+      decision: ReviewDecision,
+      notes?: string,
+    ): Promise<ReviewSubmissionResultDto | null> => {
+      setIsSubmitting(true)
+      setError(null)
+
+      try {
+        const result = await reviewSubmission(submissionId, {
+          decision,
+          ...(notes?.trim() ? { notes: notes.trim() } : {}),
+        })
+        setLastResult(result)
+        return result
+      } catch (err) {
+        const message =
+          err instanceof ApiError
+            ? err.message
+            : err instanceof Error
+              ? err.message
+              : 'Unable to submit review decision'
+        setError(message)
+        return null
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [],
+  )
+
+  return {
+    isSubmitting,
+    error,
+    lastResult,
+    clearError,
+    clearResult,
+    submitDecision,
+  }
+}

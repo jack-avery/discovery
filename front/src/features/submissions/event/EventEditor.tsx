@@ -5,7 +5,6 @@ import { useTags } from '@/hooks/useTags'
 import type {
   AccessMode,
   Contribution,
-  EventCapacityMode,
   EventContributionData,
   EventCostOption,
   EventRelationshipOption,
@@ -86,11 +85,6 @@ const RELATIONSHIP_OPTIONS: {
   },
   { value: 'someone_told_me', label: 'Someone told me about it' },
   { value: 'other', label: 'Other' },
-]
-
-const CAPACITY_OPTIONS: { value: EventCapacityMode; label: string }[] = [
-  { value: 'limited', label: 'Yes, there is a limit' },
-  { value: 'not_sure', label: 'Not sure' },
 ]
 
 function initialDataFromContribution(
@@ -419,34 +413,6 @@ export function EventEditor({
               placeholder="e.g. Open to Rideau-Rockcliffe residents and nearby neighbours"
             />
           </Field>
-
-          <OptionCardGroup<EventCapacityMode>
-            name="event-capacity"
-            legend="Is there a limit on how many people can attend? (optional)"
-            options={CAPACITY_OPTIONS}
-            value={data.capacityMode}
-            onChange={(capacityMode) => patch({ capacityMode })}
-            className="sm:grid-cols-2"
-          />
-          {data.capacityMode === 'limited' ? (
-            <Field
-              id="event-capacity-limit"
-              label="Attendance limit"
-              required
-              error={errors.capacityLimit}
-            >
-              <Input
-                id="event-capacity-limit"
-                type="number"
-                min={1}
-                step={1}
-                inputMode="numeric"
-                value={data.capacityLimit}
-                onChange={(e) => patch({ capacityLimit: e.target.value })}
-                placeholder="e.g. 25"
-              />
-            </Field>
-          ) : null}
 
           <Field
             id="event-more-info"
