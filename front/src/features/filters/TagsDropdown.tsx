@@ -9,7 +9,6 @@ interface TagsDropdownProps {
   isLoading?: boolean
   error?: string | null
   disabled?: boolean
-  floating?: boolean
   className?: string
 }
 
@@ -20,7 +19,6 @@ export function TagsDropdown({
   isLoading = false,
   error = null,
   disabled = false,
-  floating = false,
   className,
 }: TagsDropdownProps) {
   return (
@@ -32,7 +30,6 @@ export function TagsDropdown({
       isLoading={isLoading}
       error={error}
       disabled={disabled}
-      floating={floating}
       className={cn(className)}
     />
   )

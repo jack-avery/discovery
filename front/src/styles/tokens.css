@@ -54,6 +54,12 @@
 
   /* Layout */
   --ds-header-height: 3.5rem;
+  --ds-panel-header-padding-x: 1rem;
+  --ds-panel-header-padding-x-compact: 0.5rem;
+  --ds-panel-header-gap: 0.625rem;
+  --ds-workspace-padding: 1rem;
+  --ds-workspace-section-gap: 1rem;
+  --ds-workspace-title-content-gap: 0.375rem;
 
   /* Border radius */
   --ds-radius-sm: 0.375rem;

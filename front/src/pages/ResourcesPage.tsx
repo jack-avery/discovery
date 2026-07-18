@@ -5,7 +5,11 @@ import { SearchBar } from '@/components/shared'
 import { CategoryDropdown, TagsDropdown } from '@/features/filters'
 import { ResourceList } from '@/features/resources'
 import { useCategories, useResources, useTags } from '@/hooks'
-import { getResourceEmptyReason } from '@/utils/resource-filters'
+import {
+  getResourceEmptyReason,
+  resolveCategoryIds,
+  resolveTagIds,
+} from '@/utils/resource-filters'
 
 export function ResourcesPage() {
   const { query, setQuery } = useSearch()
@@ -17,11 +21,11 @@ export function ResourcesPage() {
 
   const filters = useMemo(
     () => ({
-      categorySlugs: selectedCategories.length > 0 ? selectedCategories : undefined,
-      tagSlugs: selectedTags.length > 0 ? selectedTags : undefined,
+      categoryIds: resolveCategoryIds(selectedCategories, categories),
+      tagIds: resolveTagIds(selectedTags, tags),
       search: query.trim() || undefined,
     }),
-    [selectedCategories, selectedTags, query],
+    [selectedCategories, selectedTags, categories, tags, query],
   )
 
   const { resources, isLoading, error } = useResources(filters)

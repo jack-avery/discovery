@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { BrowserRouter } from 'react-router-dom'
+import { NavigationRailProvider } from './NavigationRailProvider'
 import { SearchProvider } from './SearchProvider'
-import { SidebarProvider } from './SidebarProvider'
 
 interface AppProvidersProps {
   children: ReactNode
@@ -10,9 +10,9 @@ interface AppProvidersProps {
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <BrowserRouter>
-      <SidebarProvider>
+      <NavigationRailProvider>
         <SearchProvider>{children}</SearchProvider>
-      </SidebarProvider>
+      </NavigationRailProvider>
     </BrowserRouter>
   )
 }

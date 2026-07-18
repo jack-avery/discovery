@@ -6,9 +6,11 @@ interface ResourceCardProps {
   resource: Resource
   categories?: Category[]
   tags?: Tag[]
+  onViewDetails?: (resourceId: string) => void
 }
 
-function resolveCategoryName(categoryId: string, categories?: Category[]) {
+function resolveCategoryName(categoryId: string | undefined, categories?: Category[]) {
+  if (!categoryId) return undefined
   return categories?.find((c) => c.id === categoryId)?.name
 }
 
@@ -23,10 +25,13 @@ export function ResourceCard({
   resource,
   categories,
   tags,
+  onViewDetails,
 }: ResourceCardProps) {
   const isPending = resource.status === 'pending'
-  const categoryName = resolveCategoryName(resource.categoryId, categories)
+  const categoryName =
+    resolveCategoryName(resource.categoryId, categories) ?? resource.resource_type ?? undefined
   const tagNames = resolveTagNames(resource.tagIds, tags)
+  const hasContactDetails = Boolean(resource.address || resource.hours || resource.phone)
 
   return (
     <Card className="transition-colors hover:border-interactive/30">
@@ -43,28 +48,34 @@ export function ResourceCard({
       </CardHeader>
 
       <CardContent className="space-y-4">
-        <p className="text-sm leading-relaxed text-muted-foreground">{resource.description}</p>
+        {resource.description && (
+          <p className="text-sm leading-relaxed text-muted-foreground">{resource.description}</p>
+        )}
 
-        <div className="space-y-2 text-xs text-muted-foreground">
-          <div className="flex items-start gap-2">
-            <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-            <span>{resource.address}</span>
+        {hasContactDetails && (
+          <div className="space-y-2 text-xs text-muted-foreground">
+            {resource.address && (
+              <div className="flex items-start gap-2">
+                <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{resource.address}</span>
+              </div>
+            )}
+            {resource.hours && (
+              <div className="flex items-center gap-2">
+                <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <span>{resource.hours}</span>
+              </div>
+            )}
+            {resource.phone && (
+              <div className="flex items-center gap-2">
+                <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                <a href={`tel:${resource.phone}`} className="hover:text-interactive">
+                  {resource.phone}
+                </a>
+              </div>
+            )}
           </div>
-          {resource.hours && (
-            <div className="flex items-center gap-2">
-              <Clock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <span>{resource.hours}</span>
-            </div>
-          )}
-          {resource.phone && (
-            <div className="flex items-center gap-2">
-              <Phone className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-              <a href={`tel:${resource.phone}`} className="hover:text-interactive">
-                {resource.phone}
-              </a>
-            </div>
-          )}
-        </div>
+        )}
 
         {tagNames.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
@@ -76,7 +87,12 @@ export function ResourceCard({
           </div>
         )}
 
-        <Button size="sm" variant="outline" className="w-full">
+        <Button
+          size="sm"
+          variant="outline"
+          className="w-full"
+          onClick={() => onViewDetails?.(resource.id)}
+        >
           View details
         </Button>
       </CardContent>

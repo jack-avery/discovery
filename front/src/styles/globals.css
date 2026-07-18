@@ -37,6 +37,41 @@
     min-height: var(--ds-header-height);
   }
 
+  .panel-header {
+    height: var(--ds-header-height);
+    min-height: var(--ds-header-height);
+    padding-inline: var(--ds-panel-header-padding-x);
+  }
+
+  .panel-header--compact {
+    padding-inline: var(--ds-panel-header-padding-x-compact);
+  }
+
+  .workspace-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--ds-workspace-section-gap);
+    padding: var(--ds-workspace-padding);
+  }
+
+  .workspace-section__title {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    font-weight: 500;
+    color: var(--color-foreground);
+  }
+
+  .workspace-section__subtitle {
+    margin-top: 0.125rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+    color: var(--color-muted-foreground);
+  }
+
+  .workspace-section__header {
+    margin-bottom: var(--ds-workspace-title-content-gap);
+  }
+
   .focus-ring:focus-visible {
     box-shadow: var(--ds-focus-ring);
   }

@@ -1,13 +1,8 @@
-import type { ButtonHTMLAttributes } from 'react'
+import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
 import { cn } from '@/utils/cn'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'outline' | 'interactive'
 type ButtonSize = 'sm' | 'md' | 'lg' | 'icon'
-
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant
-  size?: ButtonSize
-}
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
@@ -28,6 +23,39 @@ const sizeStyles: Record<ButtonSize, string> = {
   icon: 'h-10 w-10 min-h-[var(--ds-min-touch)] min-w-[var(--ds-min-touch)]',
 }
 
+function buttonClassName(
+  variant: ButtonVariant,
+  size: ButtonSize,
+  className?: string,
+) {
+  return cn(
+    'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-ring',
+    'disabled:pointer-events-none disabled:opacity-50',
+    variantStyles[variant],
+    sizeStyles[size],
+    className,
+  )
+}
+
+type SharedButtonProps = {
+  variant?: ButtonVariant
+  size?: ButtonSize
+  className?: string
+  children?: ReactNode
+}
+
+type NativeButtonProps = SharedButtonProps &
+  Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className' | 'children'> & {
+    href?: undefined
+  }
+
+type AnchorButtonProps = SharedButtonProps &
+  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, 'className' | 'children'> & {
+    href: string
+  }
+
+export type ButtonProps = NativeButtonProps | AnchorButtonProps
+
 export function Button({
   className,
   variant = 'primary',
@@ -35,17 +63,20 @@ export function Button({
   children,
   ...props
 }: ButtonProps) {
+  const classes = buttonClassName(variant, size, className)
+
+  if ('href' in props && props.href) {
+    const { href, ...anchorProps } = props
+    return (
+      <a href={href} className={classes} {...anchorProps}>
+        {children}
+      </a>
+    )
+  }
+
+  const buttonProps = props as NativeButtonProps
   return (
-    <button
-      className={cn(
-        'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus-ring',
-        'disabled:pointer-events-none disabled:opacity-50',
-        variantStyles[variant],
-        sizeStyles[size],
-        className,
-      )}
-      {...props}
-    >
+    <button className={classes} {...buttonProps}>
       {children}
     </button>
   )

@@ -1,4 +1,5 @@
 export { DiscoverPage } from './DiscoverPage'
+export { HomePage } from './HomePage'
 export { MapPage } from './MapPage'
 export { NotFoundPage } from './NotFoundPage'
 export { RequestResourceUpdatePage } from './RequestResourceUpdatePage'

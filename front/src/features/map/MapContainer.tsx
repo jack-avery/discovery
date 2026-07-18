@@ -1,50 +1,64 @@
-import { Map } from 'lucide-react'
-import { EmptyState } from '@/components/shared'
+import { Loader2 } from 'lucide-react'
+import type { ResourceMapItem } from '@/types'
+import type { ResourceMapQuery } from '@/services/mapService'
 import { cn } from '@/utils/cn'
+import { LeafletMap } from './LeafletMap'
 
 interface MapContainerProps {
   className?: string
-  /** DOM id for Leaflet mount point — defaults to "resource-map" */
-  mapId?: string
-  /** Set false once Leaflet is initialized */
-  showDisconnectedOverlay?: boolean
+  items: ResourceMapItem[]
+  isLoading?: boolean
+  error?: string | null
+  /** Changes when surrounding layout changes (e.g. workspace collapse). */
+  layoutKey?: string
+  onViewportQueryChange?: (query: ResourceMapQuery) => void
 }
 
 /**
- * Leaflet-ready map mount point.
+ * Map shell wrapping the Leaflet canvas.
  *
- * The `#resource-map` div must remain empty for Leaflet initialization.
- * Overlays (disconnected state, filter bar, detail panel) render as sibling
- * elements in MapStage, not inside the mount div.
+ * Overlays (floating controls) render as siblings in MapCanvas, not inside this section.
  *
  * Reserved control zones for Leaflet:
- * - Top-left: zoom controls (FilterBar offsets with md:left-14)
+ * - Top-left: zoom controls
  * - Bottom-right: attribution
  */
 export function MapContainer({
   className,
-  mapId = 'resource-map',
-  showDisconnectedOverlay = true,
+  items,
+  isLoading = false,
+  error = null,
+  layoutKey,
+  onViewportQueryChange,
 }: MapContainerProps) {
   return (
     <section
       aria-label="Resource map"
       className={cn('relative h-full w-full overflow-hidden bg-surface-raised', className)}
     >
-      <div id={mapId} className="absolute inset-0" aria-hidden={showDisconnectedOverlay} />
+      <LeafletMap
+        items={items}
+        layoutKey={layoutKey}
+        onViewportQueryChange={onViewportQueryChange}
+      />
 
-      {showDisconnectedOverlay && (
+      {isLoading && (
         <div
-          className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center"
+          className="pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-surface-raised/60"
           role="status"
           aria-live="polite"
+          aria-label="Loading map resources"
         >
-          <EmptyState
-            title="Map not connected"
-            description="Resource locations will appear on this map once Leaflet integration is configured."
-            icon={<Map className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />}
-            className="pointer-events-auto"
-          />
+          <Loader2 className="h-6 w-6 animate-spin text-interactive" aria-hidden="true" />
+        </div>
+      )}
+
+      {error && (
+        <div
+          className="pointer-events-none absolute bottom-4 left-1/2 z-[1] -translate-x-1/2 rounded-md border border-danger/30 bg-surface px-3 py-2 text-sm text-danger shadow-md"
+          role="alert"
+        >
+          {error}
         </div>
       )}
     </section>

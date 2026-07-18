@@ -9,7 +9,6 @@ interface CategoryDropdownProps {
   isLoading?: boolean
   error?: string | null
   disabled?: boolean
-  floating?: boolean
   className?: string
 }
 
@@ -20,7 +19,6 @@ export function CategoryDropdown({
   isLoading = false,
   error = null,
   disabled = false,
-  floating = false,
   className,
 }: CategoryDropdownProps) {
   return (
@@ -32,7 +30,6 @@ export function CategoryDropdown({
       isLoading={isLoading}
       error={error}
       disabled={disabled}
-      floating={floating}
       className={cn(className)}
     />
   )

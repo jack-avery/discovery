@@ -1,30 +1,70 @@
-import { useState } from 'react'
-import type { Resource } from '@/types'
+import type { PaginationMeta, Resource } from '@/types'
+import {
+  EMPTY_RESOURCE_LIST,
+  fetchResources,
+  type ResourceListQuery,
+  type ResourceQueryLimitation,
+} from '@/services/resourceService'
+import { useAbortableQuery } from '@/hooks/useAbortableQuery'
 
+/** Filters accepted by useResources — aligns with ResourceListQuery IDs. */
 export interface ResourceFilters {
-  /** Empty or omitted = all categories */
-  categorySlugs?: string[]
-  /** Empty or omitted = all tags */
-  tagSlugs?: string[]
+  categoryIds?: number[]
+  tagIds?: number[]
   search?: string
+  resourceType?: string
+  page?: number
+  perPage?: number
 }
 
 interface UseResourcesResult {
   resources: Resource[]
+  pagination: PaginationMeta
+  limitations: ResourceQueryLimitation[]
   isLoading: boolean
   error: string | null
 }
 
-/**
- * Resource data hook — returns empty state until API integration is wired.
- *
- * To integrate the backend, replace the body with:
- *   api.get<Resource[]>('/resources', { params: filters })
- */
-export function useResources(_filters: ResourceFilters = {}): UseResourcesResult {
-  const [isLoading] = useState(false)
-  const [error] = useState<string | null>(null)
-  const [resources] = useState<Resource[]>([])
+function toQuery(filters: ResourceFilters): ResourceListQuery {
+  return {
+    categoryIds: filters.categoryIds,
+    tagIds: filters.tagIds,
+    search: filters.search,
+    resourceType: filters.resourceType,
+    page: filters.page,
+    perPage: filters.perPage,
+  }
+}
 
-  return { resources, isLoading, error }
+function filtersKey(filters: ResourceFilters): string {
+  return JSON.stringify({
+    categoryIds: filters.categoryIds ?? [],
+    tagIds: filters.tagIds ?? [],
+    search: filters.search?.trim() ?? '',
+    resourceType: filters.resourceType ?? '',
+    page: filters.page ?? 1,
+    perPage: filters.perPage ?? 20,
+  })
+}
+
+export function useResources(filters: ResourceFilters = {}): UseResourcesResult {
+  const query = toQuery(filters)
+  const key = filtersKey(filters)
+
+  const { data, isLoading, error } = useAbortableQuery(
+    (signal) => fetchResources(query, { signal }),
+    {
+      initialData: EMPTY_RESOURCE_LIST,
+      fallbackErrorMessage: 'Failed to load resources',
+      deps: [key],
+    },
+  )
+
+  return {
+    resources: data.resources,
+    pagination: data.pagination,
+    limitations: data.limitations,
+    isLoading,
+    error,
+  }
 }

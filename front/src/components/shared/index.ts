@@ -1,6 +1,7 @@
 export { EmptyState } from './EmptyState'
 export { MultiSelectDropdown, type MultiSelectItem } from './MultiSelectDropdown'
+export { NavigationRail } from './NavigationRail'
 export { OverlayPanel } from './OverlayPanel'
 export { PageShell } from './PageShell'
+export { PanelHeader } from './PanelHeader'
 export { SearchBar } from './SearchBar'
-export { Sidebar, SidebarToggle } from './Sidebar'
