@@ -16,10 +16,27 @@ export interface PhysicalAddressQuery {
   postalCode: string
 }
 
+/** Verified MapTiler feature center — GeoJSON order is [lng, lat]. */
+export interface VerifiedCoordinates {
+  lat: number
+  lng: number
+}
+
+export type MapTilerGeocodeResult =
+  | ({ outcome: 'valid' } & VerifiedCoordinates)
+  | { outcome: 'not_found' }
+  | { outcome: 'unavailable' }
+
 interface MapTilerGeocodingFeature {
   place_name?: string
   relevance?: number
   place_type?: string[]
+  /** [longitude, latitude] */
+  center?: [number, number]
+  geometry?: {
+    type?: string
+    coordinates?: number[]
+  }
 }
 
 interface MapTilerGeocodingResponse {
@@ -29,14 +46,15 @@ interface MapTilerGeocodingResponse {
 /**
  * Forward-geocode a Canadian address via MapTiler.
  * Returns `unavailable` on network/API failures (submission must wait).
+ * On `valid`, includes the matched feature's center coordinates.
  */
 export async function verifyPhysicalAddressWithMapTiler(
   address: PhysicalAddressQuery,
   options?: { signal?: AbortSignal },
-): Promise<MapTilerGeocodeOutcome> {
+): Promise<MapTilerGeocodeResult> {
   const apiKey = getMapConfig().secrets.mapTilerApiKey.trim()
   if (!apiKey) {
-    return 'unavailable'
+    return { outcome: 'unavailable' }
   }
 
   const query = buildGeocodingQuery(address)
@@ -54,27 +72,63 @@ export async function verifyPhysicalAddressWithMapTiler(
     })
 
     if (!response.ok) {
-      return 'unavailable'
+      return { outcome: 'unavailable' }
     }
 
     const body = (await response.json()) as MapTilerGeocodingResponse
     const features = body.features ?? []
     if (features.length === 0) {
-      return 'not_found'
+      return { outcome: 'not_found' }
     }
 
-    const hasReasonableMatch = features.some((feature) => {
-      const relevance = feature.relevance ?? 0
-      return relevance >= 0.4
-    })
+    const match = features
+      .filter((feature) => (feature.relevance ?? 0) >= 0.4)
+      .sort((a, b) => (b.relevance ?? 0) - (a.relevance ?? 0))[0]
 
-    return hasReasonableMatch ? 'valid' : 'not_found'
+    if (!match) {
+      return { outcome: 'not_found' }
+    }
+
+    const coords = extractFeatureCoordinates(match)
+    if (!coords) {
+      // Feature matched but had no usable center — treat as unavailable so
+      // submission does not proceed without map coordinates.
+      return { outcome: 'unavailable' }
+    }
+
+    return { outcome: 'valid', ...coords }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       throw error
     }
-    return 'unavailable'
+    return { outcome: 'unavailable' }
   }
+}
+
+function extractFeatureCoordinates(
+  feature: MapTilerGeocodingFeature,
+): VerifiedCoordinates | null {
+  if (
+    Array.isArray(feature.center) &&
+    feature.center.length >= 2 &&
+    Number.isFinite(feature.center[0]) &&
+    Number.isFinite(feature.center[1])
+  ) {
+    return { lng: feature.center[0], lat: feature.center[1] }
+  }
+
+  const coordinates = feature.geometry?.coordinates
+  if (
+    feature.geometry?.type === 'Point' &&
+    Array.isArray(coordinates) &&
+    coordinates.length >= 2 &&
+    Number.isFinite(coordinates[0]) &&
+    Number.isFinite(coordinates[1])
+  ) {
+    return { lng: coordinates[0], lat: coordinates[1] }
+  }
+
+  return null
 }
 
 function buildGeocodingQuery(address: PhysicalAddressQuery): string {

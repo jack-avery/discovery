@@ -4,13 +4,16 @@ import type {
   EventContributionData,
   EventFrequency,
   EventScheduleKind,
+  EventWeekday,
   RecurrenceEndKind,
 } from '@/types/submission'
+import { EVENT_WEEKDAY_OPTIONS } from '@/features/submissions/mappers/eventRecurrence'
 import {
   getEndDateOrderError,
   getEndTimeOrderError,
   type EventFieldErrors,
 } from './validation'
+import { CheckboxOptionGroup } from '../form/CheckboxOptionGroup'
 import { Field } from '../form/Field'
 import { OptionCardGroup } from '../form/OptionCardGroup'
 import { TimeSelect } from '../form/TimeSelect'
@@ -36,17 +39,14 @@ const FREQUENCY_OPTIONS: { value: EventFrequency; label: string }[] = [
   { value: 'weekly', label: 'Weekly' },
   { value: 'biweekly', label: 'Every two weeks' },
   { value: 'monthly', label: 'Monthly' },
-  { value: 'other', label: 'Other' },
 ]
 
 const RECURRENCE_END_OPTIONS: {
   value: RecurrenceEndKind
   label: string
 }[] = [
-  { value: 'none', label: 'No known end date' },
-  { value: 'end_date', label: 'End date' },
-  { value: 'occurrences', label: 'Number of occurrences' },
-  { value: 'not_sure', label: 'Not sure' },
+  { value: 'none', label: 'Never' },
+  { value: 'end_date', label: 'On date' },
 ]
 
 type ScheduleOrderField =
@@ -54,6 +54,10 @@ type ScheduleOrderField =
   | 'endDate'
   | 'startTime'
   | 'endTime'
+
+function needsWeekdays(frequency: EventFrequency | null): boolean {
+  return frequency === 'weekly' || frequency === 'biweekly'
+}
 
 export function EventScheduleFields({
   data,
@@ -72,14 +76,12 @@ export function EventScheduleFields({
     value: string,
   ) => {
     onChange({ [field]: value })
-    // Discrete date/time controls: reveal order errors after the user changes a value.
     markScheduleOrderTouched()
   }
 
   const handleSectionFocusOut = (event: FocusEvent<HTMLDivElement>) => {
     const next = event.relatedTarget
     if (next instanceof Node && event.currentTarget.contains(next)) return
-    // Leaving the schedule section — never silently block progression.
     markScheduleOrderTouched()
   }
 
@@ -93,6 +95,22 @@ export function EventScheduleFields({
 
   const endDateError = endDateOrderError ?? errors.endDate
   const endTimeError = endTimeOrderError ?? errors.endTime
+
+  const frequencyOptions =
+    data.frequency === 'other'
+      ? [...FREQUENCY_OPTIONS, { value: 'other' as const, label: 'Other' }]
+      : FREQUENCY_OPTIONS
+
+  const recurrenceEndOptions =
+    data.recurrenceEndKind === 'occurrences'
+      ? [
+          ...RECURRENCE_END_OPTIONS,
+          {
+            value: 'occurrences' as const,
+            label: 'Number of occurrences',
+          },
+        ]
+      : RECURRENCE_END_OPTIONS
 
   return (
     <div className="space-y-4" onBlur={handleSectionFocusOut}>
@@ -213,9 +231,16 @@ export function EventScheduleFields({
           <OptionCardGroup<EventFrequency>
             name="event-frequency"
             legend="Frequency"
-            options={FREQUENCY_OPTIONS}
+            options={frequencyOptions}
             value={data.frequency}
-            onChange={(frequency) => onChange({ frequency })}
+            onChange={(frequency) =>
+              onChange({
+                frequency,
+                ...(needsWeekdays(frequency)
+                  ? {}
+                  : { recurrenceWeekdays: [] }),
+              })
+            }
             error={errors.frequency}
             className="sm:grid-cols-2"
           />
@@ -236,11 +261,34 @@ export function EventScheduleFields({
             </Field>
           ) : null}
 
+          {needsWeekdays(data.frequency) ? (
+            <div className="space-y-1.5">
+              <CheckboxOptionGroup<EventWeekday>
+                legend="Occurs on"
+                options={EVENT_WEEKDAY_OPTIONS}
+                value={data.recurrenceWeekdays}
+                onChange={(recurrenceWeekdays) =>
+                  onChange({ recurrenceWeekdays })
+                }
+                className="sm:grid-cols-2"
+              />
+              {errors.recurrenceWeekdays ? (
+                <p className="text-xs text-danger" role="alert">
+                  {errors.recurrenceWeekdays}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <OptionCardGroup<RecurrenceEndKind>
             name="event-recurrence-end"
-            legend="When does the recurring event end?"
-            options={RECURRENCE_END_OPTIONS}
-            value={data.recurrenceEndKind}
+            legend="Ends"
+            options={recurrenceEndOptions}
+            value={
+              data.recurrenceEndKind === 'not_sure'
+                ? 'none'
+                : data.recurrenceEndKind
+            }
             onChange={(recurrenceEndKind) => onChange({ recurrenceEndKind })}
             className="sm:grid-cols-2"
           />

@@ -27,13 +27,13 @@ export function HeroSection() {
           />
         </div>
 
-        <h1
+        <h2
           id="submit-hero-heading"
           className="mt-4 font-heading text-2xl font-semibold leading-tight tracking-tight text-foreground sm:mt-5 sm:text-3xl"
         >
           Tell us about something that could help people in the
           Rideau-Rockcliffe community.
-        </h1>
+        </h2>
 
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-4 sm:text-base">
           Whether it&apos;s an existing resource, an event, or a skill you&apos;d

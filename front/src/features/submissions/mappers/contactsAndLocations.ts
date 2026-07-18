@@ -77,12 +77,18 @@ export function mapPublicLocations(
     const city = trimText(location.city)
     const province = trimText(location.province)
     const postal = trimText(location.postalCode)
+    const hasCoords =
+      typeof location.lat === 'number' &&
+      Number.isFinite(location.lat) &&
+      typeof location.lng === 'number' &&
+      Number.isFinite(location.lng)
 
     mapped.push({
       address,
       ...(city ? { city } : {}),
       ...(province ? { province } : {}),
       ...(postal ? { postal_code: postal } : {}),
+      ...(hasCoords ? { lat: location.lat!, lng: location.lng! } : {}),
     })
   }
 

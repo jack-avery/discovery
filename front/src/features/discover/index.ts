@@ -13,7 +13,14 @@ export {
   WORKSPACE_COLLAPSED_WIDTH_CLASS,
   WORKSPACE_WIDTH_CLASS,
 } from './constants'
-export { ResourceDetailScreen } from './ResourceDetailScreen'
+export {
+  mapResourceVersionForPresentation,
+  type ResourceVersionPresentation,
+} from './mapResourceVersionForPresentation'
+export {
+  ResourceDetailPresentation,
+  ResourceDetailScreen,
+} from './ResourceDetailScreen'
 export { ResultsList } from './ResultsList'
 export { ResultsSummary } from './ResultsSummary'
 export { SearchSection } from './SearchSection'

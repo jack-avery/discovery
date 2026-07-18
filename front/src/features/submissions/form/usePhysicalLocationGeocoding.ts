@@ -4,6 +4,7 @@ import {
   ADDRESS_NOT_VERIFIED_MESSAGE,
   ADDRESS_VERIFICATION_UNAVAILABLE_MESSAGE,
   verifyPhysicalAddressWithMapTiler,
+  type VerifiedCoordinates,
 } from '@/services/maptilerGeocodingService'
 import {
   isLocationAddressComplete,
@@ -22,6 +23,8 @@ export interface LocationGeocodingState {
   message?: string
   /** Address fingerprint when last validated. */
   validatedKey?: string
+  /** MapTiler center when status is valid. */
+  coordinates?: VerifiedCoordinates
 }
 
 export interface EnsureValidatedOptions {
@@ -40,19 +43,35 @@ interface UsePhysicalLocationGeocodingOptions {
   showErrors: boolean
   /** Fired whenever verification readiness changes (for progressive unlock). */
   onVerifiedChange?: (verified: boolean) => void
+  /**
+   * Persist or clear MapTiler coordinates on the location model so submission
+   * mapping can include lat/lng without a second geocode.
+   */
+  onCoordinatesChange?: (
+    locationId: string,
+    coordinates: VerifiedCoordinates | null,
+  ) => void
 }
 
 const COMPLETE_ADDRESS_DEBOUNCE_MS = 400
+
+function hasMatchingCoordinates(
+  location: ExistingResourceLocation,
+  coordinates: VerifiedCoordinates,
+): boolean {
+  return location.lat === coordinates.lat && location.lng === coordinates.lng
+}
 
 export function usePhysicalLocationGeocoding({
   locations,
   showErrors,
   onVerifiedChange,
+  onCoordinatesChange,
 }: UsePhysicalLocationGeocodingOptions) {
   const [states, setStates] = useState<Record<string, LocationGeocodingState>>(
     {},
   )
-  const successCacheRef = useRef<Map<string, true>>(new Map())
+  const successCacheRef = useRef<Map<string, VerifiedCoordinates>>(new Map())
   const inFlightRef = useRef<
     Map<string, { key: string; promise: Promise<LocationGeocodingState> }>
   >(new Map())
@@ -61,10 +80,12 @@ export function usePhysicalLocationGeocoding({
   const locationsRef = useRef(locations)
   const prevShowErrorsRef = useRef(showErrors)
   const onVerifiedChangeRef = useRef(onVerifiedChange)
+  const onCoordinatesChangeRef = useRef(onCoordinatesChange)
 
   statesRef.current = states
   locationsRef.current = locations
   onVerifiedChangeRef.current = onVerifiedChange
+  onCoordinatesChangeRef.current = onCoordinatesChange
 
   const setLocationState = useCallback(
     (locationId: string, next: LocationGeocodingState) => {
@@ -73,7 +94,36 @@ export function usePhysicalLocationGeocoding({
     [],
   )
 
+  const applyCoordinates = useCallback(
+    (locationId: string, coordinates: VerifiedCoordinates | null) => {
+      const location = locationsRef.current.find((loc) => loc.id === locationId)
+      if (!location) return
+
+      if (coordinates) {
+        if (hasMatchingCoordinates(location, coordinates)) return
+        onCoordinatesChangeRef.current?.(locationId, coordinates)
+        return
+      }
+
+      if (location.lat == null && location.lng == null) return
+      onCoordinatesChangeRef.current?.(locationId, null)
+    },
+    [],
+  )
+
   useEffect(() => {
+    for (const location of locations) {
+      const key = locationGeocodingCacheKey(location)
+      const state = statesRef.current[location.id]
+      if (state?.validatedKey && state.validatedKey !== key) {
+        successCacheRef.current.delete(state.validatedKey)
+        // Address fingerprint changed — drop stale MapTiler coords.
+        if (location.lat != null || location.lng != null) {
+          onCoordinatesChangeRef.current?.(location.id, null)
+        }
+      }
+    }
+
     setStates((current) => {
       let changed = false
       const next = { ...current }
@@ -82,7 +132,6 @@ export function usePhysicalLocationGeocoding({
         const key = locationGeocodingCacheKey(location)
         const state = next[location.id]
         if (state?.validatedKey && state.validatedKey !== key) {
-          successCacheRef.current.delete(state.validatedKey)
           delete next[location.id]
           changed = true
         }
@@ -142,12 +191,35 @@ export function usePhysicalLocationGeocoding({
       }
 
       const key = locationGeocodingCacheKey(location)
-      if (successCacheRef.current.has(key)) {
+
+      // Reuse coordinates already persisted on the location (e.g. draft restore)
+      // without issuing another MapTiler request.
+      if (
+        typeof location.lat === 'number' &&
+        Number.isFinite(location.lat) &&
+        typeof location.lng === 'number' &&
+        Number.isFinite(location.lng)
+      ) {
+        const coordinates = { lat: location.lat, lng: location.lng }
+        successCacheRef.current.set(key, coordinates)
         const next: LocationGeocodingState = {
           status: 'valid',
           validatedKey: key,
+          coordinates,
         }
         setLocationState(location.id, next)
+        return Promise.resolve(next)
+      }
+
+      const cached = successCacheRef.current.get(key)
+      if (cached) {
+        const next: LocationGeocodingState = {
+          status: 'valid',
+          validatedKey: key,
+          coordinates: cached,
+        }
+        setLocationState(location.id, next)
+        applyCoordinates(location.id, cached)
         return Promise.resolve(next)
       }
 
@@ -189,7 +261,7 @@ export function usePhysicalLocationGeocoding({
 
       void (async () => {
         try {
-          const outcome = await verifyPhysicalAddressWithMapTiler(
+          const result = await verifyPhysicalAddressWithMapTiler(
             {
               streetAddress: location.streetAddress,
               unit: location.unit,
@@ -205,18 +277,22 @@ export function usePhysicalLocationGeocoding({
             return
           }
 
-          if (outcome === 'valid') {
-            successCacheRef.current.set(key, true)
+          if (result.outcome === 'valid') {
+            const coordinates = { lat: result.lat, lng: result.lng }
+            successCacheRef.current.set(key, coordinates)
             const next: LocationGeocodingState = {
               status: 'valid',
               validatedKey: key,
+              coordinates,
             }
             setLocationState(location.id, next)
+            applyCoordinates(location.id, coordinates)
             settle(next)
             return
           }
 
-          if (outcome === 'not_found') {
+          if (result.outcome === 'not_found') {
+            applyCoordinates(location.id, null)
             const next: LocationGeocodingState = {
               status: 'invalid',
               message: ADDRESS_NOT_VERIFIED_MESSAGE,
@@ -227,6 +303,7 @@ export function usePhysicalLocationGeocoding({
             return
           }
 
+          applyCoordinates(location.id, null)
           const next: LocationGeocodingState = {
             status: 'error',
             message: ADDRESS_VERIFICATION_UNAVAILABLE_MESSAGE,
@@ -239,6 +316,7 @@ export function usePhysicalLocationGeocoding({
             settle(statesRef.current[location.id] ?? { status: 'idle' })
             return
           }
+          applyCoordinates(location.id, null)
           const next: LocationGeocodingState = {
             status: 'error',
             message: ADDRESS_VERIFICATION_UNAVAILABLE_MESSAGE,
@@ -259,7 +337,7 @@ export function usePhysicalLocationGeocoding({
 
       return promise
     },
-    [setLocationState],
+    [setLocationState, applyCoordinates],
   )
 
   const validateOnBlur = useCallback(
@@ -278,7 +356,13 @@ export function usePhysicalLocationGeocoding({
       const results = await Promise.all(
         complete.map((loc) => validateLocation(loc)),
       )
-      const ok = results.every((state) => state.status === 'valid')
+      const ok = results.every(
+        (state) =>
+          state.status === 'valid' &&
+          state.coordinates != null &&
+          Number.isFinite(state.coordinates.lat) &&
+          Number.isFinite(state.coordinates.lng),
+      )
 
       if (!ok && options?.focusOnFailure) {
         // Wait a tick so invalid messages are painted before focus/scroll.
@@ -299,10 +383,13 @@ export function usePhysicalLocationGeocoding({
     return complete.every((location) => {
       const key = locationGeocodingCacheKey(location)
       const state = states[location.id]
+      const cached = successCacheRef.current.get(key)
       return (
         state?.status === 'valid' &&
         state.validatedKey === key &&
-        successCacheRef.current.has(key)
+        cached != null &&
+        typeof location.lat === 'number' &&
+        typeof location.lng === 'number'
       )
     })
   }, [locations, states])
@@ -315,10 +402,13 @@ export function usePhysicalLocationGeocoding({
     return complete.every((location) => {
       const key = locationGeocodingCacheKey(location)
       const state = states[location.id]
+      const cached = successCacheRef.current.get(key)
       return (
         state?.status === 'valid' &&
         state.validatedKey === key &&
-        successCacheRef.current.has(key)
+        cached != null &&
+        typeof location.lat === 'number' &&
+        typeof location.lng === 'number'
       )
     })
   }, [locations, states])
@@ -335,7 +425,9 @@ export function usePhysicalLocationGeocoding({
 
     const needsValidation = complete.some((location) => {
       const key = locationGeocodingCacheKey(location)
-      if (successCacheRef.current.has(key)) return false
+      if (successCacheRef.current.has(key) && location.lat != null && location.lng != null) {
+        return false
+      }
       const state = statesRef.current[location.id]
       if (!state || state.validatedKey !== key) return true
       if (state.status === 'validating') return false

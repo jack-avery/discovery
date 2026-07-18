@@ -1,11 +1,38 @@
 import type {
   EventContributionData,
   ContributionData,
+  EventWeekday,
+  RegistrationMode,
 } from '@/types/submission'
 import {
   createContactMethod,
   createEmptyLocation,
 } from '../existingResource/emptyState'
+
+const EVENT_WEEKDAYS: EventWeekday[] = [
+  'monday',
+  'tuesday',
+  'wednesday',
+  'thursday',
+  'friday',
+  'saturday',
+  'sunday',
+]
+
+function normalizeRecurrenceWeekdays(raw: unknown): EventWeekday[] {
+  if (!Array.isArray(raw)) return []
+  const found: EventWeekday[] = []
+  for (const item of raw) {
+    if (
+      typeof item === 'string' &&
+      (EVENT_WEEKDAYS as string[]).includes(item) &&
+      !found.includes(item as EventWeekday)
+    ) {
+      found.push(item as EventWeekday)
+    }
+  }
+  return found
+}
 
 export function createEmptyEventData(): EventContributionData {
   return {
@@ -19,6 +46,7 @@ export function createEmptyEventData(): EventContributionData {
     endTime: '',
     frequency: null,
     frequencyOther: '',
+    recurrenceWeekdays: [],
     recurrenceEndKind: 'none',
     recurrenceEndDate: '',
     recurrenceOccurrences: '',
@@ -28,14 +56,11 @@ export function createEmptyEventData(): EventContributionData {
     categoryIds: [],
     filterIds: [],
     registrationMode: null,
-    registrationDetails: '',
     contacts: [createContactMethod()],
     costOption: null,
     costDetails: '',
     accessibilityNotes: '',
     eligibility: '',
-    capacityMode: null,
-    capacityLimit: '',
     moreInfoUrl: '',
     generalNotes: '',
     relationship: null,
@@ -49,11 +74,21 @@ export function isEventContributionData(
   return data?.kind === 'event'
 }
 
+function normalizeRegistrationMode(raw: unknown): RegistrationMode | null {
+  if (raw === 'required' || raw === 'not_required' || raw === 'not_sure') {
+    return raw
+  }
+  // Legacy draft values from the previous registration model.
+  if (raw === 'none') return 'not_required'
+  if (raw === 'optional') return 'not_sure'
+  return null
+}
+
 export function normalizeEventContributionData(
   data: EventContributionData | Record<string, unknown>,
 ): EventContributionData {
   const base = createEmptyEventData()
-  const raw = data as Partial<EventContributionData>
+  const raw = data as Partial<EventContributionData> & Record<string, unknown>
 
   return {
     ...base,
@@ -79,13 +114,13 @@ export function normalizeEventContributionData(
         : null,
     frequencyOther:
       typeof raw.frequencyOther === 'string' ? raw.frequencyOther : '',
+    recurrenceWeekdays: normalizeRecurrenceWeekdays(raw.recurrenceWeekdays),
     recurrenceEndKind:
-      raw.recurrenceEndKind === 'none' ||
-      raw.recurrenceEndKind === 'end_date' ||
-      raw.recurrenceEndKind === 'occurrences' ||
-      raw.recurrenceEndKind === 'not_sure'
-        ? raw.recurrenceEndKind
-        : 'none',
+      raw.recurrenceEndKind === 'end_date'
+        ? 'end_date'
+        : raw.recurrenceEndKind === 'occurrences'
+          ? 'occurrences'
+          : 'none',
     recurrenceEndDate:
       typeof raw.recurrenceEndDate === 'string' ? raw.recurrenceEndDate : '',
     recurrenceOccurrences:
@@ -105,17 +140,7 @@ export function normalizeEventContributionData(
     onlineUrl: typeof raw.onlineUrl === 'string' ? raw.onlineUrl : '',
     categoryIds: Array.isArray(raw.categoryIds) ? raw.categoryIds : [],
     filterIds: Array.isArray(raw.filterIds) ? raw.filterIds : [],
-    registrationMode:
-      raw.registrationMode === 'none' ||
-      raw.registrationMode === 'required' ||
-      raw.registrationMode === 'optional' ||
-      raw.registrationMode === 'not_sure'
-        ? raw.registrationMode
-        : null,
-    registrationDetails:
-      typeof raw.registrationDetails === 'string'
-        ? raw.registrationDetails
-        : '',
+    registrationMode: normalizeRegistrationMode(raw.registrationMode),
     contacts:
       Array.isArray(raw.contacts) && raw.contacts.length > 0
         ? raw.contacts
@@ -134,12 +159,6 @@ export function normalizeEventContributionData(
     accessibilityNotes:
       typeof raw.accessibilityNotes === 'string' ? raw.accessibilityNotes : '',
     eligibility: typeof raw.eligibility === 'string' ? raw.eligibility : '',
-    capacityMode:
-      raw.capacityMode === 'limited' || raw.capacityMode === 'not_sure'
-        ? raw.capacityMode
-        : null,
-    capacityLimit:
-      typeof raw.capacityLimit === 'string' ? raw.capacityLimit : '',
     moreInfoUrl: typeof raw.moreInfoUrl === 'string' ? raw.moreInfoUrl : '',
     generalNotes: typeof raw.generalNotes === 'string' ? raw.generalNotes : '',
     relationship:

@@ -1,11 +1,15 @@
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui'
+import { StaffSessionControls } from '@/components/shared/StaffSessionControls'
 
 export function NotFoundPage() {
   return (
     <div className="flex h-full flex-col">
       <header className="app-header flex shrink-0 items-center gap-3 border-b border-border bg-surface px-4 sm:px-5">
-        <h1 className="font-heading text-base font-semibold text-foreground">Page not found</h1>
+        <h1 className="min-w-0 flex-1 font-heading text-base font-semibold text-foreground">
+          Page not found
+        </h1>
+        <StaffSessionControls />
       </header>
 
       <div className="flex flex-1 flex-col items-center justify-center p-6 text-center">

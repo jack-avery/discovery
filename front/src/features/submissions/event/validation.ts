@@ -30,6 +30,7 @@ export interface EventFieldErrors {
   endTime?: string
   frequency?: string
   frequencyOther?: string
+  recurrenceWeekdays?: string
   recurrenceEndDate?: string
   recurrenceOccurrences?: string
   accessMode?: string
@@ -38,11 +39,9 @@ export interface EventFieldErrors {
   onlineUrl?: string
   categories?: string
   registrationMode?: string
-  registrationDetails?: string
   contacts?: string
   contactValues?: Record<string, string>
   costDetails?: string
-  capacityLimit?: string
   moreInfoUrl?: string
   relationship?: string
   relationshipOther?: string
@@ -156,6 +155,11 @@ export function validateSectionSchedule(
       errors.frequency = 'Choose how often the event repeats.'
     } else if (data.frequency === 'other' && !data.frequencyOther.trim()) {
       errors.frequencyOther = 'Describe the schedule.'
+    } else if (
+      (data.frequency === 'weekly' || data.frequency === 'biweekly') &&
+      data.recurrenceWeekdays.length === 0
+    ) {
+      errors.recurrenceWeekdays = 'Select at least one day the event occurs.'
     }
 
     if (data.recurrenceEndKind === 'end_date') {
@@ -251,14 +255,7 @@ export function validateSectionRegistration(
 ): EventFieldErrors {
   const errors: EventFieldErrors = {}
   if (!data.registrationMode) {
-    errors.registrationMode = 'Tell us whether registration applies.'
-  } else if (
-    (data.registrationMode === 'required' ||
-      data.registrationMode === 'optional') &&
-    !data.registrationDetails.trim()
-  ) {
-    errors.registrationDetails =
-      'Add a registration link or short instructions.'
+    errors.registrationMode = 'Tell us whether registration is required.'
   }
 
   const contactValues: Record<string, string> = {}
@@ -294,12 +291,6 @@ export function validateSectionAdditional(
   const errors: EventFieldErrors = {}
   if (data.costOption === 'other' && !data.costDetails.trim()) {
     errors.costDetails = 'Please describe the cost.'
-  }
-  if (data.capacityMode === 'limited') {
-    const n = Number.parseInt(data.capacityLimit.trim(), 10)
-    if (!data.capacityLimit.trim() || !Number.isFinite(n) || n < 1) {
-      errors.capacityLimit = 'Enter a positive whole number, or choose Not sure.'
-    }
   }
   if (data.moreInfoUrl.trim() && !isValidUrl(data.moreInfoUrl)) {
     errors.moreInfoUrl = 'Enter a valid website address.'

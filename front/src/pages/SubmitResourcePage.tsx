@@ -1,14 +1,18 @@
+import { PageShell } from '@/components/shared/PageShell'
 import { SubmitResourceExperience } from '@/features/submissions/SubmitResourceExperience'
 import { SubmissionDraftProvider } from '@/features/submissions/state/SubmissionDraftProvider'
 
 /**
  * Public Submit Resource page.
- * Hero owns the sole H1 — intentionally no PageShell title.
+ * Uses the shared PageShell header (Staff Portal / session) identical to Home.
+ * Hero content remains full-bleed below the header.
  */
 export function SubmitResourcePage() {
   return (
     <SubmissionDraftProvider>
-      <SubmitResourceExperience />
+      <PageShell title="Submit Resource" uncontained>
+        <SubmitResourceExperience />
+      </PageShell>
     </SubmissionDraftProvider>
   )
 }

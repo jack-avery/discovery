@@ -7,7 +7,6 @@ import type {
   AccessMode,
   AvailabilityOption,
   CostOption,
-  EventCapacityMode,
   EventCostOption,
   EventFrequency,
   EventRelationshipOption,
@@ -97,21 +96,15 @@ export const FREQUENCY_LABELS: Record<EventFrequency, string> = {
 }
 
 export const RECURRENCE_END_LABELS: Record<RecurrenceEndKind, string> = {
-  none: 'No known end date',
-  end_date: 'End date',
+  none: 'Never',
+  end_date: 'On date',
   occurrences: 'Number of occurrences',
   not_sure: 'Not sure',
 }
 
 export const REGISTRATION_LABELS: Record<RegistrationMode, string> = {
-  none: 'No registration needed',
-  required: 'Registration required',
-  optional: 'Registration optional',
-  not_sure: 'Not sure',
-}
-
-export const CAPACITY_LABELS: Record<EventCapacityMode, string> = {
-  limited: 'Limited capacity',
+  required: 'Required',
+  not_required: 'Not required',
   not_sure: 'Not sure',
 }
 

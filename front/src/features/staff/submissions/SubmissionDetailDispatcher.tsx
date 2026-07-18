@@ -1,0 +1,69 @@
+import { ResourceDetailPresentation } from '@/features/discover/ResourceDetailScreen'
+import { EventDetailPresentation } from '@/features/staff/submissions/EventDetailPresentation'
+import { SkillDetailPresentation } from '@/features/staff/submissions/SkillDetailPresentation'
+import {
+  mapEventVersionForPresentation,
+  resolveContributionPresentationKind,
+} from '@/features/staff/submissions/mapEventVersionForPresentation'
+import { mapSkillVersionForPresentation } from '@/features/staff/submissions/mapSkillVersionForPresentation'
+import type { SubmissionDetailDto } from '@/types/moderationSubmission'
+import { useMemo } from 'react'
+
+interface SubmissionDetailDispatcherProps {
+  submission: SubmissionDetailDto
+}
+
+/**
+ * Chooses the correct proposed-content presentation for staff review.
+ *
+ * Existing Resource → ResourceDetailPresentation
+ *   (maps internally via mapResourceVersionForPresentation)
+ * Event → EventDetailPresentation
+ * Skill / Service → SkillDetailPresentation
+ */
+export function SubmissionDetailDispatcher({
+  submission,
+}: SubmissionDetailDispatcherProps) {
+  const version = submission.proposed_version
+  if (!version) return null
+
+  const kind = resolveContributionPresentationKind(
+    version,
+    submission.submission_type,
+  )
+
+  if (kind === 'event') {
+    return <EventSubmissionDetail version={version} />
+  }
+
+  if (kind === 'skill') {
+    return <SkillSubmissionDetail submission={submission} />
+  }
+
+  return <ResourceDetailPresentation version={version} />
+}
+
+function EventSubmissionDetail({
+  version,
+}: {
+  version: NonNullable<SubmissionDetailDto['proposed_version']>
+}) {
+  const presentation = useMemo(
+    () => mapEventVersionForPresentation(version),
+    [version],
+  )
+  return <EventDetailPresentation presentation={presentation} />
+}
+
+function SkillSubmissionDetail({
+  submission,
+}: {
+  submission: SubmissionDetailDto
+}) {
+  const presentation = useMemo(
+    () => mapSkillVersionForPresentation(submission),
+    [submission],
+  )
+  if (!presentation) return null
+  return <SkillDetailPresentation presentation={presentation} />
+}

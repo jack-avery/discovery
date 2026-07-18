@@ -1,15 +1,25 @@
-import { LogIn } from 'lucide-react'
+import { Navigate } from 'react-router-dom'
+import { useAuth } from '@/app/providers/AuthProvider'
 import { PageShell } from '@/components/shared/PageShell'
-import { EmptyState } from '@/components/shared'
+import { SignInForm } from '@/features/staff/auth/SignInForm'
 
 export function StaffSignInPage() {
+  const { isAuthenticated } = useAuth()
+
+  if (isAuthenticated) {
+    return <Navigate to="/staff" replace />
+  }
+
   return (
     <PageShell title="Staff Sign In">
-      <EmptyState
-        title="Staff authentication not available"
-        description="Sign-in for RRCRC staff will be available in a future release. Public users can browse and submit resources without an account."
-        icon={<LogIn className="h-6 w-6 text-muted-foreground" strokeWidth={1.5} />}
-      />
+      <div className="mx-auto w-full max-w-md space-y-section">
+        <p className="text-center text-sm text-muted-foreground">
+          Authorized RRCRC staff only.
+          <br />
+          Public visitors can browse and submit resources without an account.
+        </p>
+        <SignInForm />
+      </div>
     </PageShell>
   )
 }

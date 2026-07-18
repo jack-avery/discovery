@@ -63,6 +63,8 @@ export const PhysicalLocationList = forwardRef<
     () => new Set(),
   )
   const focusLocationIdRef = useRef<string | null>(null)
+  const locationsRef = useRef(locations)
+  locationsRef.current = locations
   const listHeadingId = useId()
   const addControlId = useId()
 
@@ -70,6 +72,19 @@ export const PhysicalLocationList = forwardRef<
     locations,
     showErrors,
     onVerifiedChange,
+    onCoordinatesChange: (locationId, coordinates) => {
+      onChange(
+        locationsRef.current.map((loc) =>
+          loc.id === locationId
+            ? {
+                ...loc,
+                lat: coordinates?.lat ?? null,
+                lng: coordinates?.lng ?? null,
+              }
+            : loc,
+        ),
+      )
+    },
   })
 
   useImperativeHandle(
@@ -121,11 +136,29 @@ export const PhysicalLocationList = forwardRef<
     })
   }
 
+  const ADDRESS_FIELDS = [
+    'streetAddress',
+    'unit',
+    'city',
+    'province',
+    'postalCode',
+  ] as const
+
   const update = (
     id: string,
     patch: Partial<ExistingResourceLocation>,
   ) => {
-    onChange(locations.map((loc) => (loc.id === id ? { ...loc, ...patch } : loc)))
+    const addressChanged = ADDRESS_FIELDS.some((field) => field in patch)
+    onChange(
+      locations.map((loc) => {
+        if (loc.id !== id) return loc
+        return {
+          ...loc,
+          ...(addressChanged ? { lat: null, lng: null } : {}),
+          ...patch,
+        }
+      }),
+    )
   }
 
   const handleLocationFieldBlur = (location: ExistingResourceLocation) => {
