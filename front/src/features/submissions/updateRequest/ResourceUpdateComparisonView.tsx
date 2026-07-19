@@ -9,11 +9,11 @@ import type { UpdateSectionId } from './updateSections'
 interface ResourceUpdateComparisonViewProps {
   comparison: ResourceUpdateComparison
   /**
-   * Optional per-section edit action. Contributor review passes this;
-   * staff moderation can omit it or supply a different handler later.
+   * Optional per-section edit action for hosts that jump back into an editor
+   * (e.g. future staff moderation). Omit when presentation-only.
    */
   onEditSection?: (sectionId: UpdateSectionId) => void
-  /** Section heading level wording. Defaults to contributor-facing copy. */
+  /** Shown when there are no changed sections. */
   emptyMessage?: string
 }
 

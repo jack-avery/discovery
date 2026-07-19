@@ -6,9 +6,6 @@ import {
 import type { UpdateSectionId } from './updateSections'
 import { UPDATE_SECTION_IDS } from './updateSections'
 
-/** Expandable update-editor sections (picker sections only). */
-export type UpdateEditorSectionId = UpdateSectionId
-
 /**
  * Compare update-editor data against the prefilled baseline.
  * Only value changes count; restoring originals clears the section marker.
@@ -33,17 +30,17 @@ export function hasResourceDataChanges(
 
 /**
  * First invalid section in editor display order.
- * Used to auto-expand when Continue fails validation.
+ * Used to auto-expand when submit validation fails.
  */
 export function getFirstInvalidUpdateSection(
   data: ExistingResourceData,
-): UpdateEditorSectionId | null {
+): UpdateSectionId | null {
   return mapFieldErrorsToUpdateSection(validateExistingResource(data))
 }
 
 function mapFieldErrorsToUpdateSection(
   errors: FieldErrors,
-): UpdateEditorSectionId | null {
+): UpdateSectionId | null {
   if (errors.name || errors.description) return 'about'
   if (errors.categories) return 'categories'
   if (errors.accessMode || errors.locations || errors.locationFields || errors.onlineUrl) {

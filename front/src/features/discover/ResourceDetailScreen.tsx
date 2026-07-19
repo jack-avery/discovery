@@ -246,8 +246,6 @@ export function ResourceDetailPresentation({
   /** When set, shows the public update-request entry point (Discover only). */
   resourceId?: number
   version: ResourceVersionDto
-  /** @deprecated Mapping now always runs internally; ignored when provided. */
-  hoursSummary?: string | null
 }) {
   const presentation = useMemo(
     () => mapResourceVersionForPresentation(rawVersion),
@@ -397,9 +395,7 @@ export function ResourceDetailPresentation({
 
       {typeof resourceId === 'number' ? (
         <RequestResourceUpdateFlow
-          resourceId={resourceId}
           resourceName={hasText(version.name) ? version.name : undefined}
-          version={rawVersion}
         />
       ) : null}
 

@@ -1,13 +1,9 @@
 import { Button } from '@/components/ui'
 import { WorkspaceSection } from '@/features/discover/WorkspaceSection'
 import { useDiscoverSideWorkspace } from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
-import type { ResourceVersionDto } from '@/types/resource'
 
 interface RequestResourceUpdateFlowProps {
-  resourceId: number
   resourceName?: string
-  /** Approved version — kept for call-site compatibility; workspace loads detail itself. */
-  version: ResourceVersionDto
 }
 
 /**
