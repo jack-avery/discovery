@@ -157,7 +157,13 @@ export function getReviewBlockers(draft: SubmissionDraft): ReviewBlocker[] {
     }
   }
 
-  if (!isContributorComplete(draft.contributor)) {
+  if (
+    !isContributorComplete(draft.contributor, {
+      requireResourceConnection: draft.contributions.some(
+        (contribution) => contribution.data.kind === 'existing_resource',
+      ),
+    })
+  ) {
     blockers.push({
       kind: 'incomplete_contributor',
       message: 'Your contact information still needs to be completed.',

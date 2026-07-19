@@ -10,6 +10,8 @@ interface ContributionEditorSheetProps {
   /** Optional sticky progress indicator rendered under the title. */
   progress?: ReactNode
   onClose: () => void
+  /** Footer secondary action. Defaults to onClose. */
+  onCancel?: () => void
   /** Primary footer action (save / submit). Omit with hidePrimary for close-only sheets. */
   onSave?: () => void
   saveLabel?: string
@@ -17,6 +19,8 @@ interface ContributionEditorSheetProps {
   /** When true, the primary footer button is not rendered. */
   hidePrimary?: boolean
   primaryDisabled?: boolean
+  /** Short explanation shown near the primary action when disabled. */
+  primaryHint?: string
   children: ReactNode
 }
 
@@ -41,11 +45,13 @@ export function ContributionEditorSheet({
   description,
   progress,
   onClose,
+  onCancel,
   onSave,
   saveLabel = 'Save contribution',
   cancelLabel = 'Cancel',
   hidePrimary = false,
   primaryDisabled = false,
+  primaryHint,
   children,
 }: ContributionEditorSheetProps) {
   const titleId = useId()
@@ -205,20 +211,29 @@ export function ContributionEditorSheet({
           {children}
         </div>
 
-        <footer className="flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border bg-surface px-4 py-3 sm:px-6">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            {cancelLabel}
-          </Button>
-          {!hidePrimary && onSave ? (
+        <footer className="flex shrink-0 flex-col gap-2 border-t border-border bg-surface px-4 py-3 sm:px-6">
+          {primaryHint && primaryDisabled && !hidePrimary ? (
+            <p className="text-sm text-muted-foreground">{primaryHint}</p>
+          ) : null}
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button
               type="button"
-              variant="primary"
-              onClick={onSave}
-              disabled={primaryDisabled}
+              variant="secondary"
+              onClick={onCancel ?? onClose}
             >
-              {saveLabel}
+              {cancelLabel}
             </Button>
-          ) : null}
+            {!hidePrimary && onSave ? (
+              <Button
+                type="button"
+                variant="primary"
+                onClick={onSave}
+                disabled={primaryDisabled}
+              >
+                {saveLabel}
+              </Button>
+            ) : null}
+          </div>
         </footer>
       </div>
     </div>

@@ -1,0 +1,149 @@
+import type { ExistingResourceData } from '@/types/submission'
+import {
+  validateExistingResource,
+  type FieldErrors,
+} from '../existingResource/validation'
+import type { UpdateSectionId } from './updateSections'
+import { UPDATE_SECTION_IDS } from './updateSections'
+
+/** Expandable update-editor sections (picker sections only). */
+export type UpdateEditorSectionId = UpdateSectionId
+
+/**
+ * Compare update-editor data against the prefilled baseline.
+ * Only value changes count; restoring originals clears the section marker.
+ */
+export function getEditedUpdateSections(
+  baseline: ExistingResourceData,
+  current: ExistingResourceData,
+): UpdateSectionId[] {
+  return UPDATE_SECTION_IDS.filter(
+    (sectionId) =>
+      stableStringify(sectionSnapshot(baseline, sectionId)) !==
+      stableStringify(sectionSnapshot(current, sectionId)),
+  )
+}
+
+export function hasResourceDataChanges(
+  baseline: ExistingResourceData,
+  current: ExistingResourceData,
+): boolean {
+  return getEditedUpdateSections(baseline, current).length > 0
+}
+
+/**
+ * First invalid section in editor display order.
+ * Used to auto-expand when Continue fails validation.
+ */
+export function getFirstInvalidUpdateSection(
+  data: ExistingResourceData,
+): UpdateEditorSectionId | null {
+  return mapFieldErrorsToUpdateSection(validateExistingResource(data))
+}
+
+function mapFieldErrorsToUpdateSection(
+  errors: FieldErrors,
+): UpdateEditorSectionId | null {
+  if (errors.name || errors.description) return 'about'
+  if (errors.categories) return 'categories'
+  if (errors.accessMode || errors.locations || errors.locationFields) {
+    return 'address'
+  }
+  if (errors.hours) return 'hours'
+  if (errors.onlineUrl || errors.moreInfoUrl) return 'website'
+  if (errors.contacts || errors.contactValues) return 'contact'
+  if (errors.costDetails) return 'cost'
+  return null
+}
+
+function sectionSnapshot(
+  data: ExistingResourceData,
+  sectionId: UpdateSectionId,
+): unknown {
+  switch (sectionId) {
+    case 'about':
+      return {
+        name: data.name.trim(),
+        description: data.description.trim(),
+        generalNotes: data.generalNotes.trim(),
+      }
+    case 'hours':
+      return {
+        hoursAvailability: data.hoursAvailability,
+        hours: data.hours.map((day) => ({
+          dayOfWeek: day.dayOfWeek,
+          isClosed: day.isClosed,
+          opensAt: day.opensAt,
+          closesAt: day.closesAt,
+          byAppointment: day.byAppointment,
+        })),
+      }
+    case 'contact':
+      return normalizeContacts(
+        data.contacts.filter((contact) => contact.type !== 'website'),
+      )
+    case 'address':
+      return {
+        accessMode: data.accessMode,
+        locations: data.locations.map((location) => ({
+          locationName: location.locationName.trim(),
+          streetAddress: location.streetAddress.trim(),
+          unit: location.unit.trim(),
+          city: location.city.trim(),
+          province: location.province.trim(),
+          postalCode: location.postalCode.trim(),
+          lat: location.lat,
+          lng: location.lng,
+        })),
+      }
+    case 'categories':
+      return {
+        categoryIds: [...data.categoryIds].sort((a, b) => a - b),
+        filterIds: [...data.filterIds].sort((a, b) => a - b),
+      }
+    case 'accessibility':
+      return { accessibilityNotes: data.accessibilityNotes.trim() }
+    case 'cost':
+      return {
+        costOption: data.costOption,
+        costDetails: data.costDetails.trim(),
+      }
+    case 'website':
+      return {
+        onlineUrl: data.onlineUrl.trim(),
+        moreInfoUrl: data.moreInfoUrl.trim(),
+        websites: normalizeContacts(
+          data.contacts.filter((contact) => contact.type === 'website'),
+        ),
+      }
+    case 'other':
+      return {
+        eligibility: data.eligibility.trim(),
+      }
+    default: {
+      const exhaustive: never = sectionId
+      return exhaustive
+    }
+  }
+}
+
+function normalizeContacts(
+  contacts: ExistingResourceData['contacts'],
+): Array<{ type: string; value: string; label: string }> {
+  return contacts
+    .map((contact) => ({
+      type: contact.type,
+      value: contact.value.trim(),
+      label: contact.label.trim(),
+    }))
+    .filter((contact) => contact.value)
+    .sort((a, b) =>
+      `${a.type}:${a.value}:${a.label}`.localeCompare(
+        `${b.type}:${b.value}:${b.label}`,
+      ),
+    )
+}
+
+function stableStringify(value: unknown): string {
+  return JSON.stringify(value)
+}

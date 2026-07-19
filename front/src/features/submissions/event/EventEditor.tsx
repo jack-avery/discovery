@@ -37,6 +37,7 @@ import { EditorSection } from '../form/EditorSection'
 import { Field } from '../form/Field'
 import { LookupMultiSelect } from '../form/LookupMultiSelect'
 import { OptionCardGroup } from '../form/OptionCardGroup'
+import { RadioOptionList } from '../form/RadioOptionList'
 import { PhysicalLocationList } from '../form/PhysicalLocationList'
 import type { PhysicalLocationGeocodingHandle } from '../form/PhysicalLocationList'
 
@@ -446,14 +447,13 @@ export function EventEditor({
           title="How are you connected to this event?"
           description="This helps our team understand your submission. It will not appear publicly on the map."
         >
-          <OptionCardGroup<EventRelationshipOption>
+          <RadioOptionList<EventRelationshipOption>
             name="event-relationship"
-            legend="Your connection"
+            legend="Your connection to this event"
             options={RELATIONSHIP_OPTIONS}
             value={data.relationship}
             onChange={(relationship) => patch({ relationship })}
             error={relationshipErrors.relationship}
-            className="sm:grid-cols-1"
           />
           {data.relationship === 'other' ? (
             <Field

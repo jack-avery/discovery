@@ -1,4 +1,16 @@
-import type { ContributorInfo } from '@/types/submission'
+import type {
+  ContributorInfo,
+  RelationshipOption,
+} from '@/types/submission'
+
+const RELATIONSHIP_VALUES: RelationshipOption[] = [
+  'represent',
+  'volunteer',
+  'user',
+  'someone_told_me',
+  'public_info',
+  'other',
+]
 
 export function createEmptyContributorInfo(): ContributorInfo {
   return {
@@ -6,6 +18,8 @@ export function createEmptyContributorInfo(): ContributorInfo {
     email: '',
     phone: '',
     preferredContactMethod: null,
+    relationship: null,
+    relationshipOther: '',
   }
 }
 
@@ -16,6 +30,7 @@ export function normalizeContributorInfo(
   if (!value || typeof value !== 'object') return base
 
   const preferred = value.preferredContactMethod
+  const relationship = value.relationship
   return {
     name: typeof value.name === 'string' ? value.name : '',
     email: typeof value.email === 'string' ? value.email : '',
@@ -24,6 +39,15 @@ export function normalizeContributorInfo(
       preferred === 'email' || preferred === 'phone' || preferred === 'either'
         ? preferred
         : null,
+    relationship:
+      typeof relationship === 'string' &&
+      RELATIONSHIP_VALUES.includes(relationship)
+        ? relationship
+        : null,
+    relationshipOther:
+      typeof value.relationshipOther === 'string'
+        ? value.relationshipOther
+        : '',
   }
 }
 

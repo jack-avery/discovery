@@ -584,12 +584,28 @@ function normalizeDraft(draft: SubmissionDraft): {
     data: normalizeContributionData(c.data),
   }))
 
+  let contributor = normalizeContributorInfo(draft.contributor)
+  // Migrate legacy per-resource connection answers onto the contributor.
+  if (!contributor.relationship) {
+    const legacy = contributions.find(
+      (c) =>
+        c.data.kind === 'existing_resource' && c.data.relationship != null,
+    )
+    if (legacy && legacy.data.kind === 'existing_resource') {
+      contributor = normalizeContributorInfo({
+        ...contributor,
+        relationship: legacy.data.relationship,
+        relationshipOther: legacy.data.relationshipOther,
+      })
+    }
+  }
+
   return {
     truncated,
     draft: {
       ...draft,
       contributions,
-      contributor: normalizeContributorInfo(draft.contributor),
+      contributor,
       consent: draft.consent === true,
       ui: {
         // Transient sheet UI is always closed on restore.

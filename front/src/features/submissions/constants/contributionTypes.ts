@@ -15,6 +15,7 @@ import {
   createEmptyExistingResourceData,
   createPlaceholderData,
 } from '../existingResource/emptyState'
+import { createEmptyContributorInfo } from '../contributor/emptyState'
 import { createEmptySkillsServicesData } from '../skillsServices/emptyState'
 import { createEmptyEventData } from '../event/emptyState'
 
@@ -109,12 +110,7 @@ export function createEmptySubmissionDraft(): SubmissionDraft {
   return {
     id: createSubmissionId(),
     contributions: [],
-    contributor: {
-      name: '',
-      email: '',
-      phone: '',
-      preferredContactMethod: null,
-    },
+    contributor: createEmptyContributorInfo(),
     consent: false,
     ui: {
       editor: null,

@@ -16,6 +16,14 @@ interface OptionCardGroupProps<T extends string> {
   className?: string
 }
 
+/**
+ * Card-styled radio group.
+ *
+ * The native radio fills the card (`absolute inset-0 opacity-0`) so its focus
+ * geometry matches the visible option. Using `sr-only` (1×1 absolute clip)
+ * inside a sheet with a `relative` dialog ancestor caused the browser to
+ * scroll the editor body to an off-screen focus target.
+ */
 export function OptionCardGroup<T extends string>({
   name,
   legend,
@@ -37,7 +45,7 @@ export function OptionCardGroup<T extends string>({
               key={option.value}
               htmlFor={id}
               className={cn(
-                'cursor-pointer rounded-xl border bg-surface px-3 py-3 transition-colors',
+                'relative cursor-pointer rounded-xl border bg-surface px-3 py-3 transition-colors',
                 selected
                   ? 'border-interactive bg-interactive-muted'
                   : 'border-border hover:border-interactive/50',
@@ -51,13 +59,13 @@ export function OptionCardGroup<T extends string>({
                 value={option.value}
                 checked={selected}
                 onChange={() => onChange(option.value)}
-                className="sr-only"
+                className="absolute inset-0 z-10 cursor-pointer opacity-0"
               />
-              <span className="block text-sm font-medium text-foreground">
+              <span className="relative z-0 block text-sm font-medium text-foreground">
                 {option.label}
               </span>
               {option.description ? (
-                <span className="mt-0.5 block text-xs text-muted-foreground">
+                <span className="relative z-0 mt-0.5 block text-xs text-muted-foreground">
                   {option.description}
                 </span>
               ) : null}

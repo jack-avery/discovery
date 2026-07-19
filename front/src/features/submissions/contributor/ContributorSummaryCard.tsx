@@ -7,13 +7,17 @@ import { isContributorComplete } from './validation'
 interface ContributorSummaryCardProps {
   contributor: ContributorInfo
   onEdit: () => void
+  requireResourceConnection?: boolean
 }
 
 export function ContributorSummaryCard({
   contributor,
   onEdit,
+  requireResourceConnection = false,
 }: ContributorSummaryCardProps) {
-  const complete = isContributorComplete(contributor)
+  const complete = isContributorComplete(contributor, {
+    requireResourceConnection,
+  })
 
   return (
     <Card id="contributor-summary-card">
