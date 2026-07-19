@@ -6,6 +6,7 @@ import {
   formatRecurrenceFromNotes,
   isConcreteRecurrenceEndDate,
 } from '@/features/submissions/mappers/eventRecurrence'
+import { hasEventScheduleNotes } from '@/features/submissions/mappers/eventScheduleNotes'
 import {
   applyLocationDetailNotes,
   ensureContactsFromNotes,
@@ -60,16 +61,13 @@ const ABOUT_HEADINGS = new Set(['additional event details', 'additional details'
  * Detect event contributions without changing backend contracts.
  * Public event mapper writes an "Event schedule:" notes block and uses
  * interim resource_type "Program".
+ *
+ * Note: `resource_type === 'Program'` alone is not enough for Discover —
+ * seeded Programs (e.g. community centres) are normal resources. Use
+ * {@link hasEventScheduleNotes} for the public map.
  */
 export function isEventProposedVersion(version: ResourceVersionDto): boolean {
-  const sections = parseNoteSections(version.general_notes)
-  if (
-    sections.some((section) =>
-      SCHEDULE_HEADINGS.has(normalizeNoteHeading(section.heading)),
-    )
-  ) {
-    return true
-  }
+  if (hasEventScheduleNotes(version)) return true
   return version.resource_type === 'Program'
 }
 

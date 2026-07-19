@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui'
 import type {
   ContributorInfo,
   PreferredContactMethod,
+  RelationshipOption,
 } from '@/types/submission'
 import { CONTRIBUTOR_NAME_MAX_LENGTH } from '@/types/submission'
 import { normalizeContributorInfo } from './emptyState'
 import {
   isContributorComplete,
+  RESOURCE_RELATIONSHIP_OPTIONS,
   validateContributor,
   type ContributorFieldErrors,
 } from './validation'
@@ -15,6 +17,7 @@ import { EditorSection } from '../form/EditorSection'
 import { Field } from '../form/Field'
 import { OptionCardGroup } from '../form/OptionCardGroup'
 import { PhoneInput } from '../form/PhoneInput'
+import { RadioOptionList } from '../form/RadioOptionList'
 
 interface ContributorEditorProps {
   initialContributor: ContributorInfo
@@ -22,6 +25,13 @@ interface ContributorEditorProps {
   onShowErrorsChange: (show: boolean) => void
   onDirtyChange: (dirty: boolean) => void
   onRegisterSave: (save: () => ContributorInfo | null) => void
+  /** Optional live validity signal for parent Continue gates. */
+  onValidityChange?: (complete: boolean) => void
+  /**
+   * Collect “Your connection to this resource” (required when true).
+   * Used for existing-resource create/update flows.
+   */
+  requireResourceConnection?: boolean
 }
 
 const PREFERRED_OPTIONS: {
@@ -39,6 +49,8 @@ export function ContributorEditor({
   onShowErrorsChange,
   onDirtyChange,
   onRegisterSave,
+  onValidityChange,
+  requireResourceConnection = false,
 }: ContributorEditorProps) {
   const [data, setData] = useState<ContributorInfo>(() =>
     normalizeContributorInfo(initialContributor),
@@ -47,16 +59,23 @@ export function ContributorEditor({
     JSON.stringify(normalizeContributorInfo(initialContributor)),
   )
   const [phoneBlurred, setPhoneBlurred] = useState(false)
+  const prevShowErrorsRef = useRef(showErrors)
 
   useEffect(() => {
     onDirtyChange(JSON.stringify(data) !== baseline)
   }, [data, baseline, onDirtyChange])
 
+  useEffect(() => {
+    onValidityChange?.(
+      isContributorComplete(data, { requireResourceConnection }),
+    )
+  }, [data, onValidityChange, requireResourceConnection])
+
   const patch = (partial: Partial<ContributorInfo>) => {
     setData((current) => ({ ...current, ...partial }))
   }
 
-  const allErrors = validateContributor(data)
+  const allErrors = validateContributor(data, { requireResourceConnection })
   const errors: ContributorFieldErrors = {
     ...(showErrors ? allErrors : {}),
     ...(showErrors || phoneBlurred
@@ -69,15 +88,39 @@ export function ContributorEditor({
   useEffect(() => {
     onRegisterSave(() => {
       onShowErrorsChange(true)
-      if (!isContributorComplete(data)) return null
+      if (!isContributorComplete(data, { requireResourceConnection })) {
+        return null
+      }
       return {
         name: data.name.trim(),
         email: data.email.trim(),
         phone: data.phone.trim(),
         preferredContactMethod: data.preferredContactMethod,
+        relationship: data.relationship,
+        relationshipOther: data.relationshipOther.trim(),
       }
     })
-  }, [data, onRegisterSave, onShowErrorsChange])
+  }, [
+    data,
+    onRegisterSave,
+    onShowErrorsChange,
+    requireResourceConnection,
+  ])
+
+  // Surface the connection field when Continue/Save fails validation.
+  useEffect(() => {
+    if (!requireResourceConnection) return
+    const justEnabled = showErrors && !prevShowErrorsRef.current
+    prevShowErrorsRef.current = showErrors
+    if (!justEnabled) return
+    if (!allErrors.relationship && !allErrors.relationshipOther) return
+
+    window.requestAnimationFrame(() => {
+      document
+        .getElementById('contributor-resource-connection')
+        ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [requireResourceConnection, showErrors, allErrors.relationship, allErrors.relationshipOther])
 
   const phoneRequired = data.preferredContactMethod === 'phone'
 
@@ -161,6 +204,38 @@ export function ContributorEditor({
           error={errors.preferredContactMethod}
           className="sm:grid-cols-3"
         />
+
+        {requireResourceConnection ? (
+          <div
+            id="contributor-resource-connection"
+            className="scroll-mt-[var(--editor-sticky-offset,8rem)] space-y-4"
+          >
+            <RadioOptionList<RelationshipOption>
+              name="contributor-relationship"
+              legend="Your connection to this resource"
+              options={RESOURCE_RELATIONSHIP_OPTIONS}
+              value={data.relationship}
+              onChange={(relationship) => patch({ relationship })}
+              error={errors.relationship}
+            />
+            {data.relationship === 'other' ? (
+              <Field
+                id="contributor-relationship-other"
+                label="Please explain"
+                required
+                error={errors.relationshipOther}
+              >
+                <Input
+                  id="contributor-relationship-other"
+                  value={data.relationshipOther}
+                  onChange={(e) =>
+                    patch({ relationshipOther: e.target.value })
+                  }
+                />
+              </Field>
+            ) : null}
+          </div>
+        ) : null}
       </EditorSection>
     </div>
   )

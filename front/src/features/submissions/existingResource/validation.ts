@@ -211,21 +211,6 @@ export function validateSectionAdditional(
   return errors
 }
 
-export function validateSectionRelationship(
-  data: ExistingResourceData,
-): FieldErrors {
-  const errors: FieldErrors = {}
-  if (!data.relationship) {
-    errors.relationship = 'Tell us how you are connected to this resource.'
-  } else if (
-    data.relationship === 'other' &&
-    !data.relationshipOther.trim()
-  ) {
-    errors.relationshipOther = 'Please add a short explanation.'
-  }
-  return errors
-}
-
 export function validateExistingResource(
   data: ExistingResourceData,
 ): FieldErrors {
@@ -235,7 +220,6 @@ export function validateExistingResource(
     ...validateSectionAccess(data),
     ...validateSectionContacts(data),
     ...validateSectionAdditional(data),
-    ...validateSectionRelationship(data),
   }
 }
 
@@ -252,8 +236,6 @@ export function isExistingResourceComplete(data: ExistingResourceData): boolean 
     !errors.contacts &&
     !errors.contactValues &&
     !errors.hours &&
-    !errors.relationship &&
-    !errors.relationshipOther &&
     !errors.costDetails &&
     !errors.moreInfoUrl
   )
@@ -278,9 +260,6 @@ export function getRevealedSections(data: ExistingResourceData): number {
   ) {
     revealed = 5
   }
-  if (revealed >= 5) {
-    revealed = 6
-  }
   return revealed
 }
 
@@ -290,5 +269,4 @@ export const EXISTING_RESOURCE_SECTIONS = [
   'Access',
   'Contact',
   'Details',
-  'Connection',
 ] as const

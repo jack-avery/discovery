@@ -35,8 +35,47 @@ export function mapExistingResourceContribution(
     throw new Error('Expected existing_resource contribution data.')
   }
 
-  const data = contribution.data
-  const name = trimText(data.name) || trimText(contribution.title)
+  return buildExistingResourceRequest({
+    data: contribution.data,
+    contributor,
+    title: contribution.title,
+    submissionType: 'new_resource',
+  })
+}
+
+/**
+ * Build an update_resource payload from proposed editor data.
+ * Shared field mapping with new_resource; only type and resource_id differ.
+ */
+export function mapUpdateResourceRequest(
+  resourceId: number,
+  data: ExistingResourceData,
+  contributor: ContributorInfo,
+  title?: string,
+): CreateSubmissionRequestDto {
+  return buildExistingResourceRequest({
+    data,
+    contributor,
+    title,
+    submissionType: 'update_resource',
+    resourceId,
+  })
+}
+
+function buildExistingResourceRequest({
+  data,
+  contributor,
+  title,
+  submissionType,
+  resourceId,
+}: {
+  data: ExistingResourceData
+  contributor: ContributorInfo
+  title?: string
+  submissionType: 'new_resource' | 'update_resource'
+  resourceId?: number
+}): CreateSubmissionRequestDto {
+  const name = trimText(data.name) || trimText(title)
   if (!name) {
     throw new Error('Existing resource contribution is missing a name.')
   }
@@ -51,11 +90,11 @@ export function mapExistingResourceContribution(
   const generalNotes = buildExistingResourceNotes(data)
   const submissionMessage = joinMessageParts([
     preferredContactMessageLine(contributor),
-    relationshipMessage(data),
+    relationshipMessage(contributor, data),
   ])
 
   const payload: CreateSubmissionRequestDto = {
-    submission_type: 'new_resource',
+    submission_type: submissionType,
     resource_type: TEMP_RESOURCE_TYPE,
     name,
     description: trimText(data.description) || undefined,
@@ -75,15 +114,27 @@ export function mapExistingResourceContribution(
     hours: hours.length > 0 ? hours : undefined,
   }
 
+  if (submissionType === 'update_resource' && resourceId != null) {
+    payload.resource_id = resourceId
+  }
+
   return compactPayload(payload)
 }
 
-function relationshipMessage(data: ExistingResourceData): string | null {
-  if (!data.relationship) return null
+function relationshipMessage(
+  contributor: ContributorInfo,
+  data: ExistingResourceData,
+): string | null {
+  // Prefer contributor (current UI); fall back to legacy per-resource field.
+  const relationship = contributor.relationship ?? data.relationship
+  const relationshipOther =
+    trimText(contributor.relationshipOther) ||
+    trimText(data.relationshipOther)
+  if (!relationship) return null
   const label =
-    data.relationship === 'other' && trimText(data.relationshipOther)
-      ? trimText(data.relationshipOther)
-      : RELATIONSHIP_LABELS[data.relationship]
+    relationship === 'other' && relationshipOther
+      ? relationshipOther
+      : RELATIONSHIP_LABELS[relationship]
   return line('Connection to this resource', label)
 }
 
