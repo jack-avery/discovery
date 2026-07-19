@@ -44,7 +44,6 @@ import {
   getEditedUpdateSections,
   getFirstInvalidUpdateSection,
   hasResourceDataChanges,
-  type UpdateEditorSectionId,
 } from '../updateRequest/updateSectionDiff'
 import {
   UPDATE_SECTION_OPTIONS,
@@ -61,8 +60,8 @@ interface ExistingResourceEditorProps {
   mode?: ExistingResourceEditorMode
   /**
    * Update mode: immutable original resource values for change detection.
-   * When returning from review with edited `initialData`, pass the original
-   * prefill here so hasChanges still compares against the live resource.
+   * Pass the live-resource prefill so hasChanges compares against the listing,
+   * not a later edited draft snapshot.
    */
   updateBaseline?: ExistingResourceData
   /** Update mode: sections that start expanded. */
@@ -75,7 +74,7 @@ interface ExistingResourceEditorProps {
     sections: readonly string[]
     revealed: number
   } | null) => void
-  /** Update mode: live change / validity reporting for the parent Continue gate. */
+  /** Update mode: live change / validity reporting for the parent workspace. */
   onUpdateStateChange?: (state: {
     data: ExistingResourceData
     hasChanges: boolean
@@ -158,7 +157,7 @@ export function ExistingResourceEditor({
   )
 
   const [expandedSections, setExpandedSections] = useState<
-    Set<UpdateEditorSectionId>
+    Set<UpdateSectionId>
   >(() => new Set(initialExpandedSections))
 
   const locationGeocodingRef = useRef<PhysicalLocationGeocodingHandle>(null)
@@ -196,7 +195,7 @@ export function ExistingResourceEditor({
     isComplete,
   ])
 
-  // When Continue triggers validation, expand the first invalid section so
+  // When submit validation turns on, expand the first invalid section so
   // errors are not buried in a collapsed accordion.
   useEffect(() => {
     if (!isUpdate) return
@@ -225,7 +224,7 @@ export function ExistingResourceEditor({
     setData((current) => ({ ...current, ...partial }))
   }
 
-  const toggleSection = (sectionId: UpdateEditorSectionId) => {
+  const toggleSection = (sectionId: UpdateSectionId) => {
     setExpandedSections((current) => {
       const next = new Set(current)
       if (next.has(sectionId)) next.delete(sectionId)

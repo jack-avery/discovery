@@ -17,7 +17,7 @@ import { isContributorComplete } from '../contributor/validation'
 import { ExistingResourceEditor } from '../existingResource/ExistingResourceEditor'
 import { UnsavedChangesDialog } from '../form/UnsavedChangesDialog'
 import { mapUpdateResourceRequest } from '../mappers/mapExistingResource'
-import { mapResourceVersionToExistingResourceData } from './mapResourceToExistingResourceData'
+import { mapResourceVersionToExistingResourceData } from './mapResourceVersionToExistingResourceData'
 import { UpdateRequestSuccessPanel } from './UpdateRequestSuccessPanel'
 import { UpdateSectionNav } from './UpdateSectionNav'
 import { UpdateSectionPicker } from './UpdateSectionPicker'
@@ -28,7 +28,7 @@ import type { UpdateSectionId } from './updateSections'
  * Update workspace stages. No contributor-facing review —
  * comparison UI remains available for staff moderation.
  */
-export type UpdateRequestWorkspaceStep = 'picker' | 'editing' | 'success'
+type UpdateRequestWorkspaceStep = 'picker' | 'editing' | 'success'
 
 interface UpdateRequestWorkspaceProps {
   onClose: () => void
@@ -130,12 +130,17 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   }, [onClose, resetWorkflow])
 
   // Escape dismisses via the same unsaved-changes path as the header X.
+  // While the discard dialog is open, still swallow Escape so Discover nav
+  // cannot pop Resource Detail underneath (and silently discard the draft).
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return
-      if (pendingClose) return
       event.stopPropagation()
       event.preventDefault()
+      if (pendingClose) {
+        setPendingClose(false)
+        return
+      }
       requestClose()
     }
 

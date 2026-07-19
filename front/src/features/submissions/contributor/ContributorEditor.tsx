@@ -24,7 +24,7 @@ interface ContributorEditorProps {
   onShowErrorsChange: (show: boolean) => void
   onDirtyChange: (dirty: boolean) => void
   onRegisterSave: (save: () => ContributorInfo | null) => void
-  /** Optional live validity signal for parent Continue gates. */
+  /** Optional live validity signal for parent submit gates. */
   onValidityChange?: (complete: boolean) => void
   /**
    * Collect “Your connection to this resource” (required when true).

@@ -1,6 +1,6 @@
 /**
  * Update-request section picker options.
- * Selection only controls which editor sections start expanded (Milestone 2+).
+ * Selection only controls which editor sections start expanded.
  */
 
 export const UPDATE_SECTION_IDS = [
@@ -33,7 +33,3 @@ export const UPDATE_SECTION_OPTIONS: readonly UpdateSectionOption[] = [
   { id: 'website', label: 'Website' },
   { id: 'other', label: 'Other' },
 ]
-
-export function updateSectionLabel(id: UpdateSectionId): string {
-  return UPDATE_SECTION_OPTIONS.find((option) => option.id === id)?.label ?? id
-}
