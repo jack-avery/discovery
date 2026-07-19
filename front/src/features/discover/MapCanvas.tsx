@@ -2,6 +2,8 @@ import type { Category, ResourceMapItem } from '@/types'
 import type { ResourceMapQuery } from '@/services/mapService'
 import { MapContainer } from '@/features/map'
 import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
+import { useDiscoverSideWorkspace } from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
+import { DiscoverSideWorkspace } from './DiscoverSideWorkspace'
 import { FloatingDiscoveryToolbar } from './FloatingDiscoveryToolbar'
 import { cn } from '@/utils/cn'
 
@@ -22,7 +24,7 @@ interface MapCanvasProps {
 
 /**
  * Full-bleed map canvas for the Discover experience.
- * Renders Leaflet map with floating controls when the workspace is collapsed.
+ * Hosts optional editing overlays that cover the map without unmounting it.
  */
 export function MapCanvas({
   search,
@@ -39,6 +41,11 @@ export function MapCanvas({
   className,
 }: MapCanvasProps) {
   const { isExpanded } = useWorkspace()
+  const { isOpen: sideWorkspaceOpen } = useDiscoverSideWorkspace()
+
+  // Overlay does not change map box size — keep layoutKey independent of it
+  // so Leaflet zoom/center/tiles are preserved while the workspace is open.
+  const layoutKey = isExpanded ? 'workspace-expanded' : 'workspace-collapsed'
 
   return (
     <div className={cn('relative h-full min-h-0 min-w-0 flex-1', className)}>
@@ -46,11 +53,11 @@ export function MapCanvas({
         items={mapItems}
         isLoading={mapLoading}
         error={mapError}
-        layoutKey={isExpanded ? 'workspace-expanded' : 'workspace-collapsed'}
+        layoutKey={layoutKey}
         onViewportQueryChange={onViewportQueryChange}
       />
 
-      {!isExpanded && (
+      {!isExpanded && !sideWorkspaceOpen ? (
         <FloatingDiscoveryToolbar
           search={search}
           onSearchChange={onSearchChange}
@@ -60,7 +67,9 @@ export function MapCanvas({
           categoriesLoading={categoriesLoading}
           categoriesError={categoriesError}
         />
-      )}
+      ) : null}
+
+      <DiscoverSideWorkspace />
     </div>
   )
 }

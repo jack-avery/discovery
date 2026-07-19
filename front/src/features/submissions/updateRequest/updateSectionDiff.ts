@@ -46,11 +46,11 @@ function mapFieldErrorsToUpdateSection(
 ): UpdateEditorSectionId | null {
   if (errors.name || errors.description) return 'about'
   if (errors.categories) return 'categories'
-  if (errors.accessMode || errors.locations || errors.locationFields) {
+  if (errors.accessMode || errors.locations || errors.locationFields || errors.onlineUrl) {
     return 'address'
   }
   if (errors.hours) return 'hours'
-  if (errors.onlineUrl || errors.moreInfoUrl) return 'website'
+  if (errors.moreInfoUrl) return 'website'
   if (errors.contacts || errors.contactValues) return 'contact'
   if (errors.costDetails) return 'cost'
   return null
@@ -95,6 +95,7 @@ function sectionSnapshot(
           lat: location.lat,
           lng: location.lng,
         })),
+        onlineUrl: data.onlineUrl.trim(),
       }
     case 'categories':
       return {
@@ -110,7 +111,6 @@ function sectionSnapshot(
       }
     case 'website':
       return {
-        onlineUrl: data.onlineUrl.trim(),
         moreInfoUrl: data.moreInfoUrl.trim(),
         websites: normalizeContacts(
           data.contacts.filter((contact) => contact.type === 'website'),

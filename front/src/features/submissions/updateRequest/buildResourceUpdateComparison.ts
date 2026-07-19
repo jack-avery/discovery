@@ -124,7 +124,7 @@ function buildSectionFields(
       return [
         field(
           'accessMode',
-          'Access type',
+          'How people can access this resource',
           baseline.accessMode
             ? ACCESS_MODE_LABELS[baseline.accessMode]
             : '',
@@ -137,6 +137,12 @@ function buildSectionFields(
           'Locations',
           formatLocations(baseline.locations),
           formatLocations(proposed.locations),
+        ),
+        field(
+          'onlineUrl',
+          'Website or online link',
+          baseline.onlineUrl,
+          proposed.onlineUrl,
         ),
       ]
     case 'categories':
@@ -174,12 +180,6 @@ function buildSectionFields(
       ]
     case 'website':
       return [
-        field(
-          'onlineUrl',
-          'Online access link',
-          baseline.onlineUrl,
-          proposed.onlineUrl,
-        ),
         field(
           'moreInfoUrl',
           'More information',
