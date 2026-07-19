@@ -12,7 +12,9 @@ export { MapCanvas } from './MapCanvas'
 export {
   WORKSPACE_COLLAPSED_WIDTH_CLASS,
   WORKSPACE_WIDTH_CLASS,
+  MAP_REGION_WORKSPACE_Z_CLASS,
 } from './constants'
+export { DiscoverSideWorkspace } from './DiscoverSideWorkspace'
 export {
   mapResourceVersionForPresentation,
   type ResourceVersionPresentation,

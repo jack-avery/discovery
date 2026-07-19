@@ -26,7 +26,7 @@ export const UPDATE_SECTION_OPTIONS: readonly UpdateSectionOption[] = [
   { id: 'about', label: 'About' },
   { id: 'hours', label: 'Hours' },
   { id: 'contact', label: 'Contact Information' },
-  { id: 'address', label: 'Address' },
+  { id: 'address', label: 'Location' },
   { id: 'categories', label: 'Categories' },
   { id: 'accessibility', label: 'Accessibility' },
   { id: 'cost', label: 'Cost' },

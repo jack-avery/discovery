@@ -3,6 +3,7 @@ import { useSearch } from '@/app/providers'
 import { DiscoverLayout } from '@/app/layouts'
 import { WorkspaceNavigationProvider } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { WorkspaceProvider } from '@/features/discover/providers/WorkspaceProvider'
+import { DiscoverSideWorkspaceProvider } from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
 import { useCategories, useResourceMap, useResources, useTags } from '@/hooks'
 import {
   getDefaultMapQuery,
@@ -19,7 +20,9 @@ export function DiscoverPage() {
   return (
     <WorkspaceProvider>
       <WorkspaceNavigationProvider>
-        <DiscoverPageContent />
+        <DiscoverSideWorkspaceProvider>
+          <DiscoverPageContent />
+        </DiscoverSideWorkspaceProvider>
       </WorkspaceNavigationProvider>
     </WorkspaceProvider>
   )

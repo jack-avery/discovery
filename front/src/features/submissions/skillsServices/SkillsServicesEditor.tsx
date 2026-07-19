@@ -276,7 +276,7 @@ export function SkillsServicesEditor({
               options={PROVIDER_OPTIONS}
               value={data.providedPersonally}
               onChange={(providedPersonally) => patch({ providedPersonally })}
-              className="sm:grid-cols-1"
+              layout="stack"
             />
             {data.providedPersonally === 'on_behalf' ? (
               <Field

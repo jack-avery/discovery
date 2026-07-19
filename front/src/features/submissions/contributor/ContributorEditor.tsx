@@ -17,7 +17,6 @@ import { EditorSection } from '../form/EditorSection'
 import { Field } from '../form/Field'
 import { OptionCardGroup } from '../form/OptionCardGroup'
 import { PhoneInput } from '../form/PhoneInput'
-import { RadioOptionList } from '../form/RadioOptionList'
 
 interface ContributorEditorProps {
   initialContributor: ContributorInfo
@@ -210,13 +209,14 @@ export function ContributorEditor({
             id="contributor-resource-connection"
             className="scroll-mt-[var(--editor-sticky-offset,8rem)] space-y-4"
           >
-            <RadioOptionList<RelationshipOption>
+            <OptionCardGroup<RelationshipOption>
               name="contributor-relationship"
               legend="Your connection to this resource"
               options={RESOURCE_RELATIONSHIP_OPTIONS}
               value={data.relationship}
               onChange={(relationship) => patch({ relationship })}
               error={errors.relationship}
+              layout="stack"
             />
             {data.relationship === 'other' ? (
               <Field

@@ -3,7 +3,6 @@ import { Input, Textarea } from '@/components/ui'
 import { useCategories } from '@/hooks/useCategories'
 import { useTags } from '@/hooks/useTags'
 import type {
-  AccessMode,
   Contribution,
   CostOption,
   ExistingResourceData,
@@ -34,6 +33,10 @@ import { EditorSection } from '../form/EditorSection'
 import { Field } from '../form/Field'
 import { LookupMultiSelect } from '../form/LookupMultiSelect'
 import { OptionCardGroup } from '../form/OptionCardGroup'
+import {
+  AccessModeBothCallout,
+  AccessModeSelector,
+} from '../form/AccessModeSelector'
 import { PhysicalLocationList } from '../form/PhysicalLocationList'
 import type { PhysicalLocationGeocodingHandle } from '../form/PhysicalLocationList'
 import { WeeklyHoursEditor } from '../form/WeeklyHoursEditor'
@@ -80,12 +83,6 @@ interface ExistingResourceEditorProps {
     isComplete: boolean
   }) => void
 }
-
-const ACCESS_OPTIONS = [
-  { value: 'physical' as const, label: 'At a physical location' },
-  { value: 'online' as const, label: 'Online' },
-  { value: 'both' as const, label: 'Both' },
-]
 
 const COST_OPTIONS: { value: CostOption; label: string }[] = [
   { value: 'free', label: 'Free' },
@@ -405,10 +402,8 @@ export function ExistingResourceEditor({
   )
 
   const accessModeFields = (
-    <OptionCardGroup<AccessMode>
+    <AccessModeSelector
       name="access-mode"
-      legend="Access type"
-      options={ACCESS_OPTIONS}
       value={data.accessMode}
       onChange={(accessMode) => {
         const needsSites = accessMode === 'physical' || accessMode === 'both'
@@ -422,21 +417,52 @@ export function ExistingResourceEditor({
     />
   )
 
+  const onlineAccessField = needsOnline ? (
+    <Field
+      id="online-url"
+      label="Website or online link"
+      required
+      hint="Enter the website or online link where people can access this resource."
+      error={accessErrors.onlineUrl}
+    >
+      <Input
+        id="online-url"
+        type="url"
+        value={data.onlineUrl}
+        onChange={(e) => patch({ onlineUrl: e.target.value })}
+        placeholder="https://example.org"
+      />
+    </Field>
+  ) : null
+
+  const physicalLocationFields = needsPhysical ? (
+    <PhysicalLocationList
+      ref={locationGeocodingRef}
+      locations={data.locations}
+      onChange={(locations) => patch({ locations })}
+      showErrors={showErrors}
+      locationFields={accessErrors.locationFields}
+      listError={accessErrors.locations}
+      requireAtLeastOne
+      onVerifiedChange={setLocationsVerified}
+    />
+  ) : null
+
   const addressFields = (
     <>
       {accessModeFields}
-      {needsPhysical ? (
-        <PhysicalLocationList
-          ref={locationGeocodingRef}
-          locations={data.locations}
-          onChange={(locations) => patch({ locations })}
-          showErrors={showErrors}
-          locationFields={accessErrors.locationFields}
-          listError={accessErrors.locations}
-          requireAtLeastOne
-          onVerifiedChange={setLocationsVerified}
-        />
-      ) : null}
+      {data.accessMode === 'both' ? <AccessModeBothCallout /> : null}
+      {needsPhysical && needsOnline ? (
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          {physicalLocationFields}
+          {onlineAccessField}
+        </div>
+      ) : (
+        <>
+          {physicalLocationFields}
+          {onlineAccessField}
+        </>
+      )}
     </>
   )
 
@@ -461,36 +487,18 @@ export function ExistingResourceEditor({
   )
 
   const websiteFields = (
-    <>
-      {(needsOnline || isUpdate) && (
-        <Field
-          id="online-url"
-          label="Where can people access it online?"
-          required={needsOnline}
-          error={accessErrors.onlineUrl}
-        >
-          <Input
-            id="online-url"
-            type="url"
-            value={data.onlineUrl}
-            onChange={(e) => patch({ onlineUrl: e.target.value })}
-            placeholder="https://example.org"
-          />
-        </Field>
-      )}
-      <Field
+    <Field
+      id="more-info"
+      label="Where can people learn more? (optional)"
+      error={errors.moreInfoUrl}
+    >
+      <Input
         id="more-info"
-        label="Where can people learn more? (optional)"
-        error={errors.moreInfoUrl}
-      >
-        <Input
-          id="more-info"
-          value={data.moreInfoUrl}
-          onChange={(e) => patch({ moreInfoUrl: e.target.value })}
-          placeholder="https://"
-        />
-      </Field>
-    </>
+        value={data.moreInfoUrl}
+        onChange={(e) => patch({ moreInfoUrl: e.target.value })}
+        placeholder="https://"
+      />
+    </Field>
   )
 
   const contactFields = (
@@ -602,9 +610,9 @@ export function ExistingResourceEditor({
 
     const sectionDescriptions: Partial<Record<UpdateSectionId, string>> = {
       about: 'Name, description, and notes for staff.',
-      address: 'How people reach a physical location.',
+      address: 'How people can access this resource.',
       hours: 'When this resource is available.',
-      website: 'Online access and more-information links.',
+      website: 'More-information links.',
       contact: 'Public phone, email, and other contact methods.',
       categories: 'Categories and discovery filters.',
       cost: 'Cost to use this resource.',
@@ -654,37 +662,10 @@ export function ExistingResourceEditor({
       {revealed >= 3 ? (
         <EditorSection
           id="access"
-          title="How can people access this resource?"
+          title="Location"
+          description="Tell us how people can reach this resource."
         >
-          {accessModeFields}
-          {needsPhysical ? (
-            <PhysicalLocationList
-              ref={locationGeocodingRef}
-              locations={data.locations}
-              onChange={(locations) => patch({ locations })}
-              showErrors={showErrors}
-              locationFields={accessErrors.locationFields}
-              listError={accessErrors.locations}
-              requireAtLeastOne
-              onVerifiedChange={setLocationsVerified}
-            />
-          ) : null}
-          {needsOnline ? (
-            <Field
-              id="online-url"
-              label="Where can people access it online?"
-              required
-              error={accessErrors.onlineUrl}
-            >
-              <Input
-                id="online-url"
-                type="url"
-                value={data.onlineUrl}
-                onChange={(e) => patch({ onlineUrl: e.target.value })}
-                placeholder="https://example.org"
-              />
-            </Field>
-          ) : null}
+          {addressFields}
           <div className="space-y-3">
             <p className="text-sm font-medium text-foreground">
               When is this resource available?{' '}

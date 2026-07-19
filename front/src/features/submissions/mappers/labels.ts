@@ -21,7 +21,7 @@ import type {
 export const ACCESS_MODE_LABELS: Record<AccessMode, string> = {
   physical: 'Physical location',
   online: 'Online',
-  both: 'Physical and online',
+  both: 'Both',
 }
 
 export const COST_LABELS: Record<CostOption, string> = {

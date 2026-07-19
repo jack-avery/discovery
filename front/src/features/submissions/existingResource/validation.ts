@@ -266,7 +266,7 @@ export function getRevealedSections(data: ExistingResourceData): number {
 export const EXISTING_RESOURCE_SECTIONS = [
   'About',
   'Categories',
-  'Access',
+  'Location',
   'Contact',
   'Details',
 ] as const
