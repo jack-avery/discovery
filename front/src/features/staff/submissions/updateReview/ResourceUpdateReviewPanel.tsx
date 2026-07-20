@@ -36,7 +36,7 @@ export function ResourceUpdateReviewPanel({
   if (!version) {
     return (
       <p className="text-sm text-muted-foreground" role="status">
-        This update request has no proposed version to review.
+        This Resource Update has no proposed version to review.
       </p>
     )
   }

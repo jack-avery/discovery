@@ -147,8 +147,12 @@ export async function submitSubmission(
 
 /**
  * Single POST /submissions with a ready payload.
- * Prefer this for one-shot flows (e.g. update request). Multi-contribution
+ * Prefer this for one-shot flows (e.g. Update Resource). Multi-contribution
  * drafts should use {@link submitSubmission}.
+ *
+ * TODO(update-resource): When the backend auto-approves staff submissions,
+ * responses may include moderation_status. Callers should resolve UI outcome
+ * from that field — never from client-side role checks.
  */
 export async function submitCreateSubmissionRequest(
   payload: CreateSubmissionRequestDto,

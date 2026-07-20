@@ -4,7 +4,7 @@ import { UpdateRequestWorkspace } from '@/features/submissions/updateRequest/Upd
 import { cn } from '@/utils/cn'
 
 /**
- * Discover editing overlay hosted inside the map region.
+ * Shared Update Resource overlay hosted inside the map region.
  * Covers the map completely while open; the map stays mounted underneath.
  * Open/close identity comes from DiscoverSideWorkspaceProvider.
  * Dismissal / unsaved-changes belong to the hosted workspace component.

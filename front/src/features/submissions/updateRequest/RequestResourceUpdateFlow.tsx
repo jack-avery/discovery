@@ -7,8 +7,11 @@ interface RequestResourceUpdateFlowProps {
 }
 
 /**
- * Resource-detail entry point for update requests.
- * Opens the Discover UpdateRequestWorkspace (picker → continuous editor).
+ * Resource-detail entry point for the shared Update Resource workflow.
+ * Public and staff open the same UpdateRequestWorkspace.
+ *
+ * TODO(update-resource): Rename to UpdateResourceFlow when aligning internal
+ * names with product terminology (Update Resource / Resource Update).
  */
 export function RequestResourceUpdateFlow({
   resourceName,
@@ -22,12 +25,12 @@ export function RequestResourceUpdateFlow({
     >
       <div className="space-y-3">
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Spot something outdated or incomplete? Request an update so our team
-          can review the change
+          Spot something outdated or incomplete? Update this resource so the
+          listing stays accurate
           {resourceName ? (
             <>
               {' '}
-              to <span className="font-medium text-foreground">{resourceName}</span>
+              for <span className="font-medium text-foreground">{resourceName}</span>
             </>
           ) : null}
           .
@@ -38,7 +41,7 @@ export function RequestResourceUpdateFlow({
           size="sm"
           onClick={() => openSideWorkspace('update-request')}
         >
-          Request an update
+          Update Resource
         </Button>
       </div>
     </WorkspaceSection>
