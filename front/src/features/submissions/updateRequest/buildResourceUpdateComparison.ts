@@ -5,6 +5,7 @@ import type {
   HoursAvailability,
   ResourceContactMethod,
 } from '@/types/submission'
+import { createEmptyExistingResourceData } from '../existingResource/emptyState'
 import {
   ACCESS_MODE_LABELS,
   COST_LABELS,
@@ -25,20 +26,31 @@ const TIME_LABELS = new Map(
 )
 
 export interface ResourceUpdateComparisonField {
+  /** Unique change identifier within a comparison (section-scoped). */
   id: string
   label: string
-  current: string
+  /**
+   * Current display value when {@link currentAvailable} is true.
+   * Null when the live approved resource is not loaded yet.
+   */
+  current: string | null
   proposed: string
+  /** False until the host can supply a baseline resource. */
+  currentAvailable: boolean
 }
 
 export interface ResourceUpdateComparisonSection {
   id: UpdateSectionId
   label: string
+  /** Number of changed fields in this section. */
+  changeCount: number
   fields: ResourceUpdateComparisonField[]
 }
 
 export interface ResourceUpdateComparison {
   sections: ResourceUpdateComparisonSection[]
+  /** True when a live baseline was provided for real Current values. */
+  hasBaseline: boolean
 }
 
 export interface ResourceUpdateComparisonLookups {
@@ -47,32 +59,55 @@ export interface ResourceUpdateComparisonLookups {
 }
 
 /**
- * Pure baseline-vs-proposed model for update review and future staff moderation.
- * Only includes sections/fields that actually changed.
+ * Pure baseline-vs-proposed change set for update review and staff moderation.
+ * Only includes sections/fields that actually changed. No moderation state.
+ *
+ * Pass `baseline: null` when the live resource is not available yet — proposed
+ * values still populate the change set; Current remains unavailable until a
+ * baseline is supplied.
+ *
+ * TODO:
+ * When the moderation API exposes submission.resource_id,
+ * load the approved resource,
+ * map it to ExistingResourceData,
+ * and pass it as the baseline to buildResourceUpdateComparison().
+ *
+ * No UI changes should be required.
  */
 export function buildResourceUpdateComparison(
-  baseline: ExistingResourceData,
+  baseline: ExistingResourceData | null,
   proposed: ExistingResourceData,
   lookups: ResourceUpdateComparisonLookups = {},
 ): ResourceUpdateComparison {
+  const hasBaseline = baseline != null
+  const compareAgainst = baseline ?? createEmptyExistingResourceData()
   const sections: ResourceUpdateComparisonSection[] = []
 
   for (const option of UPDATE_SECTION_OPTIONS) {
     const fields = buildSectionFields(
       option.id,
-      baseline,
+      compareAgainst,
       proposed,
       lookups,
-    ).filter((field) => field.current !== field.proposed)
+      hasBaseline,
+    ).filter((field) => {
+      if (!hasBaseline) {
+        // Without a live baseline we cannot know true diffs — include fields
+        // that carry proposed content so moderation UI remains usable.
+        return field.proposed !== EMPTY_VALUE
+      }
+      return field.current !== field.proposed
+    })
     if (fields.length === 0) continue
     sections.push({
       id: option.id,
       label: option.label,
+      changeCount: fields.length,
       fields,
     })
   }
 
-  return { sections }
+  return { sections, hasBaseline }
 }
 
 function buildSectionFields(
@@ -80,36 +115,44 @@ function buildSectionFields(
   baseline: ExistingResourceData,
   proposed: ExistingResourceData,
   lookups: ResourceUpdateComparisonLookups,
+  currentAvailable: boolean,
 ): ResourceUpdateComparisonField[] {
   switch (sectionId) {
     case 'about':
       return [
-        field('name', 'Name', baseline.name, proposed.name),
+        field(sectionId, 'name', 'Name', baseline.name, proposed.name, currentAvailable),
         field(
+          sectionId,
           'description',
           'Description',
           baseline.description,
           proposed.description,
+          currentAvailable,
         ),
         field(
+          sectionId,
           'generalNotes',
           'Notes for staff',
           baseline.generalNotes,
           proposed.generalNotes,
+          currentAvailable,
         ),
       ]
     case 'hours':
       return [
         field(
+          sectionId,
           'hours',
           'Hours',
           formatHours(baseline.hoursAvailability, baseline.hours),
           formatHours(proposed.hoursAvailability, proposed.hours),
+          currentAvailable,
         ),
       ]
     case 'contact':
       return [
         field(
+          sectionId,
           'contacts',
           'Contact information',
           formatContacts(
@@ -118,11 +161,13 @@ function buildSectionFields(
           formatContacts(
             proposed.contacts.filter((contact) => contact.type !== 'website'),
           ),
+          currentAvailable,
         ),
       ]
     case 'address':
       return [
         field(
+          sectionId,
           'accessMode',
           'How people can access this resource',
           baseline.accessMode
@@ -131,62 +176,78 @@ function buildSectionFields(
           proposed.accessMode
             ? ACCESS_MODE_LABELS[proposed.accessMode]
             : '',
+          currentAvailable,
         ),
         field(
+          sectionId,
           'locations',
           'Locations',
           formatLocations(baseline.locations),
           formatLocations(proposed.locations),
+          currentAvailable,
         ),
         field(
+          sectionId,
           'onlineUrl',
           'Website or online link',
           baseline.onlineUrl,
           proposed.onlineUrl,
+          currentAvailable,
         ),
       ]
     case 'categories':
       return [
         field(
+          sectionId,
           'categories',
           'Categories',
           formatIdList(baseline.categoryIds, lookups.categoryNames),
           formatIdList(proposed.categoryIds, lookups.categoryNames),
+          currentAvailable,
         ),
         field(
+          sectionId,
           'filters',
           'Filters',
           formatIdList(baseline.filterIds, lookups.tagNames),
           formatIdList(proposed.filterIds, lookups.tagNames),
+          currentAvailable,
         ),
       ]
     case 'accessibility':
       return [
         field(
+          sectionId,
           'accessibilityNotes',
           'Accessibility',
           baseline.accessibilityNotes,
           proposed.accessibilityNotes,
+          currentAvailable,
         ),
       ]
     case 'cost':
       return [
         field(
+          sectionId,
           'cost',
           'Cost',
           formatCost(baseline.costOption, baseline.costDetails),
           formatCost(proposed.costOption, proposed.costDetails),
+          currentAvailable,
         ),
       ]
     case 'website':
       return [
         field(
+          sectionId,
           'moreInfoUrl',
           'More information',
           baseline.moreInfoUrl,
           proposed.moreInfoUrl,
+          currentAvailable,
         ),
         field(
+          sectionId,
           'websites',
           'Website contacts',
           formatContacts(
@@ -195,15 +256,18 @@ function buildSectionFields(
           formatContacts(
             proposed.contacts.filter((contact) => contact.type === 'website'),
           ),
+          currentAvailable,
         ),
       ]
     case 'other':
       return [
         field(
+          sectionId,
           'eligibility',
           'Who can use this resource',
           baseline.eligibility,
           proposed.eligibility,
+          currentAvailable,
         ),
       ]
     default: {
@@ -214,16 +278,19 @@ function buildSectionFields(
 }
 
 function field(
-  id: string,
+  sectionId: UpdateSectionId,
+  fieldKey: string,
   label: string,
   currentRaw: string,
   proposedRaw: string,
+  currentAvailable: boolean,
 ): ResourceUpdateComparisonField {
   return {
-    id,
+    id: `${sectionId}:${fieldKey}`,
     label,
-    current: displayValue(currentRaw),
+    current: currentAvailable ? displayValue(currentRaw) : null,
     proposed: displayValue(proposedRaw),
+    currentAvailable,
   }
 }
 

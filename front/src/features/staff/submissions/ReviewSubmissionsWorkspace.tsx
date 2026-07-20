@@ -16,7 +16,7 @@ import { SubmissionQueueList } from '@/features/staff/submissions/SubmissionQueu
 import { SubmissionQueueToolbar } from '@/features/staff/submissions/SubmissionQueueToolbar'
 import {
   nextQueueSelection,
-  type ReviewContributionFilter,
+  type ReviewContributionKind,
   type ReviewQueueSort,
 } from '@/features/staff/submissions/fetchReviewQueue'
 import { useReviewSubmission } from '@/hooks/useReviewSubmission'
@@ -28,10 +28,10 @@ import { cn } from '@/utils/cn'
  * Two-column staff workspace: pending queue + contribution presentation review.
  */
 export function ReviewSubmissionsWorkspace() {
-  const [filter, setFilter] = useState<ReviewContributionFilter>('all')
+  const [filters, setFilters] = useState<ReviewContributionKind[]>([])
   const [sort, setSort] = useState<ReviewQueueSort>('newest')
   const { items, isLoading, error, reload, removeItem } = useSubmissionQueue(
-    filter,
+    filters,
     sort,
   )
   const [selectedId, setSelectedId] = useState<number | null>(null)
@@ -139,11 +139,11 @@ export function ReviewSubmissionsWorkspace() {
         {statusMessage ? <StatusBanner message={statusMessage} /> : null}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-border bg-surface">
           <SubmissionQueueToolbar
-            filter={filter}
+            filters={filters}
             sort={sort}
-            onFilterChange={(next) => {
+            onFiltersChange={(next) => {
               setStatusMessage(null)
-              setFilter(next)
+              setFilters(next)
             }}
             onSortChange={(next) => {
               setStatusMessage(null)
@@ -196,12 +196,12 @@ export function ReviewSubmissionsWorkspace() {
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(17rem,22rem)_minmax(0,1fr)]">
         <aside className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-surface">
           <SubmissionQueueToolbar
-            filter={filter}
+            filters={filters}
             sort={sort}
-            onFilterChange={(next) => {
+            onFiltersChange={(next) => {
               setStatusMessage(null)
               setSelectedId(null)
-              setFilter(next)
+              setFilters(next)
             }}
             onSortChange={(next) => {
               setStatusMessage(null)
@@ -265,7 +265,13 @@ export function ReviewSubmissionsWorkspace() {
             <>
               <div className="min-h-0 flex-1 overflow-y-auto scrollbar-thin">
                 <div className="workspace-content !gap-3">
-                  <SubmissionInfoSection submission={submission} />
+                  <SubmissionInfoSection
+                    submission={submission}
+                    contributionKind={
+                      items.find((item) => item.submission_id === selectedId)
+                        ?.contributionKind
+                    }
+                  />
                   <SubmissionDetailDispatcher submission={submission} />
                 </div>
               </div>

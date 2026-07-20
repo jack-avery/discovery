@@ -1,8 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAbortableQuery } from '@/hooks/useAbortableQuery'
 import {
   fetchReviewQueue,
-  type ReviewContributionFilter,
+  type ReviewContributionKind,
   type ReviewQueueItem,
   type ReviewQueueSort,
 } from '@/features/staff/submissions/fetchReviewQueue'
@@ -17,21 +17,23 @@ interface UseSubmissionQueueResult {
 }
 
 /**
- * Pending submission queue for staff review (filter + sort aware).
+ * Pending submission queue for staff review (multi filter + sort aware).
  */
 export function useSubmissionQueue(
-  filter: ReviewContributionFilter,
+  filters: ReviewContributionKind[],
   sort: ReviewQueueSort,
 ): UseSubmissionQueueResult {
   const [reloadKey, setReloadKey] = useState(0)
   const [optimisticRemovedIds, setOptimisticRemovedIds] = useState<number[]>([])
 
+  const filtersKey = useMemo(() => [...filters].sort().join(','), [filters])
+
   const { data, isLoading, error } = useAbortableQuery(
-    (signal) => fetchReviewQueue({ filter, sort, signal }),
+    (signal) => fetchReviewQueue({ filters, sort, signal }),
     {
       initialData: [],
       fallbackErrorMessage: 'Failed to load submission queue',
-      deps: [reloadKey, filter, sort],
+      deps: [reloadKey, filtersKey, sort],
     },
   )
 
@@ -45,7 +47,7 @@ export function useSubmissionQueue(
   // Changing filter/sort should not keep stale optimistic removals.
   useEffect(() => {
     setOptimisticRemovedIds([])
-  }, [filter, sort])
+  }, [filtersKey, sort])
 
   const reload = useCallback(() => {
     setReloadKey((key) => key + 1)
