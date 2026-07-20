@@ -30,7 +30,7 @@ def create_issue():
     if current_user_id is None:
         ip = request.remote_addr or "unknown"
         ip_hash = _hash_ip(ip)
-        if check_and_increment_rate_limit(ip_hash):
+        if not check_and_increment_rate_limit(ip_hash):
             return err("Rate limit exceeded. Try again later.", 429)
 
     data = request.get_json(silent=True) or {}

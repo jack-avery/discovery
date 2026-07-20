@@ -42,7 +42,7 @@ def register():
       }
     """
     data = request.get_json(silent=True)
-    if not data:
+    if data is None:
         return err("Request body must be JSON.", 400)
 
     # Required field validation
@@ -103,7 +103,7 @@ def login():
       }
     """
     data = request.get_json(silent=True)
-    if not data:
+    if data is None:
         return err("Request body must be JSON.", 400)
 
     email = data.get("email", "").strip().lower()
