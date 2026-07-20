@@ -4,6 +4,7 @@ import { PanelHeader } from '@/components/shared/PanelHeader'
 import { Button } from '@/components/ui'
 import { useResourceDetail } from '@/hooks/useResourceDetail'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
+import { submitCreateSubmissionRequest, toHumanErrorMessage } from '@/services/submissionService'
 import { cn } from '@/utils/cn'
 import type { ResourceVersionDto } from '@/types/resource'
 import type {
@@ -71,6 +72,8 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   const [consent, setConsent] = useState(false)
   const [showConsentError, setShowConsentError] = useState(false)
   const [submitHint, setSubmitHint] = useState<string | undefined>()
+  const [submitError, setSubmitError] = useState<string | undefined>()
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [pendingClose, setPendingClose] = useState(false)
   const [activeSectionId, setActiveSectionId] = useState<UpdateSectionId | null>(
     null,
@@ -80,6 +83,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     null,
   )
   const contributorSaveRef = useRef<(() => ContributorInfo | null) | null>(null)
+  const submitAbortRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const consentId = useId()
   const consentErrorId = useId()
@@ -87,6 +91,9 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   const isDirty = resourceDirty || contributorDirty
 
   const resetWorkflow = useCallback(() => {
+    submitAbortRef.current?.abort()
+    submitAbortRef.current = null
+    setIsSubmitting(false)
     setStep('picker')
     setSelectedSections([])
     setBaselineData(null)
@@ -104,7 +111,16 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     setConsent(false)
     setShowConsentError(false)
     setSubmitHint(undefined)
+    setSubmitError(undefined)
     setActiveSectionId(null)
+    setPendingClose(false)
+  }, [])
+
+  // Abort in-flight submit if the workspace unmounts.
+  useEffect(() => {
+    return () => {
+      submitAbortRef.current?.abort()
+    }
   }, [])
 
   // Reset when the selected resource changes.
@@ -113,6 +129,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   }, [selectedResourceId, resetWorkflow])
 
   const requestClose = useCallback(() => {
+    if (isSubmitting) return
     const hasEdits =
       step === 'editing' && (isDirty || updateState.hasChanges)
     if (hasEdits) {
@@ -121,15 +138,24 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     }
     resetWorkflow()
     onClose()
-  }, [step, isDirty, updateState.hasChanges, onClose, resetWorkflow])
+  }, [
+    isSubmitting,
+    step,
+    isDirty,
+    updateState.hasChanges,
+    onClose,
+    resetWorkflow,
+  ])
 
   const confirmClose = useCallback(() => {
+    if (isSubmitting) return
     setPendingClose(false)
     resetWorkflow()
     onClose()
-  }, [onClose, resetWorkflow])
+  }, [isSubmitting, onClose, resetWorkflow])
 
   // Escape dismisses via the same unsaved-changes path as the header X.
+  // While submitting, swallow Escape so navigation cannot interrupt the request.
   // While the discard dialog is open, still swallow Escape so Discover nav
   // cannot pop Resource Detail underneath (and silently discard the draft).
   useEffect(() => {
@@ -137,6 +163,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
       if (event.key !== 'Escape') return
       event.stopPropagation()
       event.preventDefault()
+      if (isSubmitting) return
       if (pendingClose) {
         setPendingClose(false)
         return
@@ -146,7 +173,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
 
     document.addEventListener('keydown', handleKeyDown, true)
     return () => document.removeEventListener('keydown', handleKeyDown, true)
-  }, [requestClose, pendingClose])
+  }, [requestClose, pendingClose, isSubmitting])
 
   // Close the workspace when leaving resource detail (no dirty prompt —
   // detail unmount means the editing context is gone).
@@ -176,6 +203,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     setConsent(false)
     setShowConsentError(false)
     setSubmitHint(undefined)
+    setSubmitError(undefined)
     setStep('editing')
   }, [version, selectedSections])
 
@@ -202,7 +230,8 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     [],
   )
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
+    if (isSubmitting) return
     if (!baselineData || !proposedData || !hasResourceId) return
 
     setShowResourceErrors(true)
@@ -218,14 +247,17 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     )
 
     if (!resourceOk) {
+      setSubmitError(undefined)
       setSubmitHint('Make at least one change before submitting.')
       return
     }
     if (!savedResource || !updateState.isComplete) {
+      setSubmitError(undefined)
       setSubmitHint('Fix the highlighted resource fields before submitting.')
       return
     }
     if (!savedContributor || !contributorOk || !contributorComplete) {
+      setSubmitError(undefined)
       setSubmitHint('Complete your contact information before submitting.')
       document
         .getElementById('contributor-details')
@@ -234,6 +266,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     }
     if (!consent) {
       setShowConsentError(true)
+      setSubmitError(undefined)
       setSubmitHint('Confirm the information is accurate before submitting.')
       return
     }
@@ -245,14 +278,37 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
       proposedData.name || resourceName,
     )
 
-    // API submit arrives later — log payload for inspection until then.
-    console.info('[update_resource] submitted payload', payload)
-
+    const displayTitle =
+      proposedData.name.trim() || resourceName || 'this resource'
+    const controller = new AbortController()
+    submitAbortRef.current = controller
     setSubmitHint(undefined)
-    setResourceDirty(false)
-    setContributorDirty(false)
-    setStep('success')
+    setSubmitError(undefined)
+    setIsSubmitting(true)
+
+    try {
+      await submitCreateSubmissionRequest(payload, {
+        signal: controller.signal,
+      })
+      setResourceDirty(false)
+      setContributorDirty(false)
+      setSubmitError(undefined)
+      setStep('success')
+    } catch (error) {
+      // Intentional cancel (unmount / reset) — keep the workspace state as-is.
+      if (controller.signal.aborted) return
+      if (error instanceof Error && error.name === 'AbortError') return
+      setSubmitError(toHumanErrorMessage(error, displayTitle))
+    } finally {
+      if (submitAbortRef.current === controller) {
+        submitAbortRef.current = null
+      }
+      if (!controller.signal.aborted) {
+        setIsSubmitting(false)
+      }
+    }
   }, [
+    isSubmitting,
     baselineData,
     proposedData,
     hasResourceId,
@@ -284,6 +340,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
             variant="ghost"
             size="icon"
             onClick={requestClose}
+            disabled={isSubmitting}
             aria-label="Close update workspace"
             title="Close"
           >
@@ -329,7 +386,9 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
             consentId={consentId}
             consentErrorId={consentErrorId}
             submitHint={submitHint}
+            submitError={submitError}
             canSubmit={updateState.hasChanges}
+            isSubmitting={isSubmitting}
             onShowResourceErrorsChange={setShowResourceErrors}
             onShowContributorErrorsChange={setShowContributorErrors}
             onResourceDirtyChange={setResourceDirty}
@@ -346,7 +405,9 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
               setConsent(value)
               if (value) setShowConsentError(false)
             }}
-            onSubmit={handleSubmit}
+            onSubmit={() => {
+              void handleSubmit()
+            }}
           />
         ) : null}
 
@@ -361,7 +422,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
       </div>
 
       <UnsavedChangesDialog
-        open={pendingClose}
+        open={pendingClose && !isSubmitting}
         onStay={() => setPendingClose(false)}
         onDiscard={confirmClose}
       />
@@ -455,7 +516,9 @@ function EditingStage({
   consentId,
   consentErrorId,
   submitHint,
+  submitError,
   canSubmit,
+  isSubmitting,
   onShowResourceErrorsChange,
   onShowContributorErrorsChange,
   onResourceDirtyChange,
@@ -478,7 +541,9 @@ function EditingStage({
   consentId: string
   consentErrorId: string
   submitHint?: string
+  submitError?: string
   canSubmit: boolean
+  isSubmitting: boolean
   onShowResourceErrorsChange: (show: boolean) => void
   onShowContributorErrorsChange: (show: boolean) => void
   onResourceDirtyChange: (dirty: boolean) => void
@@ -552,6 +617,7 @@ function EditingStage({
             id={consentId}
             type="checkbox"
             checked={consent}
+            disabled={isSubmitting}
             onChange={(event) => onConsentChange(event.target.checked)}
             aria-invalid={showConsentError && !consent ? true : undefined}
             aria-describedby={
@@ -576,7 +642,15 @@ function EditingStage({
       </section>
 
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
-        {submitHint ? (
+        {isSubmitting ? (
+          <p className="text-xs text-muted-foreground sm:mr-auto" role="status">
+            Submitting…
+          </p>
+        ) : submitError ? (
+          <p className="text-xs text-destructive sm:mr-auto" role="alert">
+            {submitError}
+          </p>
+        ) : submitHint ? (
           <p className="text-xs text-muted-foreground sm:mr-auto" role="status">
             {submitHint}
           </p>
@@ -585,8 +659,13 @@ function EditingStage({
             Make at least one change before submitting.
           </p>
         ) : null}
-        <Button type="button" variant="primary" onClick={onSubmit}>
-          Submit
+        <Button
+          type="button"
+          variant="primary"
+          disabled={isSubmitting || !canSubmit}
+          onClick={onSubmit}
+        >
+          {isSubmitting ? 'Submitting…' : 'Submit'}
         </Button>
       </div>
     </div>

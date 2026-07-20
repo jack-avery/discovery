@@ -6,7 +6,7 @@ interface UpdateRequestSuccessPanelProps {
 }
 
 /**
- * Confirmation after a public update request is submitted (frontend; API later).
+ * Confirmation after a public update request is submitted.
  * Stays visible until the contributor chooses Done.
  */
 export function UpdateRequestSuccessPanel({
