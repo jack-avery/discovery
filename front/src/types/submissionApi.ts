@@ -66,4 +66,11 @@ export interface CreateSubmissionResponseDto {
   submission_id: number
   resource_id: number
   proposed_version_id: number
+  /**
+   * Not returned by the API yet.
+   * TODO(update-resource): When staff submissions are auto-approved, the
+   * backend should include moderation_status so the shared Update Resource
+   * success UI can branch to published without client-side role checks.
+   */
+  moderation_status?: string
 }

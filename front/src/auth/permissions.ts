@@ -5,13 +5,16 @@
  * rather than comparing backend role name strings.
  *
  * Intended product mapping (frontend):
- * - moderator: review submissions + update requests
+ * - moderator: review submissions + Resource Updates
  * - staff_editor: review + edit resources
  * - administrator: all permissions including delete and manage users
  *
  * See Backend Follow-up: staff_editor review permissions are granted here for
  * UI consistency, but the current backend only allows moderator/administrator
  * on submission review endpoints.
+ *
+ * TODO(update-resource): Rename canReviewUpdateRequests to align with
+ * "Resource Update" product terminology when convenient.
  */
 
 export interface StaffPermissions {

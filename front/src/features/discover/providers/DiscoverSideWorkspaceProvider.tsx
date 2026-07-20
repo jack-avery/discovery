@@ -8,6 +8,8 @@ import {
 } from 'react'
 
 /** Extensible set of Discover side-workspace hosts (layout identity only). */
+// TODO(update-resource): Rename kind 'update-request' → 'update-resource' when
+// aligning internal identifiers with product terminology.
 export type DiscoverSideWorkspaceKind = 'update-request'
 
 interface DiscoverSideWorkspaceContextValue {

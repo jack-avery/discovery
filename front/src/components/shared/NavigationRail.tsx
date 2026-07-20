@@ -31,7 +31,7 @@ const staffNavItems = [
   },
   {
     to: '/staff/update-requests',
-    label: 'Review Update Requests',
+    label: 'Review Resource Updates',
     icon: FilePenLine,
     end: false as const,
   },
