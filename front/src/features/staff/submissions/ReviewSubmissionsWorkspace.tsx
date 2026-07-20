@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import {
   AlertCircle,
   CheckCircle2,
@@ -19,6 +20,7 @@ import {
   type ReviewContributionKind,
   type ReviewQueueSort,
 } from '@/features/staff/submissions/fetchReviewQueue'
+import { parseReviewQueueFiltersFromSearchParams } from '@/features/staff/submissions/reviewQueueNavigation'
 import { useReviewSubmission } from '@/hooks/useReviewSubmission'
 import { useSubmissionDetail } from '@/hooks/useSubmissionDetail'
 import { useSubmissionQueue } from '@/hooks/useSubmissionQueue'
@@ -28,7 +30,10 @@ import { cn } from '@/utils/cn'
  * Two-column staff workspace: pending queue + contribution presentation review.
  */
 export function ReviewSubmissionsWorkspace() {
-  const [filters, setFilters] = useState<ReviewContributionKind[]>([])
+  const [searchParams] = useSearchParams()
+  const [filters, setFilters] = useState<ReviewContributionKind[]>(() => {
+    return parseReviewQueueFiltersFromSearchParams(searchParams) ?? []
+  })
   const [sort, setSort] = useState<ReviewQueueSort>('newest')
   const { items, isLoading, error, reload, removeItem } = useSubmissionQueue(
     filters,
@@ -46,6 +51,14 @@ export function ReviewSubmissionsWorkspace() {
     submitDecision,
     clearError,
   } = useReviewSubmission()
+
+  // Apply contribution-type filters when navigating from dashboard KPI links.
+  useEffect(() => {
+    const parsed = parseReviewQueueFiltersFromSearchParams(searchParams)
+    if (parsed != null) {
+      setFilters(parsed)
+    }
+  }, [searchParams])
 
   // Keep selection valid when the queue changes (filter/sort/reload/moderation).
   useEffect(() => {
