@@ -4,19 +4,24 @@ import {
   fetchSubmissionById,
   fetchSubmissions,
 } from '@/services/staffSubmissionService'
+import type { BackendSubmissionType } from '@/types/submissionApi'
 
-export type ReviewContributionFilter =
-  | 'all'
-  | 'existing_resource'
-  | 'event'
-  | 'skill'
-
-export type ReviewQueueSort = 'newest' | 'oldest'
-
+/**
+ * Contribution kinds shown in the Review Submissions queue filter.
+ * Empty selection (`[]`) means All — same as selecting every kind.
+ */
 export type ReviewContributionKind =
   | 'existing_resource'
   | 'event'
   | 'skill'
+  | 'resource_update'
+
+/** @deprecated Prefer {@link ReviewContributionKind}[]; empty array = all. */
+export type ReviewContributionFilter =
+  | 'all'
+  | ReviewContributionKind
+
+export type ReviewQueueSort = 'newest' | 'oldest'
 
 /** Queue row with contribution kind for filters and labels. */
 export interface ReviewQueueItem extends SubmissionSummaryDto {
@@ -24,86 +29,97 @@ export interface ReviewQueueItem extends SubmissionSummaryDto {
 }
 
 export interface FetchReviewQueueOptions {
+  /**
+   * Selected contribution kinds. Empty array = all kinds
+   * (same behaviour as the former "All" single-select).
+   */
+  filters?: ReviewContributionKind[]
+  /** @deprecated Use `filters` (multi-select). */
   filter?: ReviewContributionFilter
   sort?: ReviewQueueSort
   signal?: AbortSignal
 }
 
+export const REVIEW_CONTRIBUTION_KIND_OPTIONS: {
+  value: ReviewContributionKind
+  label: string
+}[] = [
+  { value: 'existing_resource', label: 'New Organization / Service' },
+  { value: 'event', label: 'New Event' },
+  { value: 'skill', label: 'New Skills & Services' },
+  { value: 'resource_update', label: 'Resource Update' },
+]
+
 /**
  * Load the pending review queue with contribution-type filter and sort.
  *
- * Backend list filters only by `submission_type` (`new_resource` | `community_asset`).
- * Event vs existing resource both use `new_resource`, so those filters classify
- * client-side via detail payloads (no backend contract change).
+ * Backend list filters by `submission_type`. Event vs organization both use
+ * `new_resource`, so those filters classify client-side via detail payloads.
  */
 export async function fetchReviewQueue(
   options: FetchReviewQueueOptions = {},
 ): Promise<ReviewQueueItem[]> {
-  const filter = options.filter ?? 'all'
+  const selectedKinds = resolveSelectedKinds(options)
   const sort = options.sort ?? 'newest'
   const { signal } = options
 
-  const summaries = await fetchPendingSummaries(filter, signal)
+  const summaries = await fetchPendingSummaries(selectedKinds, signal)
   const enriched = await enrichWithContributionKind(summaries, signal)
 
   const filtered =
-    filter === 'event'
-      ? enriched.filter((item) => item.contributionKind === 'event')
-      : filter === 'existing_resource'
-        ? enriched.filter((item) => item.contributionKind === 'existing_resource')
-        : enriched
+    selectedKinds.length === 0
+      ? enriched
+      : enriched.filter((item) => selectedKinds.includes(item.contributionKind))
 
   return sortQueueItems(filtered, sort)
 }
 
+function resolveSelectedKinds(
+  options: FetchReviewQueueOptions,
+): ReviewContributionKind[] {
+  if (options.filters !== undefined) {
+    return options.filters
+  }
+
+  // Legacy single-select bridge.
+  if (!options.filter || options.filter === 'all') return []
+  return [options.filter]
+}
+
 async function fetchPendingSummaries(
-  filter: ReviewContributionFilter,
+  selectedKinds: ReviewContributionKind[],
   signal?: AbortSignal,
 ): Promise<SubmissionSummaryDto[]> {
-  if (filter === 'skill') {
-    const result = await fetchSubmissions(
-      {
-        status: 'pending_review',
-        submission_type: 'community_asset',
-        limit: 100,
-      },
-      { signal },
-    )
-    return result.items
+  const kinds =
+    selectedKinds.length === 0
+      ? REVIEW_CONTRIBUTION_KIND_OPTIONS.map((option) => option.value)
+      : selectedKinds
+
+  const backendTypes = new Set<BackendSubmissionType>()
+  for (const kind of kinds) {
+    if (kind === 'existing_resource' || kind === 'event') {
+      backendTypes.add('new_resource')
+    } else if (kind === 'skill') {
+      backendTypes.add('community_asset')
+    } else if (kind === 'resource_update') {
+      backendTypes.add('update_resource')
+    }
   }
 
-  if (filter === 'existing_resource' || filter === 'event') {
-    const result = await fetchSubmissions(
-      {
-        status: 'pending_review',
-        submission_type: 'new_resource',
-        limit: 100,
-      },
-      { signal },
-    )
-    return result.items
-  }
-
-  const [resources, skills] = await Promise.all([
-    fetchSubmissions(
-      {
-        status: 'pending_review',
-        submission_type: 'new_resource',
-        limit: 100,
-      },
-      { signal },
+  const results = await Promise.all(
+    [...backendTypes].map((submission_type) =>
+      fetchSubmissions(
+        {
+          status: 'pending_review',
+          submission_type,
+          limit: 100,
+        },
+        { signal },
+      ),
     ),
-    fetchSubmissions(
-      {
-        status: 'pending_review',
-        submission_type: 'community_asset',
-        limit: 100,
-      },
-      { signal },
-    ),
-  ])
+  )
 
-  return [...resources.items, ...skills.items]
+  return results.flatMap((result) => result.items)
 }
 
 async function enrichWithContributionKind(
@@ -112,6 +128,10 @@ async function enrichWithContributionKind(
 ): Promise<ReviewQueueItem[]> {
   return Promise.all(
     summaries.map(async (item) => {
+      if (item.submission_type === 'update_resource') {
+        return { ...item, contributionKind: 'resource_update' as const }
+      }
+
       if (item.submission_type === 'community_asset') {
         return { ...item, contributionKind: 'skill' as const }
       }
@@ -148,11 +168,13 @@ function sortQueueItems(
 export function contributionKindLabel(kind: ReviewContributionKind): string {
   switch (kind) {
     case 'existing_resource':
-      return 'Existing Resource'
+      return 'New Organization / Service'
     case 'event':
-      return 'Event'
+      return 'New Event'
     case 'skill':
-      return 'Skills / Services'
+      return 'New Skills & Services'
+    case 'resource_update':
+      return 'Resource Update'
     default:
       return kind
   }

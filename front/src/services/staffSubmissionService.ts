@@ -10,12 +10,12 @@ import type { BackendSubmissionType } from '@/types/submissionApi'
 import { EMPTY_PAGINATION } from '@/services/resourceService'
 
 /**
- * Submission types reviewed on the Staff "Review Submissions" queue.
- * Update requests are handled on a separate staff route.
+ * Submission types that can appear on the Staff Review Submissions queue.
  */
 export const REVIEW_SUBMISSION_TYPES: readonly BackendSubmissionType[] = [
   'new_resource',
   'community_asset',
+  'update_resource',
 ] as const
 
 export function isReviewSubmissionType(
@@ -82,11 +82,11 @@ export const EMPTY_SUBMISSION_LIST: SubmissionListDto = {
 export function submissionTypeLabel(type: string): string {
   switch (type) {
     case 'new_resource':
-      return 'New resource'
+      return 'New Organization / Service'
     case 'community_asset':
-      return 'Community asset'
+      return 'New Skills & Services'
     case 'update_resource':
-      return 'Update request'
+      return 'Resource Update'
     default:
       return type.replace(/_/g, ' ')
   }
