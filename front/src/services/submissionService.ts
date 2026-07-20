@@ -145,13 +145,25 @@ export async function submitSubmission(
   return { status: 'partial', succeeded, failed }
 }
 
+/**
+ * Single POST /submissions with a ready payload.
+ * Prefer this for one-shot flows (e.g. update request). Multi-contribution
+ * drafts should use {@link submitSubmission}.
+ */
+export async function submitCreateSubmissionRequest(
+  payload: CreateSubmissionRequestDto,
+  options: SubmitSubmissionOptions = {},
+): Promise<CreateSubmissionResponseDto> {
+  return api.post<CreateSubmissionResponseDto>('/submissions', payload, {
+    signal: options.signal,
+  })
+}
+
 async function createSubmission(
   payload: CreateSubmissionRequestDto,
   signal?: AbortSignal,
 ): Promise<CreateSubmissionResponseDto> {
-  return api.post<CreateSubmissionResponseDto>('/submissions', payload, {
-    signal,
-  })
+  return submitCreateSubmissionRequest(payload, { signal })
 }
 
 function assertDraftReady(draft: SubmissionDraft): void {
@@ -204,6 +216,9 @@ export function toHumanErrorMessage(
   if (error instanceof ApiError) {
     if (error.status === 429) {
       return `We couldn’t submit “${contributionTitle}” because the submission limit has been reached. Please try again later.`
+    }
+    if (error.status === 404) {
+      return `We couldn’t submit “${contributionTitle}” because that resource is no longer available.`
     }
     if (error.status >= 500 || error.status === 0) {
       return `We couldn’t submit “${contributionTitle}” right now. Your information has been saved in this browser so you can try again.`
