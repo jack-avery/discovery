@@ -9,13 +9,14 @@ from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.extensions import db
 from app.models import ReportedIssue, Resource, Submission, User
-from app.utils import check_and_increment_rate_limit, err, ok, paginate, require_roles
+from app.utils import check_and_increment_rate_limit, err, ok, paginate, require_roles, validate_text_length
 
 issues_bp = Blueprint("issues", __name__, url_prefix="/issues")
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
 
-# Helpers
+_DESCRIPTION_MAX = 5000
 
+# Helpers
 def _hash_ip(ip: str) -> str:
     return hashlib.sha256(ip.encode()).hexdigest()
 
@@ -38,6 +39,7 @@ def create_issue():
     # Required: resource_id
     resource_id = data.get("resource_id")
     if not resource_id:
+        db.session.rollback()  # discard the flushed-but-uncommitted rate-limit increment
         return err("resource_id is required.", 400)
 
     # Validate resource exists and is not soft-deleted
@@ -45,12 +47,20 @@ def create_issue():
         resource_id=resource_id, deleted_at=None
     ).first()
     if not resource:
+        db.session.rollback()
         return err("Resource not found.", 404)
 
     # Required: description
     description = data.get("description")
     if not description:
+        db.session.rollback()
         return err("description is required.", 400)
+
+    field_errors = {}
+    validate_text_length(description, "description", _DESCRIPTION_MAX, field_errors)
+    if field_errors:
+        db.session.rollback()
+        return err("description is too long.", 422, field_errors)
 
     issue_type = data.get("issue_type")  # optional per handoff, but validate if present
     reporter_name = data.get("reporter_name")
@@ -66,19 +76,18 @@ def create_issue():
         status="open",
     )
     db.session.add(issue)
-    db.session.commit()
+    db.session.commit()  # single commit: rate-limit increment (if any) + issue insert
 
     return ok({"issue_id": issue.issue_id}, "Issue reported successfully.", 201)
 
 
-# GET /issues-moderator+, paginated list
+# GET /issues - moderator+, paginated list
 @issues_bp.get("")
-@jwt_required()
 @require_roles("moderator", "administrator")
 def list_issues():
-    status_filter  = request.args.get("status", "open")
+    status_filter = request.args.get("status", "open")
     resource_filter = request.args.get("resource_id", type=int)
-    page  = max(1, int(request.args.get("page",  1)))
+    page = max(1, int(request.args.get("page", 1)))
     limit = max(1, int(request.args.get("limit", 20)))
 
     query = ReportedIssue.query
@@ -100,9 +109,8 @@ def list_issues():
     )
 
 
-# PUT /issues/<id>/resolve-moderator+
+# PUT /issues/<id>/resolve - moderator+
 @issues_bp.put("/<int:issue_id>/resolve")
-@jwt_required()
 @require_roles("moderator", "administrator")
 def resolve_issue(issue_id):
     resolver_id = get_jwt_identity()
@@ -115,8 +123,8 @@ def resolve_issue(issue_id):
     if issue.status == "resolved":
         return err("Issue is already resolved.", 422)
 
-    issue.status           = "resolved"
-    issue.resolved_at      = datetime.now(timezone.utc)
+    issue.status = "resolved"
+    issue.resolved_at = datetime.now(timezone.utc)
     issue.resolved_by_user_id = resolver_id
     if "resolution_notes" in data:
         issue.resolution_notes = data["resolution_notes"]
@@ -126,9 +134,8 @@ def resolve_issue(issue_id):
     return ok({"issue_id": issue.issue_id, "status": issue.status}, "Issue resolved.")
 
 
-# GET /dashboard/stats-moderator+
+# GET /dashboard/stats - moderator+
 @dashboard_bp.get("/stats")
-@jwt_required()
 @require_roles("moderator", "administrator")
 def dashboard_stats():
     total_resources = Resource.query.filter_by(deleted_at=None).count()
@@ -148,11 +155,11 @@ def dashboard_stats():
 
     return ok(
         {
-            "total_resources":     total_resources,
+            "total_resources": total_resources,
             "published_resources": published_resources,
             "pending_submissions": pending_submissions,
-            "open_issues":         open_issues,
-            "total_users":         total_users,
+            "open_issues": open_issues,
+            "total_users": total_users,
         },
         "Dashboard stats retrieved.",
     )

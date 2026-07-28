@@ -437,10 +437,11 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- ============================================================================
 
 -- 1. Insert default roles
-INSERT INTO roles (role_name, description) VALUES 
-('contributor', 'Standard user'), 
-('staff_editor', 'Staff member who can edit resources'), 
-('moderator', 'Reviews submissions'), 
+INSERT INTO roles (role_name, description) VALUES
+('contributor', 'Standard registered user'),
+('trusted_contributor', 'Vetted user, unlimited submissions, no staff access'),
+('staff_editor', 'Staff member who can edit resources'),
+('moderator', 'Reviews submissions'),
 ('administrator', 'Full access');
 
 -- 2. Insert default admin user

@@ -13,6 +13,7 @@ initdb:
     sleep 2
     docker compose exec db /bin/sh -c 'mysql < schema.sql'
     docker compose exec db rm schema.sql
+    docker compose exec back flask db upgrade
     just down
 
 front:

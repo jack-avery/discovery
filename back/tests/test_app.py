@@ -1,47 +1,19 @@
-# tests/test_app.py
 """
-Phase 9 — Automated Test Suite
-RRCRC Community Asset Mapping Platform — Backend
+Phase 9, Automated Test Suite
+RRCRC Community Asset Mapping Platform, Backend
 
-Coverage map (Phase → Test class)
-──────────────────────────────────
-  Phase 1  →  TestHealth
-  Phase 4  →  TestAuthRegister, TestAuthLogin, TestAuthTokenLifecycle
-  Phase 3  →  TestRBAC
-  Phase 6  →  TestCategories, TestTags
-  Phase 5  →  TestResourcesPublic, TestResourcesStaffCRUD
-  Phase 7  →  TestSubmissionsCreate, TestSubmissionReview
-  Phase 8  →  TestIssues, TestDashboard
-  Phase 3  →  TestRateLimit
-
-Known bugs flagged inline
-─────────────────────────
-  BUG-1   issues.py ~line 30
-          Rate-limit guard is INVERTED:
-            BUGGY:   if check_and_increment_rate_limit(ip_hash):
-            CORRECT: if not check_and_increment_rate_limit(ip_hash):
-          Effect: every anonymous POST /issues immediately returns 429.
-          Fix:    add "not" — one word change in routes/issues.py.
-          Tests for anonymous issue creation are @pytest.mark.xfail(strict=True)
-          and will turn green automatically once the bug is fixed.
-
-  NOTE    TestingConfig sets JWT_ACCESS_TOKEN_EXPIRES = 5 s.
-          All tests complete in < 2 s so this is safe, but any added test
-          that sleeps or does heavy work should refresh its token.
-
-  NOTE    RATELIMIT_MAX_OVERRIDE = 999 in TestingConfig has NO effect.
-          utils.py hardcodes RATE_LIMIT_MAX_SUBMISSIONS = 5 and never reads
-          Flask config. Each test gets a fresh DB so the rate-limit counter
-          resets between tests. No test makes > 5 anonymous calls except
-          TestRateLimit (which intentionally makes 6).
-
-          To make RATELIMIT_MAX_OVERRIDE work, replace the constant in
-          utils.py with:
-              from flask import current_app
-              limit = current_app.config.get("RATELIMIT_MAX_OVERRIDE", 5)
+Coverage map (Phase -> Test class)
+-----------------------------------
+  Phase 1  ->  TestHealth
+  Phase 4  ->  TestAuthRegister, TestAuthLogin, TestAuthTokenLifecycle, TestAuthMe
+  Phase 3  ->  TestRBAC
+  Phase 6  ->  TestCategories, TestTags
+  Phase 5  ->  TestResourcesPublic, TestResourcesStaffCRUD, TestResourceFilters,
+               TestResourceUpdateGuards
+  Phase 7  ->  TestSubmissionsCreate, TestSubmissionReview, TestSubmissionComparison
+  Phase 8  ->  TestIssues, TestDashboard
+  Phase 3  ->  TestRateLimit
 """
-
-import pytest
 
 from app.extensions import db, bcrypt
 from app.models import (
@@ -57,9 +29,9 @@ from app.models import (
 )
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
 # Shared helper functions  (plain functions, NOT pytest fixtures)
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
 
 def make_user(email, password="Password1!", role_name=None,
               first_name="Test", last_name="User"):
@@ -67,7 +39,7 @@ def make_user(email, password="Password1!", role_name=None,
     Insert a User directly into the active DB session and optionally assign
     a role by name.
 
-    Bypasses POST /auth/register intentionally — tests that are not about
+    Bypasses POST /auth/register intentionally, tests that are not about
     registration should not depend on that endpoint working correctly.
 
     Must be called inside an active app context (guaranteed when the `client`
@@ -78,11 +50,11 @@ def make_user(email, password="Password1!", role_name=None,
     """
     pw_hash = bcrypt.generate_password_hash(password).decode("utf-8")
     user = User(
-        email=email, # type: ignore
-        password_hash=pw_hash, # type: ignore
-        first_name=first_name, # type: ignore
-        last_name=last_name, # type: ignore
-        is_active=1, # type: ignore
+        email=email,  # type: ignore
+        password_hash=pw_hash,  # type: ignore
+        first_name=first_name,  # type: ignore
+        last_name=last_name,  # type: ignore
+        is_active=1,  # type: ignore
     )
     db.session.add(user)
     db.session.flush()  # obtain user_id before the FK insert below
@@ -90,9 +62,9 @@ def make_user(email, password="Password1!", role_name=None,
     if role_name:
         role = Role.query.filter_by(role_name=role_name).first()
         assert role is not None, (
-            f"Role '{role_name}' not found — did conftest.py seed roles correctly?"
+            f"Role '{role_name}' not found, did conftest.py seed roles correctly?"
         )
-        db.session.add(UserRole(user_id=user.user_id, role_id=role.role_id)) # type: ignore
+        db.session.add(UserRole(user_id=user.user_id, role_id=role.role_id))  # type: ignore
 
     db.session.commit()
     return user
@@ -107,7 +79,7 @@ def get_token(client, email, password="Password1!"):
     """
     resp = client.post("/auth/login", json={"email": email, "password": password})
     assert resp.status_code == 200, (
-        f"Login failed for {email} — got {resp.status_code}: {resp.get_json()}"
+        f"Login failed for {email}, got {resp.status_code}: {resp.get_json()}"
     )
     return resp.get_json()["data"]["access_token"]
 
@@ -121,7 +93,7 @@ def auth(token):
     return {"Authorization": f"Bearer {token}"}
 
 
-def create_resource_api(client, token, name="Test Resource", resource_type="Service"):
+def create_resource_api(client, token, name="Test Resource", resource_type="Service", **extra):
     """
     Create an approved, immediately published resource via POST /resources
     (staff-only endpoint that bypasses the moderation queue).
@@ -129,20 +101,17 @@ def create_resource_api(client, token, name="Test Resource", resource_type="Serv
     Returns the 'data' dict from the 201 response.
     Used as a convenience setup step by multiple test classes.
     """
-    resp = client.post(
-        "/resources",
-        json={"name": name, "resource_type": resource_type},
-        headers=auth(token),
-    )
+    payload = {"name": name, "resource_type": resource_type, **extra}
+    resp = client.post("/resources", json=payload, headers=auth(token))
     assert resp.status_code == 201, (
-        f"create_resource_api failed: {resp.status_code} — {resp.get_json()}"
+        f"create_resource_api failed: {resp.status_code}, {resp.get_json()}"
     )
     return resp.get_json()["data"]
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 1 — Health checks
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 1, Health checks
+# =================================================================================
 
 class TestHealth:
     """
@@ -151,14 +120,14 @@ class TestHealth:
     """
 
     def test_health_returns_200(self, client):
-        """GET /health → 200 and status 'ok'. Proves Flask booted correctly."""
+        """GET /health -> 200 and status 'ok'. Proves Flask booted correctly."""
         resp = client.get("/health")
         assert resp.status_code == 200
         assert resp.get_json()["status"] == "ok"
 
     def test_health_db_returns_200(self, client):
         """
-        GET /health/db → 200.
+        GET /health/db -> 200.
         Proves SQLAlchemy can open a connection and execute SELECT 1
         against the in-memory SQLite test database.
         """
@@ -167,15 +136,15 @@ class TestHealth:
         assert resp.get_json()["status"] == "ok"
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 4 — Auth: registration
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 4, Auth: registration
+# =================================================================================
 
 class TestAuthRegister:
 
     def test_register_success_returns_201(self, client):
         """
-        Valid payload → 201.
+        Valid payload -> 201.
         User data appears in response body.
         password_hash must never be exposed in any response.
         """
@@ -192,7 +161,7 @@ class TestAuthRegister:
 
     def test_register_missing_email_returns_422(self, client):
         """
-        Missing required field 'email' → 422 with a field-level errors dict.
+        Missing required field 'email' -> 422 with a field-level errors dict.
         Verifies the input validation layer in routes/auth.py.
         """
         resp = client.post("/auth/register", json={
@@ -202,14 +171,14 @@ class TestAuthRegister:
         assert "email" in resp.get_json().get("errors", {})
 
     def test_register_missing_password_returns_422(self, client):
-        """Missing 'password' field → 422."""
+        """Missing 'password' field -> 422."""
         resp = client.post("/auth/register", json={
             "email": "nopw@example.com", "first_name": "A", "last_name": "B",
         })
         assert resp.status_code == 422
 
     def test_register_invalid_email_format_returns_422(self, client):
-        """Email string without '@' and domain → 422."""
+        """Email string without '@' and domain -> 422."""
         resp = client.post("/auth/register", json={
             "email": "notanemail", "password": "Password1!",
             "first_name": "A", "last_name": "B",
@@ -217,7 +186,7 @@ class TestAuthRegister:
         assert resp.status_code == 422
 
     def test_register_short_password_returns_422(self, client):
-        """Password shorter than 8 chars → 422."""
+        """Password shorter than 8 chars -> 422."""
         resp = client.post("/auth/register", json={
             "email": "short@example.com", "password": "abc",
             "first_name": "A", "last_name": "B",
@@ -226,19 +195,19 @@ class TestAuthRegister:
 
     def test_register_duplicate_email_returns_409(self, client):
         """
-        Registering the same email address twice → 409 Conflict.
+        Registering the same email address twice -> 409 Conflict.
         The second request must not silently overwrite the first user.
         """
         payload = {
             "email": "dup@example.com", "password": "Password1!",
             "first_name": "Dup", "last_name": "User",
         }
-        client.post("/auth/register", json=payload)          # first  — succeeds
-        resp = client.post("/auth/register", json=payload)   # second — collision
+        client.post("/auth/register", json=payload)          # first , succeeds
+        resp = client.post("/auth/register", json=payload)   # second, collision
         assert resp.status_code == 409
 
     def test_register_no_json_body_returns_400(self, client):
-        """POST /auth/register with a non-JSON body → 400."""
+        """POST /auth/register with a non-JSON body -> 400."""
         resp = client.post(
             "/auth/register",
             data="not json",
@@ -247,15 +216,15 @@ class TestAuthRegister:
         assert resp.status_code == 400
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 4 — Auth: login
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 4, Auth: login
+# =================================================================================
 
 class TestAuthLogin:
 
     def test_login_success_returns_token_and_cookie(self, client):
         """
-        Valid credentials → 200.
+        Valid credentials -> 200.
         access_token is in the JSON response body (for the Authorization header).
         refresh_token_cookie is in the Set-Cookie header (HttpOnly, for refresh).
         This is the dual-token pattern described in the README.
@@ -272,7 +241,7 @@ class TestAuthLogin:
         assert "refresh_token_cookie" in resp.headers.get("Set-Cookie", "")
 
     def test_login_wrong_password_returns_401(self, client):
-        """Correct email, wrong password → 401."""
+        """Correct email, wrong password -> 401."""
         make_user("wrongpw@example.com", "CorrectPass!")
         resp = client.post("/auth/login", json={
             "email": "wrongpw@example.com", "password": "WrongPass!",
@@ -281,7 +250,7 @@ class TestAuthLogin:
 
     def test_login_nonexistent_user_returns_401(self, client):
         """
-        Email not in DB → 401.
+        Email not in DB -> 401.
         The dummy-hash path in routes/auth.py ensures the response time is
         identical to a real failed login, preventing user enumeration.
         """
@@ -291,21 +260,21 @@ class TestAuthLogin:
         assert resp.status_code == 401
 
     def test_login_empty_body_returns_422(self, client):
-        """POST /auth/login with an empty JSON object → 422."""
+        """POST /auth/login with an empty JSON object -> 422."""
         resp = client.post("/auth/login", json={})
         assert resp.status_code == 422
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 4 — Auth: token lifecycle (refresh + logout)
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 4, Auth: token lifecycle (refresh + logout)
+# =================================================================================
 
 class TestAuthTokenLifecycle:
 
     def test_refresh_with_valid_cookie_returns_new_token(self, client):
         """
         POST /auth/login sets the refresh cookie in the test client's cookie jar.
-        Subsequent POST /auth/refresh sends that cookie automatically → 200
+        Subsequent POST /auth/refresh sends that cookie automatically -> 200
         with a fresh access_token.
         """
         make_user("refresh@example.com", "Password1!")
@@ -315,7 +284,7 @@ class TestAuthTokenLifecycle:
         })
         assert login_resp.status_code == 200
 
-        # Refresh — the test client replays the cookie from its jar.
+        # Refresh, the test client replays the cookie from its jar.
         refresh_resp = client.post("/auth/refresh")
         assert refresh_resp.status_code == 200
         assert "access_token" in refresh_resp.get_json()["data"]
@@ -323,16 +292,16 @@ class TestAuthTokenLifecycle:
     def test_refresh_without_cookie_returns_401_or_422(self, client):
         """
         A brand-new test client has no cookies (no prior login in this test).
-        POST /auth/refresh must be rejected — no cookie means no refresh token.
+        POST /auth/refresh must be rejected, no cookie means no refresh token.
         Flask-JWT-Extended returns 401 or 422 depending on configuration.
         """
-        # client fixture is function-scoped → no cookies from any prior test
+        # client fixture is function-scoped -> no cookies from any prior test
         resp = client.post("/auth/refresh")
         assert resp.status_code in (401, 422)
 
     def test_logout_returns_200_and_clears_cookie(self, client):
         """
-        POST /auth/logout → 200.
+        POST /auth/logout -> 200.
         unset_refresh_cookies() emits a clearing Set-Cookie header
         (cookie set with expiry in the past or max-age=0).
         """
@@ -346,19 +315,64 @@ class TestAuthTokenLifecycle:
         assert "refresh_token_cookie" in resp.headers.get("Set-Cookie", "")
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 3 — RBAC decorator enforcement
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 4, Auth: GET /auth/me  (D2, new)
+# =================================================================================
+
+class TestAuthMe:
+    """
+    D2: lets the frontend reconstruct profile/roles after a reload using
+    only the access token, instead of forcing a full re-login.
+    """
+
+    def test_me_without_token_returns_401(self, client):
+        """GET /auth/me with no Authorization header -> 401."""
+        assert client.get("/auth/me").status_code == 401
+
+    def test_me_with_malformed_token_returns_401(self, client):
+        """A garbage bearer token -> 401 via the JWT error handler, not a 500."""
+        resp = client.get("/auth/me", headers={"Authorization": "Bearer not-a-real-token"})
+        assert resp.status_code == 401
+
+    def test_me_returns_current_user_with_roles(self, client):
+        """Valid access token -> 200 with user_id, email, and roles; no password_hash."""
+        make_user("me@example.com", "Password1!", role_name="staff_editor")
+        token = get_token(client, "me@example.com")
+        resp = client.get("/auth/me", headers=auth(token))
+        assert resp.status_code == 200
+        user = resp.get_json()["data"]["user"]
+        assert user["email"] == "me@example.com"
+        assert "staff_editor" in user["roles"]
+        assert "password_hash" not in user
+
+    def test_me_after_refresh_still_works(self, client):
+        """
+        The exact frontend scenario D2 exists for: log in, refresh, then call
+        /auth/me using only the freshly minted access token.
+        """
+        make_user("refreshme@example.com", "Password1!")
+        client.post("/auth/login", json={
+            "email": "refreshme@example.com", "password": "Password1!",
+        })
+        new_token = client.post("/auth/refresh").get_json()["data"]["access_token"]
+        resp = client.get("/auth/me", headers=auth(new_token))
+        assert resp.status_code == 200
+        assert resp.get_json()["data"]["user"]["email"] == "refreshme@example.com"
+
+
+# =================================================================================
+# Phase 3, RBAC decorator enforcement
+# =================================================================================
 
 class TestRBAC:
     """
     Validates that @require_roles() blocks callers at the correct HTTP status.
-    README canonical example: 'Unauthorized user attempts admin action → 403.'
+    README canonical example: 'Unauthorized user attempts admin action -> 403.'
     """
 
     def test_no_token_returns_401(self, client):
         """
-        GET /dashboard/stats with no Authorization header → 401.
+        GET /dashboard/stats with no Authorization header -> 401.
         @require_roles internally calls verify_jwt_in_request() which raises
         NoAuthorizationError when no token is present.
         """
@@ -367,7 +381,7 @@ class TestRBAC:
 
     def test_wrong_role_returns_403(self, client):
         """
-        'contributor' role calling a moderator-only endpoint → 403.
+        'contributor' role calling a moderator-only endpoint -> 403.
         This is the exact scenario described in the README.
         """
         make_user("contrib@example.com", role_name="contributor")
@@ -377,16 +391,16 @@ class TestRBAC:
 
     def test_no_role_assigned_returns_403(self, client):
         """
-        Authenticated user with zero roles → 403.
+        Authenticated user with zero roles -> 403.
         An empty UserRole table means no role matches the allowed set.
         """
-        make_user("norole@example.com")  # no role_name → no UserRole row inserted
+        make_user("norole@example.com")  # no role_name -> no UserRole row inserted
         token = get_token(client, "norole@example.com")
         resp = client.get("/dashboard/stats", headers=auth(token))
         assert resp.status_code == 403
 
     def test_correct_role_passes(self, client):
-        """Moderator calling /dashboard/stats → 200."""
+        """Moderator calling /dashboard/stats -> 200."""
         make_user("mod@example.com", role_name="moderator")
         token = get_token(client, "mod@example.com")
         resp = client.get("/dashboard/stats", headers=auth(token))
@@ -395,7 +409,7 @@ class TestRBAC:
     def test_staff_editor_blocked_from_moderator_route(self, client):
         """
         staff_editor is a lower-privilege role than moderator.
-        Calling /dashboard/stats (requires moderator+) → 403.
+        Calling /dashboard/stats (requires moderator+) -> 403.
         """
         make_user("staffonly@example.com", role_name="staff_editor")
         token = get_token(client, "staffonly@example.com")
@@ -403,9 +417,9 @@ class TestRBAC:
         assert resp.status_code == 403
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 6 — Categories
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 6, Categories
+# =================================================================================
 
 class TestCategories:
 
@@ -418,19 +432,19 @@ class TestCategories:
         return get_token(client, "cat_staff@example.com")
 
     def test_list_categories_public_returns_200(self, client):
-        """GET /categories is a public endpoint → 200 with empty list."""
+        """GET /categories is a public endpoint -> 200 with empty list."""
         resp = client.get("/categories")
         assert resp.status_code == 200
         assert isinstance(resp.get_json()["data"], list)
 
     def test_create_category_without_auth_returns_401(self, client):
-        """POST /categories with no Authorization header → 401."""
+        """POST /categories with no Authorization header -> 401."""
         resp = client.post("/categories", json={"name": "Food", "slug": "food"})
         assert resp.status_code == 401
 
     def test_create_category_contributor_forbidden_returns_403(self, client):
         """
-        'contributor' is not in the allowed role set for POST /categories → 403.
+        'contributor' is not in the allowed role set for POST /categories -> 403.
         Verifies that the categories route RBAC guard is enforced.
         """
         make_user("cat_contrib@example.com", role_name="contributor")
@@ -443,7 +457,7 @@ class TestCategories:
         assert resp.status_code == 403
 
     def test_create_category_staff_editor_returns_201(self, client):
-        """staff_editor creates a category → 201 with the slug in the response."""
+        """staff_editor creates a category -> 201 with the slug in the response."""
         token = self._staff_token(client)
         resp = client.post(
             "/categories",
@@ -454,7 +468,7 @@ class TestCategories:
         assert resp.get_json()["data"]["slug"] == "food-security"
 
     def test_create_category_duplicate_name_returns_409(self, client):
-        """Submitting the same category name twice → 409 Conflict."""
+        """Submitting the same category name twice -> 409 Conflict."""
         token = self._staff_token(client)
         h = auth(token)
         client.post("/categories", json={"name": "Housing", "slug": "housing"}, headers=h)
@@ -462,7 +476,7 @@ class TestCategories:
         assert resp.status_code == 409
 
     def test_update_category_returns_200_with_new_name(self, client):
-        """PUT /categories/<id> updates the name field → 200."""
+        """PUT /categories/<id> updates the name field -> 200."""
         token = self._staff_token(client)
         h = auth(token)
         cr = client.post("/categories", json={"name": "Old Name", "slug": "old-name"}, headers=h)
@@ -485,7 +499,7 @@ class TestCategories:
 
     def test_circular_parent_reference_returns_422(self, client):
         """
-        Setting a category's parent_category_id to its own category_id → 422.
+        Setting a category's parent_category_id to its own category_id -> 422.
         Verifies the circular-reference guard in routes/categories.py.
         """
         token = self._staff_token(client)
@@ -497,15 +511,15 @@ class TestCategories:
         assert resp.status_code == 422
 
     def test_update_nonexistent_category_returns_404(self, client):
-        """PUT /categories/99999 (does not exist) → 404."""
+        """PUT /categories/99999 (does not exist) -> 404."""
         token = self._staff_token(client)
         resp = client.put("/categories/99999", json={"name": "X"}, headers=auth(token))
         assert resp.status_code == 404
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 6 — Tags
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 6, Tags
+# =================================================================================
 
 class TestTags:
 
@@ -514,18 +528,18 @@ class TestTags:
         return get_token(client, "tag_staff@example.com")
 
     def test_list_tags_public_returns_200(self, client):
-        """GET /tags is a public endpoint → 200."""
+        """GET /tags is a public endpoint -> 200."""
         assert client.get("/tags").status_code == 200
 
     def test_create_tag_returns_201(self, client):
-        """staff_editor creates a tag → 201 with name in response."""
+        """staff_editor creates a tag -> 201 with name in response."""
         token = self._staff_token(client)
         resp = client.post("/tags", json={"name": "Free", "slug": "free"}, headers=auth(token))
         assert resp.status_code == 201
         assert resp.get_json()["data"]["name"] == "Free"
 
     def test_create_tag_duplicate_name_returns_409(self, client):
-        """Same tag name submitted twice → 409 Conflict."""
+        """Same tag name submitted twice -> 409 Conflict."""
         token = self._staff_token(client)
         h = auth(token)
         client.post("/tags", json={"name": "Youth", "slug": "youth"}, headers=h)
@@ -533,7 +547,7 @@ class TestTags:
         assert resp.status_code == 409
 
     def test_update_tag_returns_200_with_new_name(self, client):
-        """PUT /tags/<id> updates the name → 200."""
+        """PUT /tags/<id> updates the name -> 200."""
         token = self._staff_token(client)
         h = auth(token)
         cr = client.post("/tags", json={"name": "Old Tag", "slug": "old-tag"}, headers=h)
@@ -555,19 +569,19 @@ class TestTags:
         assert resp.get_json()["data"]["is_active"] is False
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 5 — Resources: public endpoints
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 5, Resources: public endpoints
+# =================================================================================
 
 class TestResourcesPublic:
 
     def test_map_missing_lat_lng_returns_400(self, client):
-        """GET /resources/map with no query params → 400 (lat/lng are required)."""
+        """GET /resources/map with no query params -> 400 (lat/lng are required)."""
         assert client.get("/resources/map").status_code == 400
 
     def test_map_empty_db_returns_zero_pins(self, client):
         """
-        Valid lat/lng provided but no resources in DB → 200 with empty pins.
+        Valid lat/lng provided but no resources in DB -> 200 with empty pins.
         Verifies the map endpoint handles an empty dataset without crashing.
         """
         resp = client.get("/resources/map?lat=45.42&lng=-75.69")
@@ -612,7 +626,7 @@ class TestResourcesPublic:
             "name": "Vancouver Clinic",
             "resource_type": "Service",
             "locations": [{
-                "lat": 49.246,    # Vancouver — ~3 400 km from Ottawa
+                "lat": 49.246,    # Vancouver, ~3 400 km from Ottawa
                 "lng": -123.116,
                 "is_primary": 1,
             }],
@@ -623,7 +637,7 @@ class TestResourcesPublic:
         assert resp.get_json()["data"]["count"] == 0
 
     def test_list_resources_empty_db_returns_empty_list(self, client):
-        """GET /resources with no published resources → 200 with empty list."""
+        """GET /resources with no published resources -> 200 with empty list."""
         resp = client.get("/resources")
         assert resp.status_code == 200
         assert resp.get_json()["data"]["resources"] == []
@@ -657,23 +671,23 @@ class TestResourcesPublic:
         assert version["moderation_status"] == "approved"
 
     def test_get_by_slug_not_found_returns_404(self, client):
-        """GET /resources/slug/does-not-exist → 404."""
+        """GET /resources/slug/does-not-exist -> 404."""
         assert client.get("/resources/slug/does-not-exist").status_code == 404
 
     def test_get_by_id_not_found_returns_404(self, client):
-        """GET /resources/99999 → 404."""
+        """GET /resources/99999 -> 404."""
         assert client.get("/resources/99999").status_code == 404
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 5 — Resources: staff CRUD
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 5, Resources: staff CRUD
+# =================================================================================
 
 class TestResourcesStaffCRUD:
 
     def test_create_no_auth_returns_401(self, client):
         """
-        POST /resources with no token → 401.
+        POST /resources with no token -> 401.
         @require_roles calls verify_jwt_in_request() which raises
         NoAuthorizationError when the header is absent.
         """
@@ -682,7 +696,7 @@ class TestResourcesStaffCRUD:
 
     def test_create_contributor_role_returns_403(self, client):
         """
-        'contributor' is not in the allowed set for POST /resources → 403.
+        'contributor' is not in the allowed set for POST /resources -> 403.
         Only staff_editor and administrator can create resources directly.
         """
         make_user("res_contrib@example.com", role_name="contributor")
@@ -696,7 +710,7 @@ class TestResourcesStaffCRUD:
 
     def test_create_resource_returns_201_with_slug(self, client):
         """
-        staff_editor creates a resource → 201.
+        staff_editor creates a resource -> 201.
         Response contains resource_id and the auto-generated slug.
         """
         make_user("res_staff@example.com", role_name="staff_editor")
@@ -712,7 +726,7 @@ class TestResourcesStaffCRUD:
         assert data["slug"] == "rideau-food-bank"
 
     def test_create_resource_missing_name_returns_422(self, client):
-        """POST /resources without the required 'name' field → 422."""
+        """POST /resources without the required 'name' field -> 422."""
         make_user("res_staff2@example.com", role_name="staff_editor")
         token = get_token(client, "res_staff2@example.com")
         resp = client.post(
@@ -750,7 +764,7 @@ class TestResourcesStaffCRUD:
         assert len(versions) == 2  # original + updated
 
         resource = Resource.query.get(resource_id)
-        assert resource.current_version.name == "Updated Name" # type: ignore
+        assert resource.current_version.name == "Updated Name"  # type: ignore
 
     def test_delete_soft_deletes_and_hides_from_public(self, client, app):
         """
@@ -776,7 +790,7 @@ class TestResourcesStaffCRUD:
 
     def test_delete_requires_administrator_not_staff_editor(self, client):
         """
-        staff_editor calling DELETE /resources/<id> → 403.
+        staff_editor calling DELETE /resources/<id> -> 403.
         Only administrator is in the allowed set for the delete route.
         """
         make_user("del_staff@example.com", role_name="staff_editor")
@@ -788,7 +802,7 @@ class TestResourcesStaffCRUD:
 
     def test_duplicate_name_generates_slug_with_suffix(self, client):
         """
-        Two resources with the same name → first gets 'food-bank', second gets
+        Two resources with the same name -> first gets 'food-bank', second gets
         'food-bank-2'. Validates generate_unique_slug() recursive collision handling.
         """
         make_user("slug_coll@example.com", role_name="staff_editor")
@@ -801,19 +815,195 @@ class TestResourcesStaffCRUD:
         assert d2["slug"] == "food-bank-2"
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 7 — Submissions: create  (Flow A and Flow B)
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 5, Resources: filters (D3/D4, new)
+# =================================================================================
+
+class TestResourceFilters:
+    """
+    D3: repeated category_id/tag_id query params, OR-within-type / AND-across-type.
+    D4: GET /resources and GET /resources/map share the same filter semantics.
+    """
+
+    def _setup(self, client):
+        make_user("filt_staff@example.com", role_name="staff_editor")
+        token = get_token(client, "filt_staff@example.com")
+        h = auth(token)
+
+        cat_a = client.post("/categories", json={"name": "Cat A", "slug": "cat-a"}, headers=h).get_json()["data"]["category_id"]
+        cat_b = client.post("/categories", json={"name": "Cat B", "slug": "cat-b"}, headers=h).get_json()["data"]["category_id"]
+        tag_x = client.post("/tags", json={"name": "Tag X", "slug": "tag-x"}, headers=h).get_json()["data"]["tag_id"]
+
+        r1 = create_resource_api(client, token, name="Res With Cat A",
+                                  category_ids=[cat_a], tag_ids=[tag_x])
+        r2 = create_resource_api(client, token, name="Res With Cat B",
+                                  category_ids=[cat_b])
+        r3 = create_resource_api(client, token, name="Res With Neither")
+        return {"cat_a": cat_a, "cat_b": cat_b, "tag_x": tag_x, "r1": r1, "r2": r2, "r3": r3}
+
+    def test_single_category_filters_correctly(self, client):
+        """?category_id=<A> returns only the resource tagged with category A."""
+        ctx = self._setup(client)
+        resp = client.get(f"/resources?category_id={ctx['cat_a']}")
+        names = [r["name"] for r in resp.get_json()["data"]["resources"]]
+        assert names == ["Res With Cat A"]
+
+    def test_repeated_category_id_is_or_within_type(self, client):
+        """?category_id=A&category_id=B returns resources matching EITHER."""
+        ctx = self._setup(client)
+        resp = client.get(f"/resources?category_id={ctx['cat_a']}&category_id={ctx['cat_b']}")
+        names = {r["name"] for r in resp.get_json()["data"]["resources"]}
+        assert names == {"Res With Cat A", "Res With Cat B"}
+
+    def test_category_and_tag_combine_with_and(self, client):
+        """category_id + tag_id together require BOTH to match (AND across types)."""
+        ctx = self._setup(client)
+        resp = client.get(f"/resources?category_id={ctx['cat_b']}&tag_id={ctx['tag_x']}")
+        # Cat B resource has no Tag X, and the Tag X resource has Cat A not Cat B:
+        # nothing satisfies both simultaneously.
+        assert resp.get_json()["data"]["resources"] == []
+
+        resp2 = client.get(f"/resources?category_id={ctx['cat_a']}&tag_id={ctx['tag_x']}")
+        names = [r["name"] for r in resp2.get_json()["data"]["resources"]]
+        assert names == ["Res With Cat A"]
+
+    def test_invalid_category_id_returns_400(self, client):
+        """A non-integer category_id fails predictably instead of being silently dropped."""
+        resp = client.get("/resources?category_id=not-a-number")
+        assert resp.status_code == 400
+
+    def test_no_duplicate_rows_when_resource_matches_multiple_filtered_tags(self, client):
+        """
+        A resource with two of the selected tags must appear exactly once
+        (validates the .distinct() call in build_public_resource_query()).
+        """
+        make_user("dup_staff@example.com", role_name="staff_editor")
+        token = get_token(client, "dup_staff@example.com")
+        h = auth(token)
+        tag1 = client.post("/tags", json={"name": "T1", "slug": "t1"}, headers=h).get_json()["data"]["tag_id"]
+        tag2 = client.post("/tags", json={"name": "T2", "slug": "t2"}, headers=h).get_json()["data"]["tag_id"]
+        create_resource_api(client, token, name="Double Tagged", tag_ids=[tag1, tag2])
+
+        resp = client.get(f"/resources?tag_id={tag1}&tag_id={tag2}")
+        names = [r["name"] for r in resp.get_json()["data"]["resources"]]
+        assert names.count("Double Tagged") == 1
+
+    def test_map_and_list_agree_on_filtered_resource_set(self, client):
+        """
+        D4: with the same category filter and a resource inside the search
+        radius, GET /resources and GET /resources/map return the same
+        resource_id, list and map can't silently disagree.
+        """
+        make_user("parity_staff@example.com", role_name="staff_editor")
+        token = get_token(client, "parity_staff@example.com")
+        h = auth(token)
+        cat = client.post("/categories", json={"name": "Parity Cat", "slug": "parity-cat"}, headers=h).get_json()["data"]["category_id"]
+        created = create_resource_api(
+            client, token, name="Parity Resource", category_ids=[cat],
+            locations=[{"lat": 45.4, "lng": -75.6, "is_primary": 1}],
+        )
+
+        list_resp = client.get(f"/resources?category_id={cat}")
+        list_ids = {r["resource_id"] for r in list_resp.get_json()["data"]["resources"]}
+
+        map_resp = client.get(f"/resources/map?lat=45.4&lng=-75.6&radius_km=5&category_id={cat}")
+        map_ids = {p["resource_id"] for p in map_resp.get_json()["data"]["pins"]}
+
+        assert list_ids == map_ids == {created["resource_id"]}
+
+    def test_map_invalid_category_id_returns_400(self, client):
+        """Same validation applies on the map endpoint (D4 parity)."""
+        resp = client.get("/resources/map?lat=45.4&lng=-75.6&category_id=nope")
+        assert resp.status_code == 400
+
+
+# =================================================================================
+# Phase 5, Resources: update guards (new)
+# =================================================================================
+
+class TestResourceUpdateGuards:
+
+    def test_empty_put_body_returns_400(self, client):
+        """PUT /resources/<id> with {} -> 400 (falsy body, caught before the field check)."""
+        make_user("guard_staff@example.com", role_name="staff_editor")
+        token = get_token(client, "guard_staff@example.com")
+        resource_id = create_resource_api(client, token, name="Guard Target")["resource_id"]
+
+        resp = client.put(f"/resources/{resource_id}", json={}, headers=auth(token))
+        assert resp.status_code == 400
+
+    def test_put_with_no_recognized_fields_returns_422(self, client):
+        """
+        A non-empty body containing zero editable fields must not silently
+        create a pointless duplicate version (confirmed correctness fix).
+        """
+        make_user("guard_staff2@example.com", role_name="staff_editor")
+        token = get_token(client, "guard_staff2@example.com")
+        resource_id = create_resource_api(client, token, name="Guard Target 2")["resource_id"]
+
+        resp = client.put(f"/resources/{resource_id}", json={"unrelated_field": "x"}, headers=auth(token))
+        assert resp.status_code == 422
+
+        # And confirm no duplicate version was actually created.
+        db.session.expire_all()
+        versions = ResourceVersion.query.filter_by(resource_id=resource_id).all()
+        assert len(versions) == 1
+
+    def test_invalid_day_of_week_returns_422(self, client):
+        """An hours[] entry with an unparseable day_of_week -> 422, not a DB error."""
+        make_user("hours_staff@example.com", role_name="staff_editor")
+        token = get_token(client, "hours_staff@example.com")
+        resp = client.post("/resources", json={
+            "name": "Bad Hours Resource",
+            "resource_type": "Service",
+            "hours": [{"day_of_week": "Funday", "opens_at": "09:00", "closes_at": "17:00"}],
+        }, headers=auth(token))
+        assert resp.status_code == 422
+
+    def test_day_of_week_accepts_name_and_int(self, client):
+        """day_of_week accepts both a weekday name and an equivalent int (centralized parser)."""
+        make_user("hours_staff2@example.com", role_name="staff_editor")
+        token = get_token(client, "hours_staff2@example.com")
+        resp = client.post("/resources", json={
+            "name": "Good Hours Resource",
+            "resource_type": "Service",
+            "hours": [
+                {"day_of_week": "Monday", "opens_at": "09:00", "closes_at": "17:00"},
+                {"day_of_week": 2, "opens_at": "09:00", "closes_at": "17:00"},  # Tuesday
+            ],
+        }, headers=auth(token))
+        assert resp.status_code == 201
+
+    def test_deactivated_resource_hidden_from_both_id_and_slug_lookup(self, client, app):
+        """
+        Slug lookup fix: is_active=0 must hide a resource from BOTH
+        GET /resources/<id> and GET /resources/slug/<slug> consistently.
+        """
+        make_user("deact_admin@example.com", role_name="administrator")
+        token = get_token(client, "deact_admin@example.com")
+        created = create_resource_api(client, token, name="Deactivate Me")
+
+        resource = Resource.query.get(created["resource_id"])
+        resource.is_active = 0 # type: ignore
+        db.session.commit()
+
+        assert client.get(f"/resources/{created['resource_id']}").status_code == 404
+        assert client.get(f"/resources/slug/{created['slug']}").status_code == 404
+
+
+# =================================================================================
+# Phase 7, Submissions: create  (Flow A and Flow B)
+# =================================================================================
 
 class TestSubmissionsCreate:
 
     def test_flow_a_new_resource_returns_201(self, client, app):
         """
-        Flow A — anonymous submits a new_resource.
+        Flow A, anonymous submits a new_resource.
         Expected DB state:
           Resource.is_active                    = 0  (not published yet)
           ResourceVersion.moderation_status     = 'pending_review'
-        README example: 'Create new resource → Resource stored with Pending status'
+        README example: 'Create new resource -> Resource stored with Pending status'
         """
         resp = client.post("/submissions", json={
             "submission_type": "new_resource",
@@ -827,11 +1017,11 @@ class TestSubmissionsCreate:
         # Verify the DB state directly (not just the HTTP response)
         resource = Resource.query.get(d["resource_id"])
         version  = ResourceVersion.query.get(d["proposed_version_id"])
-        assert resource.is_active == 0 # type: ignore
-        assert version.moderation_status == "pending_review" # type: ignore
+        assert resource.is_active == 0  # type: ignore
+        assert version.moderation_status == "pending_review"  # type: ignore
 
     def test_flow_a_community_asset_returns_201(self, client):
-        """'community_asset' is a valid Flow A submission_type → 201."""
+        """'community_asset' is a valid Flow A submission_type -> 201."""
         resp = client.post("/submissions", json={
             "submission_type": "community_asset",
             "name":            "Volunteer Knitters",
@@ -840,12 +1030,12 @@ class TestSubmissionsCreate:
         assert resp.status_code == 201
 
     def test_missing_submission_type_returns_400(self, client):
-        """No submission_type field → 400."""
+        """No submission_type field -> 400."""
         resp = client.post("/submissions", json={"name": "Something"})
         assert resp.status_code == 400
 
     def test_invalid_submission_type_returns_400(self, client):
-        """submission_type not in the valid enum → 400."""
+        """submission_type not in the valid enum -> 400."""
         resp = client.post("/submissions", json={
             "submission_type": "hack_the_planet",
             "name":            "Something",
@@ -853,12 +1043,12 @@ class TestSubmissionsCreate:
         assert resp.status_code == 400
 
     def test_missing_name_returns_400(self, client):
-        """Valid submission_type but 'name' missing → 400."""
+        """Valid submission_type but 'name' missing -> 400."""
         resp = client.post("/submissions", json={"submission_type": "new_resource"})
         assert resp.status_code == 400
 
     def test_flow_b_missing_resource_id_returns_400(self, client):
-        """update_resource without resource_id → 400 (required for Flow B)."""
+        """update_resource without resource_id -> 400 (required for Flow B)."""
         resp = client.post("/submissions", json={
             "submission_type": "update_resource",
             "name":            "Update Attempt",
@@ -866,7 +1056,7 @@ class TestSubmissionsCreate:
         assert resp.status_code == 400
 
     def test_flow_b_nonexistent_resource_returns_404(self, client):
-        """update_resource with a resource_id that does not exist → 404."""
+        """update_resource with a resource_id that does not exist -> 404."""
         resp = client.post("/submissions", json={
             "submission_type": "update_resource",
             "name":            "Update Attempt",
@@ -875,7 +1065,7 @@ class TestSubmissionsCreate:
         assert resp.status_code == 404
 
     def test_get_submissions_without_auth_returns_401(self, client):
-        """GET /submissions with no token → 401."""
+        """GET /submissions with no token -> 401."""
         assert client.get("/submissions").status_code == 401
 
     def test_moderator_sees_pending_submission_in_queue(self, client):
@@ -898,9 +1088,9 @@ class TestSubmissionsCreate:
         assert all(i["moderation_status"] == "pending_review" for i in items)
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 7 — Submission review: the 5-table atomic transaction
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 7, Submission review: the 5-table atomic transaction
+# =================================================================================
 
 class TestSubmissionReview:
     """
@@ -908,16 +1098,16 @@ class TestSubmissionReview:
     the review_submission() function that commits 5 table changes atomically.
 
     APPROVE path side-effects verified:
-      1. ResourceVersion.moderation_status   → 'approved'
-      2. ResourceVersion.approved_at         → timestamp set
-      3. Resource.current_approved_version_id → points to the approved version
-      4. Resource.is_active                  → 1  (for new_resource / community_asset)
-      5. Submission.moderation_status        → 'approved'
+      1. ResourceVersion.moderation_status   -> 'approved'
+      2. ResourceVersion.approved_at         -> timestamp set
+      3. Resource.current_approved_version_id -> points to the approved version
+      4. Resource.is_active                  -> 1  (for new_resource / community_asset)
+      5. Submission.moderation_status        -> 'approved'
       6. SubmissionReview row inserted
       7. ResourceChangeLog row with change_type='approved_submission'
     """
 
-    # ── internal helpers ──────────────────────────────────────────────────────
+    # -- internal helpers --------------------------------------------------------
 
     def _submit_new(self, client, name="Test Org"):
         """
@@ -938,12 +1128,12 @@ class TestSubmissionReview:
         make_user("rev_mod@example.com", role_name="moderator")
         return get_token(client, "rev_mod@example.com")
 
-    # ── approve path ──────────────────────────────────────────────────────────
+    # -- approve path -------------------------------------------------------------
 
     def test_approve_publishes_resource_and_writes_all_rows(self, client, app):
         """
-        Full approval lifecycle — asserts all 7 DB side-effects listed above.
-        README example: 'Approve resource → Status updated to Published.'
+        Full approval lifecycle, asserts all 7 DB side-effects listed above.
+        README example: 'Approve resource -> Status updated to Published.'
         """
         sub_id, res_id, ver_id = self._submit_new(client, "Approve Me")
         token = self._mod_token(client)
@@ -956,18 +1146,18 @@ class TestSubmissionReview:
         assert resp.status_code == 200
         assert resp.get_json()["data"]["decision"] == "approved"
 
-        # Force a fresh DB read — don't rely on SQLAlchemy's identity map cache
+        # Force a fresh DB read, don't rely on SQLAlchemy's identity map cache
         db.session.expire_all()
 
         version  = ResourceVersion.query.get(ver_id)
         resource = Resource.query.get(res_id)
         sub      = Submission.query.get(sub_id)
 
-        assert version.moderation_status == "approved"           # pyright: ignore[reportOptionalMemberAccess] # side-effect 1
-        assert version.approved_at is not None                   # type: ignore # side-effect 2
-        assert resource.current_approved_version_id == ver_id   # pyright: ignore[reportOptionalMemberAccess] # side-effect 3
-        assert resource.is_active == 1                           # pyright: ignore[reportOptionalMemberAccess] # side-effect 4
-        assert sub.moderation_status == "approved"               # type: ignore # side-effect 5
+        assert version.moderation_status == "approved"            # type: ignore # side-effect 1
+        assert version.approved_at is not None                    # type: ignore # side-effect 2
+        assert resource.current_approved_version_id == ver_id     # type: ignore # side-effect 3
+        assert resource.is_active == 1                            # type: ignore # side-effect 4
+        assert sub.moderation_status == "approved"                # type: ignore # side-effect 5
 
         reviews = SubmissionReview.query.filter_by(submission_id=sub_id).all()
         assert len(reviews) == 1                                  # side-effect 6
@@ -988,7 +1178,7 @@ class TestSubmissionReview:
     def test_approve_with_location_shows_pin_on_map(self, client):
         """
         End-to-end map test:
-          Submit with lat/lng → Approve → pin returned by GET /resources/map.
+          Submit with lat/lng -> Approve -> pin returned by GET /resources/map.
         """
         resp = client.post("/submissions", json={
             "submission_type": "new_resource",
@@ -1013,11 +1203,11 @@ class TestSubmissionReview:
         ).get_json()["data"]["pins"]
         assert any(p["name"] == "Mapped After Approval" for p in pins)
 
-    # ── reject path ───────────────────────────────────────────────────────────
+    # -- reject path ----------------------------------------------------------------
 
     def test_reject_leaves_resource_inactive(self, client, app):
         """
-        Submit → Reject.
+        Submit -> Reject.
         Resource stays is_active=0.
         current_approved_version_id stays None (pointer not touched).
         version.moderation_status = 'rejected'.
@@ -1038,16 +1228,16 @@ class TestSubmissionReview:
         version  = ResourceVersion.query.get(ver_id)
         sub      = Submission.query.get(sub_id)
 
-        assert resource.is_active == 0 # type: ignore
-        assert resource.current_approved_version_id is None # type: ignore
-        assert version.moderation_status == "rejected" # type: ignore
-        assert sub.moderation_status == "rejected" # type: ignore
+        assert resource.is_active == 0  # type: ignore
+        assert resource.current_approved_version_id is None  # type: ignore
+        assert version.moderation_status == "rejected"  # type: ignore
+        assert sub.moderation_status == "rejected"  # type: ignore
 
-    # ── guard tests ───────────────────────────────────────────────────────────
+    # -- guard tests ------------------------------------------------------------------
 
     def test_double_review_returns_422(self, client):
         """
-        Attempting to review a submission that is already reviewed → 422.
+        Attempting to review a submission that is already reviewed -> 422.
         The endpoint must check the current moderation_status before acting.
         """
         sub_id, _, _ = self._submit_new(client, "Double Review")
@@ -1060,7 +1250,7 @@ class TestSubmissionReview:
         assert resp.status_code == 422
 
     def test_invalid_decision_string_returns_400(self, client):
-        """decision must be 'approved' or 'rejected'. Any other string → 400."""
+        """decision must be 'approved' or 'rejected'. Any other string -> 400."""
         sub_id, _, _ = self._submit_new(client, "Bad Decision")
         token = self._mod_token(client)
         resp = client.post(f"/submissions/{sub_id}/review",
@@ -1068,7 +1258,7 @@ class TestSubmissionReview:
         assert resp.status_code == 400
 
     def test_review_nonexistent_submission_returns_404(self, client):
-        """POST /submissions/99999/review → 404."""
+        """POST /submissions/99999/review -> 404."""
         make_user("ghost_mod@example.com", role_name="moderator")
         token = get_token(client, "ghost_mod@example.com")
         resp = client.post("/submissions/99999/review",
@@ -1076,7 +1266,7 @@ class TestSubmissionReview:
         assert resp.status_code == 404
 
     def test_review_requires_moderator_role(self, client):
-        """contributor calling POST /submissions/<id>/review → 403."""
+        """contributor calling POST /submissions/<id>/review -> 403."""
         sub_id, _, _ = self._submit_new(client, "Role Guard Test")
         make_user("rev_contrib@example.com", role_name="contributor")
         token = get_token(client, "rev_contrib@example.com")
@@ -1084,14 +1274,14 @@ class TestSubmissionReview:
                            json={"decision": "approved"}, headers=auth(token))
         assert resp.status_code == 403
 
-    # ── Flow B end-to-end ─────────────────────────────────────────────────────
+    # -- Flow B end-to-end ------------------------------------------------------------
 
     def test_flow_b_approve_moves_version_pointer(self, client, app):
         """
         Full Flow B lifecycle:
-          1. Staff creates a resource directly → v1 approved, resource active.
-          2. Public submits an update via POST /submissions → v2 pending.
-          3. Moderator approves → current_approved_version_id moves v1 → v2.
+          1. Staff creates a resource directly -> v1 approved, resource active.
+          2. Public submits an update via POST /submissions -> v2 pending.
+          3. Moderator approves -> current_approved_version_id moves v1 -> v2.
           4. Public detail endpoint returns the v2 name.
         """
         # Step 1: staff creates resource (immediately approved, no queue)
@@ -1100,7 +1290,7 @@ class TestSubmissionReview:
         resource_id = create_resource_api(client, staff_token, name="Flow B Original")["resource_id"]
 
         db.session.expire_all()
-        v1_id = Resource.query.get(resource_id).current_approved_version_id # type: ignore
+        v1_id = Resource.query.get(resource_id).current_approved_version_id  # type: ignore
 
         # Step 2: public submits an update for the existing resource
         update_resp = client.post("/submissions", json={
@@ -1129,35 +1319,78 @@ class TestSubmissionReview:
         assert detail["version"]["name"] == "Flow B Updated"
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 8 — Issues
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 7, Submission comparison payload (D6, new)
+# =================================================================================
+
+class TestSubmissionComparison:
+    """
+    D6: GET /submissions/<id> must return current_approved_resource so a
+    moderator UI can diff a pending update against what's currently live
+    without a second request.
+    """
+
+    def _mod_token(self, client):
+        make_user("cmp_mod@example.com", role_name="moderator")
+        return get_token(client, "cmp_mod@example.com")
+
+    def test_new_resource_submission_has_null_current_approved_resource(self, client):
+        """Flow A (new_resource): nothing is live yet -> current_approved_resource is null."""
+        resp = client.post("/submissions", json={
+            "submission_type": "new_resource",
+            "name":            "Brand New Thing",
+            "resource_type":   "Service",
+        })
+        sub_id = resp.get_json()["data"]["submission_id"]
+
+        token = self._mod_token(client)
+        detail = client.get(f"/submissions/{sub_id}", headers=auth(token)).get_json()["data"]
+        assert detail["current_approved_resource"] is None
+        assert detail["proposed_version"]["name"] == "Brand New Thing"
+
+    def test_update_submission_includes_live_comparison_resource(self, client):
+        """
+        Flow B (update_resource): current_approved_resource must reflect the
+        resource's CURRENTLY approved version, not the pending proposal.
+        """
+        make_user("cmp_staff@example.com", role_name="staff_editor")
+        staff_token = get_token(client, "cmp_staff@example.com")
+        resource_id = create_resource_api(client, staff_token, name="Live Version")["resource_id"]
+
+        resp = client.post("/submissions", json={
+            "submission_type": "update_resource",
+            "resource_id":     resource_id,
+            "name":            "Proposed New Name",
+            "resource_type":   "Organization",
+        })
+        sub_id = resp.get_json()["data"]["submission_id"]
+
+        token = self._mod_token(client)
+        detail = client.get(f"/submissions/{sub_id}", headers=auth(token)).get_json()["data"]
+
+        assert detail["proposed_version"]["name"] == "Proposed New Name"
+        assert detail["current_approved_resource"]["resource_id"] == resource_id
+        assert detail["current_approved_resource"]["version"]["name"] == "Live Version"
+        assert "review_history" in detail
+
+    def test_get_submission_without_auth_returns_401(self, client):
+        """GET /submissions/<id> with no token -> 401 (unchanged existing contract)."""
+        resp = client.post("/submissions", json={
+            "submission_type": "new_resource", "name": "X", "resource_type": "Service",
+        })
+        sub_id = resp.get_json()["data"]["submission_id"]
+        assert client.get(f"/submissions/{sub_id}").status_code == 401
+
+
+# =================================================================================
+# Phase 8, Issues
+# =================================================================================
 
 class TestIssues:
     """
-    BUG-1 — routes/issues.py (rate-limit guard is inverted)
-    ──────────────────────────────────────────────────────────────────────────
-    BUGGY code (current):
-        if check_and_increment_rate_limit(ip_hash):
-            return err("Rate limit exceeded. Try again later.", 429)
-
-    check_and_increment_rate_limit() returns True when the request IS allowed
-    and False when it IS denied. The condition above therefore fires 429 when
-    the request is allowed and passes when it is denied — the exact opposite of
-    the intended behaviour.
-
-    CORRECT code (matching submissions.py):
-        if not check_and_increment_rate_limit(ip_hash):
-            return err("Rate limit exceeded. Try again later.", 429)
-
-    Fix: add the word "not" — a one-character change in routes/issues.py.
-
-    Impact: every anonymous POST /issues immediately returns 429.
-    Tests for anonymous creation are marked @pytest.mark.xfail(strict=True).
-    strict=True means pytest will report XPASS (unexpected pass) and fail the
-    suite if the test starts passing, reminding you to remove the marker.
-    Authenticated issue creation is unaffected and tested without xfail.
-    ──────────────────────────────────────────────────────────────────────────
+    Anonymous issue creation is rate-limited the same way anonymous
+    submissions are (see app/utils.py check_and_increment_rate_limit).
+    Authenticated issue creation bypasses the anonymous limiter entirely.
     """
 
     def _published_resource(self, client):
@@ -1172,7 +1405,7 @@ class TestIssues:
     def test_create_issue_authenticated_returns_201(self, client):
         """
         Authenticated users bypass the anonymous rate-limiter entirely.
-        Valid issue against a real resource → 201 with issue_id.
+        Valid issue against a real resource -> 201 with issue_id.
         """
         res_id = self._published_resource(client)
         make_user("reporter@example.com")
@@ -1186,22 +1419,21 @@ class TestIssues:
         assert resp.status_code == 201
         assert "issue_id" in resp.get_json()["data"]
 
-
-    def test_create_issue_anonymous_should_return_201(self, client):
+    def test_create_issue_anonymous_returns_201(self, client):
         """
-        EXPECTED correct behaviour (currently broken by BUG-1):
-        An anonymous caller with no prior rate-limit hits reports an issue → 201.
-        Currently returns 429 on the very first call due to the inverted guard.
+        An anonymous caller with no prior rate-limit hits reports an issue -> 201.
+        (Verified the guard was already correct in this source, see the
+        module docstring above.)
         """
         res_id = self._published_resource(client)
         resp = client.post("/issues", json={
             "resource_id": res_id,
             "description": "This location has permanently closed.",
         })
-        assert resp.status_code == 201  # fails until BUG-1 is fixed
+        assert resp.status_code == 201
 
     def test_create_issue_missing_resource_id_returns_400(self, client):
-        """POST /issues without resource_id → 400."""
+        """POST /issues without resource_id -> 400."""
         make_user("miss_res@example.com")
         token = get_token(client, "miss_res@example.com")
         resp = client.post("/issues",
@@ -1210,7 +1442,7 @@ class TestIssues:
         assert resp.status_code == 400
 
     def test_create_issue_missing_description_returns_400(self, client):
-        """POST /issues without description → 400."""
+        """POST /issues without description -> 400."""
         res_id = self._published_resource(client)
         make_user("miss_desc@example.com")
         token = get_token(client, "miss_desc@example.com")
@@ -1220,7 +1452,7 @@ class TestIssues:
         assert resp.status_code == 400
 
     def test_create_issue_nonexistent_resource_returns_404(self, client):
-        """Reporting against a resource_id that does not exist → 404."""
+        """Reporting against a resource_id that does not exist -> 404."""
         make_user("ghost_rep@example.com")
         token = get_token(client, "ghost_rep@example.com")
         resp = client.post("/issues",
@@ -1229,11 +1461,11 @@ class TestIssues:
         assert resp.status_code == 404
 
     def test_list_issues_without_auth_returns_401(self, client):
-        """GET /issues with no Authorization header → 401."""
+        """GET /issues with no Authorization header -> 401."""
         assert client.get("/issues").status_code == 401
 
     def test_list_issues_moderator_returns_200(self, client):
-        """Moderator can GET /issues → 200 with an 'items' key in data."""
+        """Moderator can GET /issues -> 200 with an 'items' key in data."""
         make_user("list_mod@example.com", role_name="moderator")
         token = get_token(client, "list_mod@example.com")
         resp = client.get("/issues", headers=auth(token))
@@ -1267,11 +1499,11 @@ class TestIssues:
         # Verify in DB
         db.session.expire_all()
         issue = ReportedIssue.query.get(issue_id)
-        assert issue.status == "resolved" # type: ignore
-        assert issue.resolved_at is not None # type: ignore
+        assert issue.status == "resolved"  # type: ignore
+        assert issue.resolved_at is not None  # type: ignore
 
     def test_resolve_already_resolved_returns_422(self, client):
-        """Resolving an issue that is already resolved → 422 Unprocessable Entity."""
+        """Resolving an issue that is already resolved -> 422 Unprocessable Entity."""
         res_id = self._published_resource(client)
         make_user("dup_rep@example.com")
         rep_token = get_token(client, "dup_rep@example.com")
@@ -1282,42 +1514,42 @@ class TestIssues:
 
         make_user("dup_mod@example.com", role_name="moderator")
         mod_token = get_token(client, "dup_mod@example.com")
-        client.put(f"/issues/{issue_id}/resolve", json={}, headers=auth(mod_token))  # first  — ok
-        resp = client.put(f"/issues/{issue_id}/resolve", json={}, headers=auth(mod_token))  # second — conflict
+        client.put(f"/issues/{issue_id}/resolve", json={}, headers=auth(mod_token))  # first , ok
+        resp = client.put(f"/issues/{issue_id}/resolve", json={}, headers=auth(mod_token))  # second, conflict
         assert resp.status_code == 422
 
     def test_resolve_nonexistent_issue_returns_404(self, client):
-        """PUT /issues/99999/resolve → 404."""
+        """PUT /issues/99999/resolve -> 404."""
         make_user("res404_mod@example.com", role_name="moderator")
         token = get_token(client, "res404_mod@example.com")
         resp = client.put("/issues/99999/resolve", json={}, headers=auth(token))
         assert resp.status_code == 404
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# Phase 8 — Dashboard stats
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
+# Phase 8, Dashboard stats
+# =================================================================================
 
 class TestDashboard:
 
     def test_dashboard_requires_auth(self, client):
-        """GET /dashboard/stats with no token → 401."""
+        """GET /dashboard/stats with no token -> 401."""
         assert client.get("/dashboard/stats").status_code == 401
 
     def test_dashboard_contributor_returns_403(self, client):
-        """'contributor' role is below moderator threshold → 403."""
+        """'contributor' role is below moderator threshold -> 403."""
         make_user("dash_contrib@example.com", role_name="contributor")
         token = get_token(client, "dash_contrib@example.com")
         assert client.get("/dashboard/stats", headers=auth(token)).status_code == 403
 
     def test_dashboard_staff_editor_returns_403(self, client):
-        """'staff_editor' role is also below moderator threshold → 403."""
+        """'staff_editor' role is also below moderator threshold -> 403."""
         make_user("dash_staff@example.com", role_name="staff_editor")
         token = get_token(client, "dash_staff@example.com")
         assert client.get("/dashboard/stats", headers=auth(token)).status_code == 403
 
     def test_dashboard_administrator_returns_200(self, client):
-        """'administrator' satisfies the moderator+ requirement → 200."""
+        """'administrator' satisfies the moderator+ requirement -> 200."""
         make_user("d_admin@example.com", role_name="administrator")
         token = get_token(client, "d_admin@example.com")
         assert client.get("/dashboard/stats", headers=auth(token)).status_code == 200
@@ -1325,9 +1557,9 @@ class TestDashboard:
     def test_dashboard_stats_reflect_known_data(self, client):
         """
         Create a known dataset, then verify each dashboard counter is accurate.
-          1 published resource  → published_resources >= 1
-          1 pending submission  → pending_submissions >= 1
-          2 users created       → total_users >= 2
+          1 published resource  -> published_resources >= 1
+          1 pending submission  -> pending_submissions >= 1
+          2 users created       -> total_users >= 2
           Keys 'open_issues' and 'total_resources' must be present.
         """
         make_user("d_mod@example.com", role_name="moderator")
@@ -1336,10 +1568,10 @@ class TestDashboard:
         make_user("d_creator@example.com", role_name="staff_editor")
         staff_token = get_token(client, "d_creator@example.com")
 
-        # One published resource (staff direct-create bypasses queue → is_active=1)
+        # One published resource (staff direct-create bypasses queue -> is_active=1)
         create_resource_api(client, staff_token, name="Dashboard Resource")
 
-        # One pending submission (anonymous Flow A → pending_review)
+        # One pending submission (anonymous Flow A -> pending_review)
         client.post("/submissions", json={
             "submission_type": "new_resource",
             "name":            "Pending Org",
@@ -1357,15 +1589,14 @@ class TestDashboard:
         assert "total_resources" in stats
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
 # Rate limiting  (Phase 3 utility + Phase 7 submissions gate)
-# ═══════════════════════════════════════════════════════════════════════════════
+# =================================================================================
 
 class TestRateLimit:
     """
-    RATE_LIMIT_MAX_SUBMISSIONS = 5 is hardcoded in utils.py.
-    TestingConfig's RATELIMIT_MAX_OVERRIDE = 999 is not read by the application
-    code and therefore has no effect (see module docstring for fix).
+    RATELIMIT_MAX_OVERRIDE = 5 in TestingConfig (app/config.py) and is now
+    actually read by app/utils.py's check_and_increment_rate_limit().
 
     Each test has a fresh DB so the rate-limit counter (submission_rate_limits
     table) starts at 0 for every test function. The Flask test client always
@@ -1375,9 +1606,9 @@ class TestRateLimit:
 
     def test_sixth_anonymous_submission_returns_429(self, client):
         """
-        Submissions 1-5 (same anonymous IP) → 201 each.
-        Submission 6                         → 429 Too Many Requests.
-        Confirms the submissions.py guard ('if not check_and_increment…') works.
+        Submissions 1-5 (same anonymous IP) -> 201 each.
+        Submission 6                         -> 429 Too Many Requests.
+        Confirms the submissions.py guard ('if not check_and_increment...') works.
         """
         for i in range(1, 6):
             resp = client.post("/submissions", json={
@@ -1400,12 +1631,12 @@ class TestRateLimit:
     def test_authenticated_user_bypasses_rate_limit(self, client):
         """
         Authenticated users are not subject to the anonymous IP rate limiter.
-        7 consecutive authenticated submissions → all 201, none blocked.
+        7 consecutive authenticated submissions -> all 201, none blocked.
         """
         make_user("power_user@example.com")
         token = get_token(client, "power_user@example.com")
 
-        for i in range(1, 8):  # 7 calls — two more than the anonymous limit of 5
+        for i in range(1, 8):  # 7 calls, two more than the anonymous limit of 5
             resp = client.post("/submissions", json={
                 "submission_type": "new_resource",
                 "name":            f"Auth Submission {i}",
@@ -1414,3 +1645,42 @@ class TestRateLimit:
             assert resp.status_code == 201, (
                 f"Authenticated submission {i}/7 was unexpectedly blocked: {resp.get_json()}"
             )
+
+    def test_rejected_submission_does_not_consume_rate_limit_slot(self, client):
+        """
+        Confirmed correctness fix (atomicity): a request rejected by
+        pre-transaction validation (invalid submission_type) rolls back its
+        rate-limit increment, so it must not "spend" one of the 5 anonymous
+        slots.
+        """
+        for _ in range(5):
+            resp = client.post("/submissions", json={"submission_type": "not_valid", "name": "x"})
+            assert resp.status_code == 400
+
+        # None of the 5 invalid calls should have consumed a rate-limit slot,
+        # so a 6th, VALID call must still succeed.
+        resp = client.post("/submissions", json={
+            "submission_type": "new_resource",
+            "name": "Should Still Work",
+            "resource_type": "Service",
+        })
+        assert resp.status_code == 201
+
+def test_trusted_contributor_bypasses_rate_limit(client):
+    """trusted_contributor role bypasses anonymous rate limiter (same as any authenticated user)."""
+    make_user("tc@example.com", role_name="trusted_contributor")
+    token = get_token(client, "tc@example.com")
+    for i in range(1, 8):  # 7 submissions, above the anonymous cap of 5
+        resp = client.post("/submissions", json={
+            "submission_type": "new_resource",
+            "name": f"TC Submission {i}",
+            "resource_type": "Service",
+        }, headers=auth(token))
+        assert resp.status_code == 201, f"Submission {i}/7 blocked unexpectedly"
+
+def test_trusted_contributor_cannot_access_staff_routes(client):
+    """trusted_contributor gets 403 on all staff-gated endpoints."""
+    make_user("tc2@example.com", role_name="trusted_contributor")
+    token = get_token(client, "tc2@example.com")
+    resp = client.post("/resources", json={}, headers=auth(token))
+    assert resp.status_code == 403
