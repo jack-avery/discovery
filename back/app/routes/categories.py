@@ -5,12 +5,16 @@
 from flask import Blueprint, request
 from app.extensions import db
 from app.models import Category, Tag
-from app.utils import ok, err, require_roles
-from flask_jwt_extended import jwt_required
+from app.utils import ok, err, require_roles, validate_text_length
 
 
 categories_bp = Blueprint("categories", __name__, url_prefix="/categories")
 tags_bp = Blueprint("tags", __name__, url_prefix="/tags")
+
+_NAME_MAX = 100
+_SLUG_MAX = 100
+_ICON_MAX = 50
+_COLOR_MAX = 7
 
 
 # CATEGORY HELPERS
@@ -60,7 +64,6 @@ def list_categories():
 
 # POST /categories
 @categories_bp.post("")
-@jwt_required()
 @require_roles("staff_editor", "moderator", "administrator")
 def create_category():
     data = request.get_json(silent=True)
@@ -74,6 +77,14 @@ def create_category():
         return err("'name' is required.", 400)
     if not slug:
         return err("'slug' is required.", 400)
+
+    field_errors = {}
+    validate_text_length(name, "name", _NAME_MAX, field_errors)
+    validate_text_length(slug, "slug", _SLUG_MAX, field_errors)
+    validate_text_length(data.get("icon_identifier"), "icon_identifier", _ICON_MAX, field_errors)
+    validate_text_length(data.get("color_hex"), "color_hex", _COLOR_MAX, field_errors)
+    if field_errors:
+        return err("One or more fields exceed the maximum allowed length.", 422, field_errors)
 
     if Category.query.filter_by(name=name).first():
         return err(f"A category with name '{name}' already exists.", 409)
@@ -108,9 +119,7 @@ def create_category():
 
 
 # PUT /categories/<category_id>
-
 @categories_bp.put("/<int:category_id>")
-@jwt_required()
 @require_roles("staff_editor", "moderator", "administrator")
 def update_category(category_id):
     category = Category.query.get(category_id)
@@ -120,6 +129,14 @@ def update_category(category_id):
     data = request.get_json(silent=True)
     if not data:
         return err("Request body must be JSON.", 400)
+
+    field_errors = {}
+    validate_text_length(data.get("name"), "name", _NAME_MAX, field_errors)
+    validate_text_length(data.get("slug"), "slug", _SLUG_MAX, field_errors)
+    validate_text_length(data.get("icon_identifier"), "icon_identifier", _ICON_MAX, field_errors)
+    validate_text_length(data.get("color_hex"), "color_hex", _COLOR_MAX, field_errors)
+    if field_errors:
+        return err("One or more fields exceed the maximum allowed length.", 422, field_errors)
 
     if "name" in data:
         name = (data["name"] or "").strip()
@@ -180,9 +197,8 @@ def update_category(category_id):
     })
 
 
-# DELETE /categories/<category_id>  (soft delete)
+# DELETE /categories/<category_id> (soft delete)
 @categories_bp.delete("/<int:category_id>")
-@jwt_required()
 @require_roles("staff_editor", "moderator", "administrator")
 def delete_category(category_id):
     category = Category.query.get(category_id)
@@ -223,7 +239,6 @@ def list_tags():
 
 # POST /tags
 @tags_bp.post("")
-@jwt_required()
 @require_roles("staff_editor", "moderator", "administrator")
 def create_tag():
     data = request.get_json(silent=True)
@@ -237,6 +252,12 @@ def create_tag():
         return err("'name' is required.", 400)
     if not slug:
         return err("'slug' is required.", 400)
+
+    field_errors = {}
+    validate_text_length(name, "name", _NAME_MAX, field_errors)
+    validate_text_length(slug, "slug", _SLUG_MAX, field_errors)
+    if field_errors:
+        return err("One or more fields exceed the maximum allowed length.", 422, field_errors)
 
     if Tag.query.filter_by(name=name).first():
         return err(f"A tag with name '{name}' already exists.", 409)
@@ -263,7 +284,6 @@ def create_tag():
 
 # PUT /tags/<tag_id>
 @tags_bp.put("/<int:tag_id>")
-@jwt_required()
 @require_roles("staff_editor", "moderator", "administrator")
 def update_tag(tag_id):
     tag = Tag.query.get(tag_id)
@@ -273,6 +293,12 @@ def update_tag(tag_id):
     data = request.get_json(silent=True)
     if not data:
         return err("Request body must be JSON.", 400)
+
+    field_errors = {}
+    validate_text_length(data.get("name"), "name", _NAME_MAX, field_errors)
+    validate_text_length(data.get("slug"), "slug", _SLUG_MAX, field_errors)
+    if field_errors:
+        return err("One or more fields exceed the maximum allowed length.", 422, field_errors)
 
     if "name" in data:
         name = (data["name"] or "").strip()
@@ -311,7 +337,6 @@ def update_tag(tag_id):
 
 # DELETE /tags/<tag_id>  (soft delete)
 @tags_bp.delete("/<int:tag_id>")
-@jwt_required()
 @require_roles("staff_editor", "moderator", "administrator")
 def delete_tag(tag_id):
     tag = Tag.query.get(tag_id)

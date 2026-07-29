@@ -15,6 +15,13 @@ services:
     build:
       context: back
     stop_signal: SIGINT
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - uploads-data:/app/instance/uploads/resources
 
   db:
     image: "mysql:8.0-debian"
@@ -22,9 +29,16 @@ services:
     restart: no
     environment:
       - "MYSQL_ALLOW_EMPTY_PASSWORD=1"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
     volumes:
       - mysql-data:/var/lib/mysql # MySQL DB data
 
 volumes:
   caddy-data:
   mysql-data:
+  uploads-data:
