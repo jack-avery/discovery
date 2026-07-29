@@ -25,14 +25,18 @@ const accentStyles: Record<
 
 interface DashboardStatCardProps {
   title: string
-  value: number | string
+  /** Live value, or null when unavailable. Ignored while loading. */
+  value: number | string | null
   description: string
   icon: LucideIcon
   accent?: StatAccent
   /** Renders plain red priority text directly below the icon. */
   showHighPriorityLabel?: boolean
-  /** When set, the card navigates to this route on click. */
+  /** When set, the card navigates to this route on click (disabled while loading/unavailable). */
   to?: string
+  isLoading?: boolean
+  /** When true (and not loading), show an unavailable placeholder instead of a number. */
+  unavailable?: boolean
 }
 
 function StatCardContent({
@@ -42,8 +46,11 @@ function StatCardContent({
   icon: Icon,
   accent = 'primary',
   showHighPriorityLabel = false,
+  isLoading = false,
+  unavailable = false,
 }: Omit<DashboardStatCardProps, 'to'>) {
   const styles = accentStyles[accent]
+  const showUnavailable = !isLoading && (unavailable || value == null)
 
   return (
     <CardContent className="flex h-full items-start gap-4">
@@ -69,14 +76,22 @@ function StatCardContent({
       </div>
 
       <div className="min-w-0 flex-1 space-y-1">
-        <p
-          className={cn(
-            'font-heading text-3xl font-bold leading-none tracking-tight',
-            styles.value,
-          )}
-        >
-          {value}
-        </p>
+        {isLoading ? (
+          <div
+            className="h-8 w-16 animate-pulse rounded-md bg-muted"
+            role="status"
+            aria-label={`Loading ${title}`}
+          />
+        ) : (
+          <p
+            className={cn(
+              'font-heading text-3xl font-bold leading-none tracking-tight',
+              showUnavailable ? 'text-muted-foreground' : styles.value,
+            )}
+          >
+            {showUnavailable ? '—' : value}
+          </p>
+        )}
         <p className="font-heading text-sm font-semibold text-foreground">
           {title}
         </p>
@@ -94,30 +109,39 @@ function StatCardContent({
 export function DashboardStatCard({
   to,
   title,
+  isLoading = false,
+  unavailable = false,
+  value,
   ...contentProps
 }: DashboardStatCardProps) {
+  const isInteractive = Boolean(to) && !isLoading && !unavailable && value != null
   const cardClassName = cn(
     'h-full shadow-sm',
-    to && 'transition-shadow hover:shadow-md',
+    isInteractive && 'transition-shadow hover:shadow-md',
   )
 
-  if (to) {
+  const content = (
+    <StatCardContent
+      title={title}
+      value={value}
+      isLoading={isLoading}
+      unavailable={unavailable}
+      {...contentProps}
+    />
+  )
+
+  if (isInteractive && to) {
+    const valueLabel = typeof value === 'number' ? String(value) : String(value)
     return (
       <Link
         to={to}
         className="block h-full rounded-xl focus-ring"
-        aria-label={`${title}: ${contentProps.description}`}
+        aria-label={`${title}: ${valueLabel}. ${contentProps.description}`}
       >
-        <Card className={cardClassName}>
-          <StatCardContent title={title} {...contentProps} />
-        </Card>
+        <Card className={cardClassName}>{content}</Card>
       </Link>
     )
   }
 
-  return (
-    <Card className={cardClassName}>
-      <StatCardContent title={title} {...contentProps} />
-    </Card>
-  )
+  return <Card className={cardClassName}>{content}</Card>
 }

@@ -5,19 +5,22 @@
  * rather than comparing backend role name strings.
  *
  * Intended product mapping (frontend):
- * - moderator: review submissions + Resource Updates
- * - staff_editor: review + edit resources
+ * - moderator: staff dashboard + review submissions / Resource Updates
+ * - staff_editor: staff dashboard + review + edit resources
  * - administrator: all permissions including delete and manage users
  *
- * See Backend Follow-up: staff_editor review permissions are granted here for
- * UI consistency, but the current backend only allows moderator/administrator
- * on submission review endpoints.
+ * Dashboard analytics are not a separate permission — anyone who can access
+ * the Staff Dashboard may load GET /dashboard/stats. The current backend only
+ * allows moderator/administrator on that route; staff_editor 403s are handled
+ * in the dashboard UI as a temporary backend limitation.
  *
  * TODO(update-resource): Rename canReviewUpdateRequests to align with
  * "Resource Update" product terminology when convenient.
  */
 
 export interface StaffPermissions {
+  /** Access the Staff Dashboard (and therefore attempt to load analytics). */
+  canAccessStaffDashboard: boolean
   canReviewSubmissions: boolean
   canReviewUpdateRequests: boolean
   canEditResources: boolean
@@ -26,6 +29,7 @@ export interface StaffPermissions {
 }
 
 export const EMPTY_PERMISSIONS: StaffPermissions = {
+  canAccessStaffDashboard: false,
   canReviewSubmissions: false,
   canReviewUpdateRequests: false,
   canEditResources: false,
@@ -45,8 +49,11 @@ export function permissionsFromRoles(roles: readonly string[]): StaffPermissions
   const isModerator = roleSet.has('moderator')
   const isStaffEditor = roleSet.has('staff_editor')
   const isAdministrator = roleSet.has('administrator')
+  const canAccessStaffDashboard =
+    isModerator || isStaffEditor || isAdministrator
 
   return {
+    canAccessStaffDashboard,
     canReviewSubmissions: isModerator || isStaffEditor || isAdministrator,
     canReviewUpdateRequests: isModerator || isStaffEditor || isAdministrator,
     canEditResources: isStaffEditor || isAdministrator,
