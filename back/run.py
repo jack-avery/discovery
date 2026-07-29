@@ -1,9 +1,6 @@
-# run.py
-import os
 from app import create_app
 
-config_name = os.environ.get("FLASK_ENV", "production")
-app = create_app(config_name)
-
+app = create_app("production")
+# Run the app from running this file, python run.py
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host='0.0.0.0')

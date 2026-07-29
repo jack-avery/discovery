@@ -6,10 +6,11 @@ Auth Blueprint RRCRC Backend
 Routes:
   POST /auth/register: create account, bcrypt hash, no roles assigned
   POST /auth/login: verify password, issue access_token (JSON) + refresh_token (HttpOnly cookie)
-  POST /auth/refresh: read refresh cookie, mint new access token
-  POST /auth/logout: clear the refresh cookie
-  GET  /auth/me: return the current user for the presented access token (D2)
+  POST /auth/refresh:read refresh cookie, mint new access token
+  POST /auth/logout:clear the refresh cookie
 """
+
+from datetime import datetime, timezone, timedelta
 
 from flask import Blueprint, request
 from flask_jwt_extended import (
@@ -27,10 +28,7 @@ from app.utils import ok, err
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
-_DUMMY_HASH = "$2b$12$s6xZAo5tXUj9QeGvPbChs.gSBKGdzNwWKfMv8/NPYOlXBrqNnoA.e"
-
-
-# POST /auth/register
+#POST /auth/register
 @auth_bp.route("/register", methods=["POST"])
 def register():
     """
@@ -44,12 +42,12 @@ def register():
       }
     """
     data = request.get_json(silent=True)
-    if data is None:
+    if not data:
         return err("Request body must be JSON.", 400)
 
     # Required field validation
     required = ["email", "password", "first_name", "last_name"]
-    missing = [f for f in required if not (data.get(f) or "").strip()]
+    missing = [f for f in required if not data.get(f, "").strip()]
     if missing:
         return err(
             "Missing required fields.",
@@ -62,11 +60,11 @@ def register():
     first_name = data["first_name"].strip()
     last_name = data["last_name"].strip()
 
-    # Basic email format check
+    #Basic email format check
     if "@" not in email or "." not in email.split("@")[-1]:
         return err("Invalid email address.", 422, {"email": "Must be a valid email."})
 
-    # Minimum password length
+    #Minimum password length
     if len(password) < 8:
         return err(
             "Password too short.",
@@ -74,7 +72,7 @@ def register():
             {"password": "Must be at least 8 characters."},
         )
 
-    # Collision check, generic message to prevent user enumeration
+    # Collision check,generic message to prevent user enumeration
     if User.query.filter_by(email=email).first():
         return err("Registration failed. Please check your details (Email) and try again. You may already have an account.", 409)
 
@@ -105,27 +103,21 @@ def login():
       }
     """
     data = request.get_json(silent=True)
-    if data is None:
+    if not data:
         return err("Request body must be JSON.", 400)
 
-    email = (data.get("email") or "").strip().lower()
+    email = data.get("email", "").strip().lower()
     password = data.get("password", "")
 
     if not email or not password:
         return err("Both Email and password are required.", 422)
 
-    # run bcrypt check, prevents timing attacks on user lookup
+    #run bcrypt check, prevents timing attacks on user lookup
     user = User.query.filter_by(email=email).first()
-    candidate_hash = user.password_hash if user else _DUMMY_HASH
-    try:
-        password_ok = bcrypt.check_password_hash(candidate_hash, password)
-    except ValueError:
-        from flask import current_app
-        current_app.logger.error(
-            "Malformed password hash encountered during login for user_id=%s",
-            user.user_id if user else "unknown",
-        )
-        password_ok = False
+    dummy_hash = "$2b$12$invalidhashhehehe000000000000000000000000000000000000"
+    candidate_hash = user.password_hash if user else dummy_hash
+
+    password_ok = bcrypt.check_password_hash(candidate_hash, password)
 
     if not user or not password_ok or not user.is_active:
         return err("Invalid credentials. The email or password is incorrect.", 401)
@@ -174,23 +166,3 @@ def logout():
     response, status = ok(None, "Logged out successfully.", 200)
     unset_refresh_cookies(response)
     return response, status
-
-
-# GET /auth/me
-@auth_bp.route("/me", methods=["GET"])
-@jwt_required()
-def me():
-    """
-    Return the current user for the presented access token.
-    """
-    identity = get_jwt_identity()
-    try:
-        user_id = int(identity)
-    except (TypeError, ValueError):
-        return err("Invalid token subject.", 401)
-
-    user = User.query.get(user_id)
-    if not user or not user.is_active:
-        return err("Account not found or inactive.", 401)
-
-    return ok({"user": user.to_dict(include_roles=True)}, "Current user retrieved.", 200)
