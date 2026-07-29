@@ -1,0 +1,70 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 560" role="img" aria-label="Stylized community centre and park scene">
+  <defs>
+    <linearGradient id="landing-sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#d7e6f0"/>
+      <stop offset="55%" stop-color="#e8f1f6"/>
+      <stop offset="100%" stop-color="#f3f7fa"/>
+    </linearGradient>
+    <linearGradient id="landing-fade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.85"/>
+      <stop offset="28%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="720" height="560" rx="24" fill="url(#landing-sky)"/>
+
+  <!-- Distant skyline -->
+  <g fill="#b7c9d6" opacity="0.55">
+    <rect x="468" y="168" width="28" height="92" rx="2"/>
+    <rect x="502" y="148" width="36" height="112" rx="2"/>
+    <rect x="544" y="176" width="24" height="84" rx="2"/>
+    <rect x="574" y="158" width="42" height="102" rx="2"/>
+    <rect x="622" y="184" width="30" height="76" rx="2"/>
+    <rect x="656" y="170" width="22" height="90" rx="2"/>
+  </g>
+
+  <!-- Soft hills -->
+  <path d="M0 340c72-28 148-44 230-36 78 8 128 36 206 40 70 4 128-18 204-22 54-3 110 6 180 30v208H0V340z" fill="#c5d7e4"/>
+  <path d="M0 380c80-24 150-36 228-28 86 9 136 38 214 36 62-2 110-22 178-26 72-4 138 12 200 36v162H0V380z" fill="#d4e3ed"/>
+
+  <!-- Path -->
+  <path d="M250 560c40-70 78-130 118-168 42-40 92-62 148-70" fill="none" stroke="#eef4f8" stroke-width="46" stroke-linecap="round"/>
+  <path d="M250 560c40-70 78-130 118-168 42-40 92-62 148-70" fill="none" stroke="#dbe7ef" stroke-width="18" stroke-linecap="round"/>
+
+  <!-- Community centre -->
+  <g>
+    <rect x="318" y="236" width="196" height="148" rx="8" fill="#9eb6c8"/>
+    <rect x="332" y="214" width="168" height="28" rx="4" fill="#8aa6bb"/>
+    <rect x="356" y="198" width="120" height="22" rx="3" fill="#7d9bb2"/>
+    <!-- Windows -->
+    <rect x="338" y="258" width="48" height="40" rx="3" fill="#e8f2f8"/>
+    <rect x="398" y="258" width="48" height="40" rx="3" fill="#e8f2f8"/>
+    <rect x="458" y="258" width="40" height="40" rx="3" fill="#e8f2f8"/>
+    <rect x="338" y="312" width="48" height="40" rx="3" fill="#e8f2f8"/>
+    <rect x="398" y="312" width="48" height="40" rx="3" fill="#e8f2f8"/>
+    <rect x="458" y="312" width="40" height="52" rx="3" fill="#d5e5ef"/>
+    <text x="416" y="230" text-anchor="middle" fill="#eef5f9" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" font-weight="700" letter-spacing="1.5">COMMUNITY CENTRE</text>
+  </g>
+
+  <!-- Trees -->
+  <g fill="#8fb0c4">
+    <ellipse cx="148" cy="318" rx="42" ry="54"/>
+    <ellipse cx="188" cy="338" rx="36" ry="46"/>
+    <rect x="158" y="360" width="12" height="48" rx="3" fill="#7a97ab"/>
+    <ellipse cx="620" cy="330" rx="38" ry="50"/>
+    <rect x="614" y="368" width="12" height="42" rx="3" fill="#7a97ab"/>
+    <ellipse cx="96" cy="400" rx="30" ry="38"/>
+    <rect x="90" y="426" width="10" height="36" rx="3" fill="#7a97ab"/>
+  </g>
+
+  <!-- Bench -->
+  <g fill="#95afc2">
+    <rect x="210" y="448" width="88" height="8" rx="3"/>
+    <rect x="218" y="456" width="8" height="18" rx="2"/>
+    <rect x="282" y="456" width="8" height="18" rx="2"/>
+    <rect x="214" y="440" width="80" height="6" rx="2" opacity="0.7"/>
+  </g>
+
+  <!-- Left edge fade into content -->
+  <rect width="720" height="560" rx="24" fill="url(#landing-fade)"/>
+</svg>
