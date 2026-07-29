@@ -1,9 +1,14 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useSearch } from '@/app/providers'
 import { DiscoverLayout } from '@/app/layouts'
 import { WorkspaceNavigationProvider } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { WorkspaceProvider } from '@/features/discover/providers/WorkspaceProvider'
-import { DiscoverSideWorkspaceProvider } from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
+import {
+  DiscoverSideWorkspaceProvider,
+  useDiscoverSideWorkspace,
+} from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
+import { DISCOVER_OPEN_UPDATE_QUERY } from '@/features/discover/constants'
 import { useCategories, useResourceMap, useResources, useTags } from '@/hooks'
 import {
   getDefaultMapQuery,
@@ -30,11 +35,22 @@ export function DiscoverPage() {
 
 function DiscoverPageContent() {
   const { query, setQuery } = useSearch()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const { open: openSideWorkspace } = useDiscoverSideWorkspace()
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedAdvancedFilters, setSelectedAdvancedFilters] = useState<string[]>([])
   const [viewportQuery, setViewportQuery] = useState<ResourceMapQuery>(() =>
     getDefaultMapQuery(),
   )
+
+  // Dashboard "Update Existing Resource" opens Discover with this query flag.
+  useEffect(() => {
+    if (searchParams.get(DISCOVER_OPEN_UPDATE_QUERY) !== '1') return
+    openSideWorkspace('update-request')
+    const next = new URLSearchParams(searchParams)
+    next.delete(DISCOVER_OPEN_UPDATE_QUERY)
+    setSearchParams(next, { replace: true })
+  }, [searchParams, setSearchParams, openSideWorkspace])
 
   const handleViewportQueryChange = useCallback((next: ResourceMapQuery) => {
     setViewportQuery((prev) =>

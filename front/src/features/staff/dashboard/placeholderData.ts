@@ -7,7 +7,9 @@ import {
   PencilLine,
   PlusCircle,
   Tag,
+  Users,
 } from 'lucide-react'
+import { DISCOVER_OPEN_UPDATE_QUERY } from '@/features/discover/constants'
 import type { DonutChartSegment } from '@/features/staff/dashboard/DashboardDonutChart'
 
 export const PLACEHOLDER_CATEGORY_SEGMENTS: DonutChartSegment[] = [
@@ -85,6 +87,10 @@ export interface PlaceholderQuickAction {
   description: string
   icon: LucideIcon
   iconClassName: string
+  /** When set, the tile navigates to this path. */
+  to?: string
+  /** When true, only administrators see this action. */
+  adminOnly?: boolean
 }
 
 export const PLACEHOLDER_QUICK_ACTIONS: PlaceholderQuickAction[] = [
@@ -94,13 +100,16 @@ export const PLACEHOLDER_QUICK_ACTIONS: PlaceholderQuickAction[] = [
     description: 'Approve or reject new community resource submissions.',
     icon: ClipboardList,
     iconClassName: 'bg-primary-muted text-primary',
+    to: '/staff/submissions',
   },
   {
-    id: 'review-updates',
-    title: 'Review Resource Updates',
-    description: 'Review proposed changes to existing listings.',
-    icon: FilePenLine,
-    iconClassName: 'bg-pending-muted text-pending',
+    id: 'manage-users',
+    title: 'User Management',
+    description: 'Manage staff accounts, roles, and access permissions.',
+    icon: Users,
+    iconClassName: 'bg-primary-muted text-primary',
+    to: '/staff/users',
+    adminOnly: true,
   },
   {
     id: 'submit-resource',
@@ -108,6 +117,7 @@ export const PLACEHOLDER_QUICK_ACTIONS: PlaceholderQuickAction[] = [
     description: 'Add a new organization, service, or program to the directory.',
     icon: PlusCircle,
     iconClassName: 'bg-success/15 text-success',
+    to: '/submit',
   },
   {
     id: 'update-resource',
@@ -115,6 +125,7 @@ export const PLACEHOLDER_QUICK_ACTIONS: PlaceholderQuickAction[] = [
     description: 'Suggest edits to an approved community listing.',
     icon: PencilLine,
     iconClassName: 'bg-interactive-muted text-interactive',
+    to: `/?${DISCOVER_OPEN_UPDATE_QUERY}=1`,
   },
   {
     id: 'manage-categories',

@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import type { PlaceholderQuickAction } from '@/features/staff/dashboard/placeholderData'
 import { cn } from '@/utils/cn'
@@ -7,18 +8,18 @@ interface DashboardQuickActionProps {
 }
 
 /**
- * Quick action tile for the dashboard grid. Navigation wiring arrives in a later milestone.
+ * Quick action tile for the dashboard grid.
  */
 export function DashboardQuickAction({ action }: DashboardQuickActionProps) {
   const Icon = action.icon
 
-  return (
-    <div
-      className={cn(
-        'flex h-full w-full items-center gap-3 rounded-xl border border-border bg-surface p-4 shadow-sm',
-        'transition-colors',
-      )}
-    >
+  const className = cn(
+    'flex h-full w-full items-center gap-3 rounded-xl border border-border bg-surface p-4 shadow-sm',
+    'transition-colors',
+  )
+
+  const content = (
+    <>
       <span
         className={cn(
           'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
@@ -43,6 +44,16 @@ export function DashboardQuickAction({ action }: DashboardQuickActionProps) {
         strokeWidth={1.75}
         aria-hidden="true"
       />
-    </div>
+    </>
   )
+
+  if (action.to) {
+    return (
+      <Link to={action.to} className={className}>
+        {content}
+      </Link>
+    )
+  }
+
+  return <div className={className}>{content}</div>
 }

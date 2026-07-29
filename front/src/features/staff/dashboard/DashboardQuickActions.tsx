@@ -1,3 +1,5 @@
+import { useMemo } from 'react'
+import { useAuth } from '@/app/providers/AuthProvider'
 import { DashboardQuickAction } from '@/features/staff/dashboard/DashboardQuickAction'
 import type { PlaceholderQuickAction } from '@/features/staff/dashboard/placeholderData'
 
@@ -6,6 +8,16 @@ interface DashboardQuickActionsProps {
 }
 
 export function DashboardQuickActions({ actions }: DashboardQuickActionsProps) {
+  const { permissions } = useAuth()
+
+  const visibleActions = useMemo(
+    () =>
+      actions.filter(
+        (action) => !action.adminOnly || permissions.canManageUsers,
+      ),
+    [actions, permissions.canManageUsers],
+  )
+
   return (
     <section aria-labelledby="dashboard-quick-actions-heading">
       <h3
@@ -15,7 +27,7 @@ export function DashboardQuickActions({ actions }: DashboardQuickActionsProps) {
         Quick Actions
       </h3>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {actions.map((action) => (
+        {visibleActions.map((action) => (
           <DashboardQuickAction key={action.id} action={action} />
         ))}
       </div>
