@@ -10,16 +10,6 @@ import {
 } from 'lucide-react'
 import type { DonutChartSegment } from '@/features/staff/dashboard/DashboardDonutChart'
 
-/**
- * Placeholder KPI values. Resource Updates still uses this until the backend
- * exposes a dedicated count; other cards use GET /dashboard/stats.
- */
-export const PLACEHOLDER_STATS = {
-  publishedResources: 432,
-  pendingReviews: 18,
-  resourceUpdates: 7,
-} as const
-
 export const PLACEHOLDER_CATEGORY_SEGMENTS: DonutChartSegment[] = [
   { label: 'Housing', value: 121, color: '#2d6a4f' },
   { label: 'Food & Groceries', value: 96, color: '#22577a' },

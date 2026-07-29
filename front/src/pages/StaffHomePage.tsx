@@ -10,7 +10,6 @@ import {
   PLACEHOLDER_CATEGORY_SEGMENTS,
   PLACEHOLDER_QUICK_ACTIONS,
   PLACEHOLDER_RECENT_SUBMISSIONS,
-  PLACEHOLDER_STATS,
 } from '@/features/staff/dashboard'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import {
@@ -21,8 +20,7 @@ import {
 
 /**
  * Staff Dashboard — KPI cards match the approved layout.
- * Published Resources + Pending Review use GET /dashboard/stats when available.
- * Resource Updates stays on placeholder until the API exposes that count.
+ * Counts come from GET /dashboard/stats when available.
  */
 export function StaffHomePage() {
   const { status, stats, error, isForbidden, reload } = useDashboardStats()
@@ -30,6 +28,9 @@ export function StaffHomePage() {
   const isLoading = status === 'loading'
   const unavailable = status === 'error'
   const showAnalyticsBanner = status === 'error'
+
+  const pendingReviewCount = stats?.pending_new_submissions ?? null
+  const resourceUpdateCount = stats?.pending_resource_updates ?? null
 
   return (
     <PageShell title="Dashboard">
@@ -95,7 +96,7 @@ export function StaffHomePage() {
           />
           <DashboardStatCard
             title="Pending Review"
-            value={stats?.pending_submissions ?? null}
+            value={pendingReviewCount}
             description="New resource submissions."
             icon={ClipboardList}
             accent="primary"
@@ -105,12 +106,14 @@ export function StaffHomePage() {
           />
           <DashboardStatCard
             title="Resource Updates"
-            value={PLACEHOLDER_STATS.resourceUpdates}
+            value={resourceUpdateCount}
             description="Update requests in the queue."
             icon={FilePenLine}
             accent="danger"
             showHighPriorityLabel
             to={reviewSubmissionsUrl(RESOURCE_UPDATE_FILTERS)}
+            isLoading={isLoading}
+            unavailable={unavailable}
           />
         </div>
 
