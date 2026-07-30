@@ -1,6 +1,9 @@
+import { useMemo, useState } from 'react'
 import { AlertCircle, ClipboardList, FilePenLine, MapPin, TriangleAlert } from 'lucide-react'
 import { PageShell } from '@/components/shared/PageShell'
 import { Button } from '@/components/ui'
+import { CategoryManagePanel } from '@/features/staff/categories'
+import { TagManagePanel } from '@/features/staff/tags'
 import {
   DashboardCategoryCard,
   DashboardHeader,
@@ -24,6 +27,8 @@ import {
  */
 export function StaffHomePage() {
   const { status, stats, error, isForbidden, reload } = useDashboardStats()
+  const [categoriesOpen, setCategoriesOpen] = useState(false)
+  const [tagsOpen, setTagsOpen] = useState(false)
 
   const isLoading = status === 'loading'
   const unavailable = status === 'error'
@@ -31,6 +36,20 @@ export function StaffHomePage() {
 
   const pendingReviewCount = stats?.pending_new_submissions ?? null
   const resourceUpdateCount = stats?.pending_resource_updates ?? null
+
+  const quickActions = useMemo(
+    () =>
+      PLACEHOLDER_QUICK_ACTIONS.map((action) => {
+        if (action.id === 'manage-categories') {
+          return { ...action, onClick: () => setCategoriesOpen(true) }
+        }
+        if (action.id === 'manage-tags') {
+          return { ...action, onClick: () => setTagsOpen(true) }
+        }
+        return action
+      }),
+    [],
+  )
 
   return (
     <PageShell title="Dashboard">
@@ -117,7 +136,7 @@ export function StaffHomePage() {
           />
         </div>
 
-        <DashboardQuickActions actions={PLACEHOLDER_QUICK_ACTIONS} />
+        <DashboardQuickActions actions={quickActions} />
 
         <div className="grid gap-section lg:grid-cols-2">
           <DashboardCategoryCard segments={PLACEHOLDER_CATEGORY_SEGMENTS} />
@@ -126,6 +145,12 @@ export function StaffHomePage() {
           />
         </div>
       </div>
+
+      <CategoryManagePanel
+        open={categoriesOpen}
+        onClose={() => setCategoriesOpen(false)}
+      />
+      <TagManagePanel open={tagsOpen} onClose={() => setTagsOpen(false)} />
     </PageShell>
   )
 }

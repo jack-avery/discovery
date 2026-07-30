@@ -12,10 +12,13 @@ interface DashboardQuickActionProps {
  */
 export function DashboardQuickAction({ action }: DashboardQuickActionProps) {
   const Icon = action.icon
+  const isInteractive = Boolean(action.to || action.onClick)
 
   const className = cn(
     'flex h-full w-full items-center gap-3 rounded-xl border border-border bg-surface p-4 shadow-sm',
-    'transition-colors',
+    'transition-colors text-left',
+    // Links get pointer from the browser; buttons need it explicitly (Tailwind v4).
+    isInteractive && 'cursor-pointer',
   )
 
   const content = (
@@ -46,6 +49,14 @@ export function DashboardQuickAction({ action }: DashboardQuickActionProps) {
       />
     </>
   )
+
+  if (action.onClick) {
+    return (
+      <button type="button" onClick={action.onClick} className={className}>
+        {content}
+      </button>
+    )
+  }
 
   if (action.to) {
     return (

@@ -1,8 +1,28 @@
-import { api } from '@/services/api'
+import { api, type ApiRequestOptions } from '@/services/api'
 import type { Tag, TagDto } from '@/types/tag'
+import { slugify } from '@/utils/slugify'
 
 export interface FetchTagsOptions {
   signal?: AbortSignal
+}
+
+export interface CreateTagInput {
+  name: string
+  /** When omitted, derived from `name` via {@link slugify}. */
+  slug?: string
+}
+
+export interface UpdateTagInput {
+  name: string
+  /** When omitted, derived from `name` via {@link slugify}. */
+  slug?: string
+}
+
+interface TagWriteResult {
+  tag_id: number
+  name: string
+  slug: string
+  is_active: boolean
 }
 
 /**
@@ -29,4 +49,39 @@ export async function fetchTags(options: FetchTagsOptions = {}): Promise<Tag[]> 
   })
 
   return (tags ?? []).map(mapTag)
+}
+
+/**
+ * POST /tags — staff_editor+.
+ * Sends name + slug (slug auto-generated from name when not provided).
+ */
+export async function createTag(
+  input: CreateTagInput,
+  options?: ApiRequestOptions,
+): Promise<TagWriteResult> {
+  const name = input.name.trim()
+  const slug = (input.slug?.trim() || slugify(name)).trim()
+  if (!slug) {
+    throw new Error('Name must include letters or numbers to generate a slug.')
+  }
+
+  return api.post<TagWriteResult>('/tags', { name, slug }, options)
+}
+
+/**
+ * PUT /tags/:id — staff_editor+.
+ * Updates name + slug (slug auto-generated from name when not provided).
+ */
+export async function updateTag(
+  tagId: number,
+  input: UpdateTagInput,
+  options?: ApiRequestOptions,
+): Promise<TagWriteResult> {
+  const name = input.name.trim()
+  const slug = (input.slug?.trim() || slugify(name)).trim()
+  if (!slug) {
+    throw new Error('Name must include letters or numbers to generate a slug.')
+  }
+
+  return api.put<TagWriteResult>(`/tags/${tagId}`, { name, slug }, options)
 }

@@ -89,6 +89,8 @@ export interface PlaceholderQuickAction {
   iconClassName: string
   /** When set, the tile navigates to this path. */
   to?: string
+  /** When set, the tile runs this instead of navigating. */
+  onClick?: () => void
   /** When true, only administrators see this action. */
   adminOnly?: boolean
 }
