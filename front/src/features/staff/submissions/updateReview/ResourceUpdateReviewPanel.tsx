@@ -1,39 +1,105 @@
-import { ResourceDetailPresentation } from '@/features/discover/ResourceDetailScreen'
-import type { ExistingResourceData } from '@/types/submission'
+import { useEffect, useMemo, useState } from 'react'
+import { ResourceUpdateComparisonView } from '@/features/submissions/updateRequest/ResourceUpdateComparisonView'
+import { buildResourceUpdateComparison } from '@/features/submissions/updateRequest/buildResourceUpdateComparison'
+import { mapResourceVersionToExistingResourceData } from '@/features/submissions/updateRequest/mapResourceVersionToExistingResourceData'
+import { useResourceUpdateAcceptance } from '@/features/staff/submissions/updateReview/useResourceUpdateAcceptance'
+import { useCategories } from '@/hooks/useCategories'
+import { useTags } from '@/hooks/useTags'
 import type { SubmissionDetailDto } from '@/types/moderationSubmission'
+import { cn } from '@/utils/cn'
+
+export interface ResourceUpdateApprovalGate {
+  approveDisabled: boolean
+  approveHelper?: string
+}
+
+const APPROVAL_BLOCKED_HELPER =
+  'Edited approvals cannot be submitted until backend support for the finalized version is connected. Reject remains available, or reset field changes to approve the submission as proposed.'
 
 /**
- * Staff review for Resource Update submissions (temporary proposed-only mode).
- *
- * Until the live approved resource can be loaded, we must not imply field-level
- * diffs. Keep toggles / change counts / selective approve stay in the codebase
- * ({@link useResourceUpdateAcceptance}, {@link buildResourceUpdateComparison})
- * and will be re-enabled once baseline is available.
- *
- * TODO:
- * When the moderation API exposes submission.resource_id,
- * load the approved resource,
- * map it to ExistingResourceData,
- * and pass it as the baseline to buildResourceUpdateComparison().
- *
- * Then restore the Change Review UI (Keep toggles, selection counts,
- * Current → Proposed) using that comparison — no redesign required.
- *
- * @param baseline Reserved for the future Change Review path; unused while
- *   resource_id is unavailable.
+ * Staff review for Resource Update submissions: stacked current → proposed
+ * comparison with field acceptance and local final-version composition.
  */
 export function ResourceUpdateReviewPanel({
   submission,
-  baseline: _baseline = null,
+  onApprovalGateChange,
 }: {
   submission: SubmissionDetailDto
-  /** Reserved for future Change Review once resource_id is available. */
-  baseline?: ExistingResourceData | null
+  onApprovalGateChange?: (gate: ResourceUpdateApprovalGate) => void
 }) {
-  void _baseline
-
   const version = submission.proposed_version
-  if (!version) {
+  const baselineDto = submission.current_approved_resource ?? null
+  const missingBaseline = baselineDto == null
+
+  const { categories } = useCategories()
+  const { tags } = useTags()
+  const [showUnchanged, setShowUnchanged] = useState(false)
+
+  const proposed = useMemo(
+    () => (version ? mapResourceVersionToExistingResourceData(version) : null),
+    [version],
+  )
+
+  const baseline = useMemo(
+    () =>
+      baselineDto?.version
+        ? mapResourceVersionToExistingResourceData(baselineDto.version)
+        : null,
+    [baselineDto],
+  )
+
+  const lookups = useMemo(
+    () => ({
+      categoryNames: Object.fromEntries(
+        categories.map((category) => [category.category_id, category.name]),
+      ),
+      tagNames: Object.fromEntries(
+        tags.map((tag) => [tag.tag_id, tag.name]),
+      ),
+    }),
+    [categories, tags],
+  )
+
+  const comparison = useMemo(() => {
+    if (!proposed) return null
+    return buildResourceUpdateComparison(baseline, proposed, lookups)
+  }, [baseline, lookups, proposed])
+
+  const acceptance = useResourceUpdateAcceptance(
+    comparison,
+    submission.submission_id,
+    baseline,
+    proposed,
+  )
+
+  // Keep approval gate in sync with local outcome changes.
+  useEffect(() => {
+    if (!onApprovalGateChange) return
+    const blocksApproval =
+      acceptance.composedFinal?.differsFromProposed ??
+      acceptance.hasOutcomeChanges
+    if (blocksApproval) {
+      onApprovalGateChange({
+        approveDisabled: true,
+        approveHelper: APPROVAL_BLOCKED_HELPER,
+      })
+      return
+    }
+    onApprovalGateChange({ approveDisabled: false })
+  }, [
+    acceptance.composedFinal?.differsFromProposed,
+    acceptance.hasOutcomeChanges,
+    onApprovalGateChange,
+  ])
+
+  // Clear gate when leaving this panel / switching submissions.
+  useEffect(() => {
+    return () => {
+      onApprovalGateChange?.({ approveDisabled: false })
+    }
+  }, [onApprovalGateChange, submission.submission_id])
+
+  if (!version || !proposed || !comparison) {
     return (
       <p className="text-sm text-muted-foreground" role="status">
         This Resource Update has no proposed version to review.
@@ -43,13 +109,64 @@ export function ResourceUpdateReviewPanel({
 
   return (
     <div className="space-y-4">
-      <CurrentValuesCallout />
-      <ResourceDetailPresentation version={version} />
+      {missingBaseline ? <MissingBaselineWarning /> : null}
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="font-heading text-base font-semibold text-foreground">
+            Change review
+          </h3>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {comparison.hasBaseline
+              ? comparison.changeCount === 0
+                ? 'No field differences from the published resource.'
+                : `${comparison.changeCount} changed ${
+                    comparison.changeCount === 1 ? 'field' : 'fields'
+                  } shown by default.`
+              : 'Proposed values are shown below. Current published values could not be loaded.'}
+          </p>
+        </div>
+        {comparison.hasBaseline ? (
+          <label
+            className={cn(
+              'inline-flex cursor-pointer items-center gap-2.5 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground',
+            )}
+          >
+            <input
+              type="checkbox"
+              checked={showUnchanged}
+              onChange={(event) => setShowUnchanged(event.target.checked)}
+              className="rounded border-border"
+            />
+            <span>Show unchanged information</span>
+          </label>
+        ) : null}
+      </div>
+
+      <ResourceUpdateComparisonView
+        comparison={comparison}
+        showUnchanged={showUnchanged}
+        emptyMessage={
+          comparison.hasBaseline
+            ? showUnchanged
+              ? 'No fields to review.'
+              : 'No changed fields. Turn on “Show unchanged information” to review matching fields.'
+            : 'No proposed field values to review.'
+        }
+        review={{
+          accepted: acceptance.accepted,
+          onAcceptedChange: acceptance.setFieldAccepted,
+          getProposedValue: acceptance.getProposedValue,
+          onProposedChange: acceptance.setFieldEdit,
+          isFieldEdited: acceptance.isFieldEdited,
+          onResetField: acceptance.resetFieldEdit,
+        }}
+      />
     </div>
   )
 }
 
-/** Kept for workspace typing until Change Review is re-enabled. */
+/** Kept for workspace typing / selective-approval summaries. */
 export interface ResourceUpdateReviewModerationState {
   active: true
   allSelected: boolean
@@ -57,18 +174,19 @@ export interface ResourceUpdateReviewModerationState {
   totalCount: number
 }
 
-function CurrentValuesCallout() {
+function MissingBaselineWarning() {
   return (
     <div
       role="status"
-      className="rounded-xl border border-border-subtle bg-muted/40 px-4 py-3"
+      className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3"
     >
       <p className="text-sm font-medium text-foreground">
-        Current values coming soon
+        Current published version could not be loaded
       </p>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-        Current values will be shown here to help moderators compare existing
-        information with the proposed changes.
+        Proposed values are shown for review and can be edited locally. Approval
+        stays available only while you leave the proposal unchanged. Field-by-field
+        comparison will appear once the published baseline is available.
       </p>
     </div>
   )

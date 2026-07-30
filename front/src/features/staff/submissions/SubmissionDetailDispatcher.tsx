@@ -1,7 +1,10 @@
 import { ResourceDetailPresentation } from '@/features/discover/ResourceDetailScreen'
 import { EventDetailPresentation } from '@/features/staff/submissions/EventDetailPresentation'
 import { SkillDetailPresentation } from '@/features/staff/submissions/SkillDetailPresentation'
-import { ResourceUpdateReviewPanel } from '@/features/staff/submissions/updateReview/ResourceUpdateReviewPanel'
+import {
+  ResourceUpdateReviewPanel,
+  type ResourceUpdateApprovalGate,
+} from '@/features/staff/submissions/updateReview/ResourceUpdateReviewPanel'
 import {
   mapEventVersionForPresentation,
   resolveContributionPresentationKind,
@@ -12,21 +15,28 @@ import { useMemo } from 'react'
 
 interface SubmissionDetailDispatcherProps {
   submission: SubmissionDetailDto
+  onUpdateApprovalGateChange?: (gate: ResourceUpdateApprovalGate) => void
 }
 
 /**
  * Chooses the correct proposed-content presentation for staff review.
  *
- * Resource Update → proposed preview (+ current-values callout) until baseline
+ * Resource Update → current vs proposed comparison with local acceptance
  * Existing Resource → ResourceDetailPresentation
  * Event → EventDetailPresentation
  * Skill / Service → SkillDetailPresentation
  */
 export function SubmissionDetailDispatcher({
   submission,
+  onUpdateApprovalGateChange,
 }: SubmissionDetailDispatcherProps) {
   if (submission.submission_type === 'update_resource') {
-    return <ResourceUpdateReviewPanel submission={submission} />
+    return (
+      <ResourceUpdateReviewPanel
+        submission={submission}
+        onApprovalGateChange={onUpdateApprovalGateChange}
+      />
+    )
   }
 
   const version = submission.proposed_version

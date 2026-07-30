@@ -25,7 +25,10 @@ export {
   type ReviewQueueSort,
 } from './fetchReviewQueue'
 export { ResourceUpdateReviewPanel } from './updateReview/ResourceUpdateReviewPanel'
-export type { ResourceUpdateReviewModerationState } from './updateReview/ResourceUpdateReviewPanel'
+export type {
+  ResourceUpdateApprovalGate,
+  ResourceUpdateReviewModerationState,
+} from './updateReview/ResourceUpdateReviewPanel'
 export { useResourceUpdateAcceptance } from './updateReview/useResourceUpdateAcceptance'
 export {
   isEventProposedVersion,

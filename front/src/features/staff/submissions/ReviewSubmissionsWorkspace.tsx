@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   AlertCircle,
@@ -21,6 +21,7 @@ import {
   type ReviewQueueSort,
 } from '@/features/staff/submissions/fetchReviewQueue'
 import { parseReviewQueueFiltersFromSearchParams } from '@/features/staff/submissions/reviewQueueNavigation'
+import type { ResourceUpdateApprovalGate } from '@/features/staff/submissions/updateReview/ResourceUpdateReviewPanel'
 import { useReviewSubmission } from '@/hooks/useReviewSubmission'
 import { useSubmissionDetail } from '@/hooks/useSubmissionDetail'
 import { useSubmissionQueue } from '@/hooks/useSubmissionQueue'
@@ -42,6 +43,15 @@ export function ReviewSubmissionsWorkspace() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [rejectOpen, setRejectOpen] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [updateApprovalGate, setUpdateApprovalGate] =
+    useState<ResourceUpdateApprovalGate>({ approveDisabled: false })
+
+  const handleUpdateApprovalGateChange = useCallback(
+    (gate: ResourceUpdateApprovalGate) => {
+      setUpdateApprovalGate(gate)
+    },
+    [],
+  )
 
   const { submission, isLoading: detailLoading, error: detailError } =
     useSubmissionDetail(selectedId)
@@ -74,6 +84,11 @@ export function ReviewSubmissionsWorkspace() {
       setSelectedId(items[0].submission_id)
     }
   }, [items, isLoading, selectedId])
+
+  // Reset update-approval gate when switching submissions.
+  useEffect(() => {
+    setUpdateApprovalGate({ approveDisabled: false })
+  }, [selectedId])
 
   const resourceName =
     submission?.proposed_version?.name?.trim() ||
@@ -285,11 +300,16 @@ export function ReviewSubmissionsWorkspace() {
                         ?.contributionKind
                     }
                   />
-                  <SubmissionDetailDispatcher submission={submission} />
+                  <SubmissionDetailDispatcher
+                    submission={submission}
+                    onUpdateApprovalGateChange={handleUpdateApprovalGateChange}
+                  />
                 </div>
               </div>
               <ReviewActionBar
                 isSubmitting={isSubmitting}
+                approveDisabled={updateApprovalGate.approveDisabled}
+                approveHelper={updateApprovalGate.approveHelper}
                 onReject={() => {
                   clearError()
                   setRejectOpen(true)

@@ -100,6 +100,7 @@ export type {
   PublicSubmissionLocationDto,
 } from './submissionApi'
 export type {
+  CurrentApprovedResourceDto,
   ListSubmissionsQuery,
   ModerationStatus,
   ReviewDecision,
