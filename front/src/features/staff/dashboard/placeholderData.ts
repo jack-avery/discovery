@@ -1,84 +1,22 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   ClipboardList,
-  FilePenLine,
   FolderTree,
-  MapPin,
   PencilLine,
   PlusCircle,
   Tag,
   Users,
 } from 'lucide-react'
 import { DISCOVER_OPEN_UPDATE_QUERY } from '@/features/discover/constants'
-import type { DonutChartSegment } from '@/features/staff/dashboard/DashboardDonutChart'
+import type { CategoryChartSegment } from '@/features/staff/dashboard/DashboardCategoryBarChart'
 
-export const PLACEHOLDER_CATEGORY_SEGMENTS: DonutChartSegment[] = [
+export const PLACEHOLDER_CATEGORY_SEGMENTS: CategoryChartSegment[] = [
   { label: 'Housing', value: 121, color: '#2d6a4f' },
   { label: 'Food & Groceries', value: 96, color: '#22577a' },
   { label: 'Mental Health', value: 63, color: '#d97706' },
   { label: 'Youth Programs', value: 52, color: '#1b365d' },
   { label: 'Employment', value: 41, color: '#ca8a04' },
   { label: 'Other', value: 59, color: '#94a3b8' },
-]
-
-export type SubmissionBadgeVariant = 'success' | 'pending' | 'primary'
-
-export interface PlaceholderSubmissionRow {
-  id: number
-  title: string
-  submitter: string
-  badgeLabel: string
-  badgeVariant: SubmissionBadgeVariant
-  relativeTime: string
-  icon: LucideIcon
-}
-
-export const PLACEHOLDER_RECENT_SUBMISSIONS: PlaceholderSubmissionRow[] = [
-  {
-    id: 1,
-    title: 'Kanata Food Bank',
-    submitter: 'Sarah Chen',
-    badgeLabel: 'New Resource',
-    badgeVariant: 'success',
-    relativeTime: '2h ago',
-    icon: MapPin,
-  },
-  {
-    id: 2,
-    title: 'Rideau Community Centre',
-    submitter: 'James Okonkwo',
-    badgeLabel: 'Resource Update',
-    badgeVariant: 'pending',
-    relativeTime: '4h ago',
-    icon: FilePenLine,
-  },
-  {
-    id: 3,
-    title: 'Free Tax Clinic — March',
-    submitter: 'Maria Santos',
-    badgeLabel: 'New Resource',
-    badgeVariant: 'success',
-    relativeTime: '6h ago',
-    icon: ClipboardList,
-  },
-  {
-    id: 4,
-    title: 'Vanier Neighbourhood Hub',
-    submitter: 'David Kim',
-    badgeLabel: 'Resource Update',
-    badgeVariant: 'pending',
-    relativeTime: '1d ago',
-    icon: FilePenLine,
-  },
-  {
-    id: 5,
-    title: 'Youth Mentorship Program',
-    submitter: 'Aisha Patel',
-    badgeLabel: 'New Resource',
-    badgeVariant: 'success',
-    relativeTime: '1d ago',
-    icon: MapPin,
-  },
 ]
 
 export interface PlaceholderQuickAction {
