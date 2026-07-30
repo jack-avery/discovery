@@ -223,6 +223,7 @@ function DiscoverResourceOrEventPresentation({
       <EventDetailPresentation
         presentation={eventPresentation}
         audience="public"
+        resourceId={resourceId}
       />
     )
   }

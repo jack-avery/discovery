@@ -25,6 +25,7 @@ import {
   externalHref,
   resolveOnlineLocationUrl,
 } from '@/features/discover/locationPresentation'
+import { RequestResourceUpdateFlow } from '@/features/submissions/updateRequest/RequestResourceUpdateFlow'
 import type { EventVersionPresentation } from '@/features/staff/submissions/mapEventVersionForPresentation'
 import type {
   ResourceContactDto,
@@ -44,9 +45,12 @@ type ContactKind = 'phone' | 'email' | 'website' | 'other'
 export function EventDetailPresentation({
   presentation,
   audience = 'moderator',
+  resourceId,
 }: {
   presentation: EventVersionPresentation
   audience?: 'moderator' | 'public'
+  /** When set, shows the shared Update Resource entry point (Discover only). */
+  resourceId?: number
 }) {
   const { version, eventDetails, isOnlineOnly, accessModeLabel, onlineAccessUrl } =
     presentation
@@ -248,6 +252,13 @@ export function EventDetailPresentation({
           </div>
         </DetailSectionCard>
       )}
+
+      {typeof resourceId === 'number' ? (
+        <RequestResourceUpdateFlow
+          resourceId={resourceId}
+          resourceName={hasText(version.name) ? version.name : undefined}
+        />
+      ) : null}
 
       <WorkspaceSection aria-label="Disclaimer">
         <p className="text-xs leading-relaxed text-muted-foreground">
