@@ -447,7 +447,7 @@ INSERT INTO roles (role_name, description) VALUES
 -- 2. Insert default admin user
 -- Password is 'admin123' (replace the hash below if you generated a new one)
 INSERT INTO users (email, password_hash, first_name, last_name, is_active)
-VALUES ('admin@rrcrc.ca', '$2b$12$w9CMXgEO0oncYsOlhDIRKeYwT9EAxc2MzNV/uvoHzVmqAAHASlexy', 'System', 'Admin', 1);
+VALUES ('admin', '$2b$12$w9CMXgEO0oncYsOlhDIRKeYwT9EAxc2MzNV/uvoHzVmqAAHASlexy', 'System', 'Admin', 1);
 
 -- 3. Assign administrator role to the default admin user
 INSERT INTO user_roles (user_id, role_id)
