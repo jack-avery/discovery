@@ -1,70 +1,104 @@
 import { useEffect, useRef } from 'react'
 import { useMap } from 'react-leaflet'
+import type { LatLngExpression } from 'leaflet'
 import { useResourceSelection } from '@/features/discover/useResourceSelection'
+import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
 import { getMapBehaviour } from '@/features/map/config'
 import { fetchResourceById } from '@/services/resourceService'
 import type { ResourceMapItem } from '@/types'
 
 interface FlyToSelectedResourceProps {
   items: ResourceMapItem[]
+  /** Current workspace layout key (may differ from layoutReadyKey during resize). */
+  layoutKey?: string
+  /**
+   * Layout key for which MapResizeHandler has completed invalidateSize.
+   * Movement runs only when this matches layoutKey (or when they already match).
+   */
+  layoutReadyKey?: string
 }
 
 /**
- * When Resource Detail opens (map, list, or any openResourceDetail caller),
- * smoothly centers the map on that resource at the current zoom.
- * Closing the workspace does not move the map.
+ * When Resource Detail opens, bring the resource into the padded usable viewport
+ * only if it is not already comfortably visible. Preserves zoom. Does not call
+ * invalidateSize (MapResizeHandler owns that).
  */
-export function FlyToSelectedResource({ items }: FlyToSelectedResourceProps) {
+export function FlyToSelectedResource({
+  items,
+  layoutKey,
+  layoutReadyKey,
+}: FlyToSelectedResourceProps) {
   const map = useMap()
   const { selectedResourceId } = useResourceSelection()
-  const { resize } = getMapBehaviour()
-  /** Last resource we committed a flyTo for — blocks repeats after pin refresh. */
-  const flownResourceIdRef = useRef<string | null>(null)
+  const { isExpanded } = useWorkspace()
+  const { selection } = getMapBehaviour()
+
+  /** Last resource we finished evaluating for movement — blocks repeats while still selected. */
+  const evaluatedResourceIdRef = useRef<string | null>(null)
   const itemsRef = useRef(items)
   itemsRef.current = items
 
   useEffect(() => {
     if (!selectedResourceId) {
-      flownResourceIdRef.current = null
+      evaluatedResourceIdRef.current = null
       return
     }
 
-    if (flownResourceIdRef.current === selectedResourceId) {
+    if (evaluatedResourceIdRef.current === selectedResourceId) {
+      return
+    }
+
+    // Layout changed (e.g. workspace expand): wait until MapResizeHandler signals
+    // that invalidateSize has completed for this layoutKey.
+    if (layoutKey !== layoutReadyKey) {
       return
     }
 
     let cancelled = false
     const abort = new AbortController()
 
-    // Wait until workspace open/resize invalidateSize has finished so the fly isn't interrupted.
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        const target = await resolveTargetLatLng(
-          selectedResourceId,
-          itemsRef.current,
-          abort.signal,
-        )
-        if (cancelled || !target) return
+    const padding = isExpanded
+      ? selection.paddingExpanded
+      : selection.paddingCollapsed
 
-        map.invalidateSize({ animate: false })
+    void (async () => {
+      const target = await resolveTargetLatLng(
+        selectedResourceId,
+        itemsRef.current,
+        abort.signal,
+      )
+      if (cancelled || !target) return
 
-        // Preserve the user's zoom whether the marker is already in view or not.
-        const zoom = map.getZoom()
-        flownResourceIdRef.current = selectedResourceId
-        map.flyTo(target, zoom, {
-          animate: true,
-          duration: 0.85,
-          easeLinearity: 0.25,
-        })
-      })()
-    }, resize.invalidateSizeDelayMs + 40)
+      // Newest selection wins — stop any in-flight pan/fly before deciding.
+      map.stop()
+
+      // panInside no-ops when the point is already inside the padded view.
+      map.panInside(target, {
+        paddingTopLeft: [...padding.topLeft] as [number, number],
+        paddingBottomRight: [...padding.bottomRight] as [number, number],
+        animate: true,
+        duration: selection.panDurationSec,
+        easeLinearity: 0.25,
+      })
+
+      evaluatedResourceIdRef.current = selectedResourceId
+    })()
 
     return () => {
       cancelled = true
       abort.abort()
-      window.clearTimeout(timer)
+      map.stop()
     }
-  }, [selectedResourceId, map, resize.invalidateSizeDelayMs, items])
+  }, [
+    selectedResourceId,
+    map,
+    layoutKey,
+    layoutReadyKey,
+    isExpanded,
+    selection.paddingExpanded,
+    selection.paddingCollapsed,
+    selection.panDurationSec,
+  ])
 
   return null
 }
@@ -73,7 +107,7 @@ async function resolveTargetLatLng(
   resourceId: string,
   items: ResourceMapItem[],
   signal: AbortSignal,
-): Promise<[number, number] | null> {
+): Promise<LatLngExpression | null> {
   const pin = items.find((item) => item.id === resourceId)
   if (pin) {
     return [pin.location.latitude, pin.location.longitude]
@@ -83,8 +117,9 @@ async function resolveTargetLatLng(
     const detail = await fetchResourceById(resourceId, { signal })
     const locations = detail.version.locations
     const location =
-      locations.find((entry) => entry.is_primary && entry.lat != null && entry.lng != null) ??
-      locations.find((entry) => entry.lat != null && entry.lng != null)
+      locations.find(
+        (entry) => entry.is_primary && entry.lat != null && entry.lng != null,
+      ) ?? locations.find((entry) => entry.lat != null && entry.lng != null)
 
     if (location?.lat == null || location.lng == null) return null
     return [location.lat, location.lng]

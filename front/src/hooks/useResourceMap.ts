@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { ResourceMapItem } from '@/types'
 import {
   fetchMapResources,
@@ -16,7 +16,13 @@ interface UseResourceMapResult {
   items: ResourceMapItem[]
   count: number
   limitations: ResourceMapQueryLimitation[]
+  /**
+   * True only until the first map-resources request completes.
+   * Use for the full-map overlay — not for background viewport refetches.
+   */
   isLoading: boolean
+  /** True whenever a map-resources request is in flight (including background). */
+  isFetching: boolean
   error: string | null
   reload: () => void
 }
@@ -30,14 +36,18 @@ const EMPTY_RESULT = {
 /**
  * Load map pins for a lat/lng/radius query.
  * Pass viewport-derived queries from MapViewportReporter; defaults to MAP_BEHAVIOUR centre.
+ *
+ * Loading semantics are scoped here (not in useAbortableQuery) so other hooks keep
+ * treating `isLoading` as “request in flight.”
  */
 export function useResourceMap(
   query: ResourceMapQuery = getDefaultMapQuery(),
 ): UseResourceMapResult {
   const [reloadKey, setReloadKey] = useState(0)
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false)
   const key = mapQueryKey(query)
 
-  const { data, isLoading, error } = useAbortableQuery(
+  const { data, isLoading: isFetching, error } = useAbortableQuery(
     (signal) => fetchMapResources(query, { signal }),
     {
       initialData: EMPTY_RESULT,
@@ -45,6 +55,12 @@ export function useResourceMap(
       deps: [key, reloadKey],
     },
   )
+
+  useEffect(() => {
+    if (!isFetching) {
+      setHasLoadedOnce(true)
+    }
+  }, [isFetching])
 
   const reload = useCallback(() => {
     setReloadKey((value) => value + 1)
@@ -55,7 +71,8 @@ export function useResourceMap(
     items: data.items,
     count: data.count,
     limitations: data.limitations,
-    isLoading,
+    isLoading: isFetching && !hasLoadedOnce,
+    isFetching,
     error,
     reload,
   }

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { MapContainer as LeafletMapContainer } from 'react-leaflet'
 import type { ResourceMapItem } from '@/types'
 import type { ResourceMapQuery } from '@/services/mapService'
@@ -21,6 +22,13 @@ export function LeafletMap({ items, layoutKey, onViewportQueryChange }: LeafletM
   const basemap = getBasemapConfig()
   const { viewport, tileLayer, error, devFallback } = basemap
 
+  /**
+   * Tracks which layoutKey MapResizeHandler has finished invalidateSize for.
+   * Initialized to the current layoutKey so selections with no layout change
+   * evaluate immediately; becomes stale when layoutKey changes until onLayoutReady.
+   */
+  const [layoutReadyKey, setLayoutReadyKey] = useState(layoutKey)
+
   return (
     <>
       <LeafletMapContainer
@@ -32,11 +40,15 @@ export function LeafletMap({ items, layoutKey, onViewportQueryChange }: LeafletM
         zoomControl
       >
         {tileLayer && <BasemapTileLayer config={tileLayer} />}
-        <MapResizeHandler layoutKey={layoutKey} />
+        <MapResizeHandler layoutKey={layoutKey} onLayoutReady={setLayoutReadyKey} />
         {onViewportQueryChange && (
           <MapViewportReporter onQueryChange={onViewportQueryChange} />
         )}
-        <FlyToSelectedResource items={items} />
+        <FlyToSelectedResource
+          items={items}
+          layoutKey={layoutKey}
+          layoutReadyKey={layoutReadyKey}
+        />
         <MarkerClusterGroup>
           <ResourceMapMarkers items={items} />
         </MarkerClusterGroup>
