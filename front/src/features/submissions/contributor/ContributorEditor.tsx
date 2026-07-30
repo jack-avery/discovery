@@ -201,7 +201,6 @@ export function ContributorEditor({
             patch({ preferredContactMethod })
           }
           error={errors.preferredContactMethod}
-          className="sm:grid-cols-3"
         />
 
         {requireResourceConnection ? (

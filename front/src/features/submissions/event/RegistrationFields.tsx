@@ -32,7 +32,6 @@ export function RegistrationFields({
         value={data.registrationMode}
         onChange={(registrationMode) => onChange({ registrationMode })}
         error={errors.registrationMode}
-        className="sm:grid-cols-3"
       />
 
       <ContactMethodList

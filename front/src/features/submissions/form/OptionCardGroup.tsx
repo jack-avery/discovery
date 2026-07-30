@@ -18,10 +18,13 @@ interface OptionCardGroupProps<T extends string> {
   hint?: string
   className?: string
   /**
-   * `grid` — responsive multi-column cards (default).
+   * `grid` — multi-column cards (default for rich / described options).
    * `stack` — single full-width column (preferred for long labels).
+   * `chips` — compact equal-width bubbles sized to the longest label.
+   *
+   * Simple label-only options default to `chips` when `layout` is omitted.
    */
-  layout?: 'grid' | 'stack'
+  layout?: 'grid' | 'stack' | 'chips'
   /**
    * When true (or when any option has an icon), show a visible radio indicator
    * and stack icon + label like the Location access cards.
@@ -47,11 +50,16 @@ export function OptionCardGroup<T extends string>({
   error,
   hint,
   className,
-  layout = 'grid',
+  layout,
   showRadioIndicator,
 }: OptionCardGroupProps<T>) {
   const rich =
     showRadioIndicator === true || options.some((option) => option.icon)
+  const hasDescriptions = options.some((option) => Boolean(option.description))
+  const resolvedLayout =
+    layout ?? (rich || hasDescriptions ? 'grid' : 'chips')
+  const chips = resolvedLayout === 'chips'
+  const stack = resolvedLayout === 'stack'
 
   return (
     <fieldset className="space-y-2">
@@ -61,8 +69,13 @@ export function OptionCardGroup<T extends string>({
       ) : null}
       <div
         className={cn(
-          'grid gap-2',
-          layout === 'stack' ? 'grid-cols-1' : 'sm:grid-cols-3',
+          chips
+            ? // Equal columns sized by the longest label; left-aligned; wrap on small screens.
+              'inline-grid max-w-full grid-cols-2 gap-2 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-[1fr]'
+            : cn(
+                'grid gap-2',
+                stack ? 'grid-cols-1' : 'sm:grid-cols-3',
+              ),
           className,
         )}
       >
@@ -75,7 +88,11 @@ export function OptionCardGroup<T extends string>({
               htmlFor={id}
               className={cn(
                 'relative cursor-pointer rounded-xl border bg-surface transition-colors',
-                rich ? 'px-3 py-4' : 'px-3 py-3',
+                chips
+                  ? 'inline-flex items-center justify-center px-4 py-2 text-center whitespace-nowrap'
+                  : rich
+                    ? 'px-3 py-4'
+                    : 'px-3 py-3',
                 selected
                   ? 'border-interactive bg-interactive-muted'
                   : 'border-border hover:border-interactive/50',
@@ -91,7 +108,7 @@ export function OptionCardGroup<T extends string>({
                 onChange={() => onChange(option.value)}
                 className="absolute inset-0 z-10 cursor-pointer opacity-0"
               />
-              {rich ? (
+              {rich && !chips ? (
                 <span
                   className={cn(
                     'relative z-0 flex gap-2',
