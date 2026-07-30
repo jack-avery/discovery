@@ -22,6 +22,10 @@ import { mapResourceVersionToExistingResourceData } from './mapResourceVersionTo
 import { UpdateRequestSuccessPanel } from './UpdateRequestSuccessPanel'
 import { UpdateSectionNav } from './UpdateSectionNav'
 import { UpdateSectionPicker } from './UpdateSectionPicker'
+import {
+  resolveUpdateSubmissionOutcome,
+  type UpdateSubmissionOutcome,
+} from './resolveUpdateSubmissionOutcome'
 import { hasResourceDataChanges } from './updateSectionDiff'
 import type { UpdateSectionId } from './updateSections'
 
@@ -36,8 +40,15 @@ interface UpdateRequestWorkspaceProps {
 }
 
 /**
- * Permanent home for the public update-request workflow inside Discover.
- * Continuous editing: picker → editor + contributor + submit → confirmation.
+ * Shared Update Resource workflow for public and staff contributors.
+ * Same form, same submission path; success copy follows backend outcome.
+ *
+ * TODO(update-resource): Backend will auto-approve authenticated staff
+ * submissions and return moderation_status. Success already branches via
+ * {@link resolveUpdateSubmissionOutcome} — no parallel staff edit flow.
+ *
+ * TODO(update-resource): Rename to UpdateResourceWorkspace when aligning
+ * internal names with product terminology.
  */
 export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps) {
   const { selectedResourceId } = useWorkspaceNavigation()
@@ -75,6 +86,8 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   const [submitError, setSubmitError] = useState<string | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [pendingClose, setPendingClose] = useState(false)
+  const [successOutcome, setSuccessOutcome] =
+    useState<UpdateSubmissionOutcome>('pending_review')
   const [activeSectionId, setActiveSectionId] = useState<UpdateSectionId | null>(
     null,
   )
@@ -112,6 +125,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     setShowConsentError(false)
     setSubmitHint(undefined)
     setSubmitError(undefined)
+    setSuccessOutcome('pending_review')
     setActiveSectionId(null)
     setPendingClose(false)
   }, [])
@@ -287,12 +301,13 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     setIsSubmitting(true)
 
     try {
-      await submitCreateSubmissionRequest(payload, {
+      const response = await submitCreateSubmissionRequest(payload, {
         signal: controller.signal,
       })
       setResourceDirty(false)
       setContributorDirty(false)
       setSubmitError(undefined)
+      setSuccessOutcome(resolveUpdateSubmissionOutcome(response))
       setStep('success')
     } catch (error) {
       // Intentional cancel (unmount / reset) — keep the workspace state as-is.
@@ -341,7 +356,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
             size="icon"
             onClick={requestClose}
             disabled={isSubmitting}
-            aria-label="Close update workspace"
+            aria-label="Close Update Resource workspace"
             title="Close"
           >
             <X className="h-4 w-4" aria-hidden="true" />
@@ -413,6 +428,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
 
         {step === 'success' ? (
           <UpdateRequestSuccessPanel
+            outcome={successOutcome}
             onDone={() => {
               resetWorkflow()
               onClose()
@@ -466,7 +482,7 @@ function PickerStage({
   if (!hasResource) {
     return (
       <p className="text-sm text-muted-foreground" role="status">
-        Select a resource to request an update.
+        Select a resource to update.
       </p>
     )
   }

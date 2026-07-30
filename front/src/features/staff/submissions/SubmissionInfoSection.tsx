@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react'
 import { DetailSectionCard } from '@/features/discover/DetailInfoCard'
 import {
+  contributionKindLabel,
+  type ReviewContributionKind,
+} from '@/features/staff/submissions/fetchReviewQueue'
+import {
   formatSubmissionDate,
   submissionTypeLabel,
 } from '@/services/staffSubmissionService'
@@ -9,6 +13,8 @@ import { ClipboardList } from 'lucide-react'
 
 interface SubmissionInfoSectionProps {
   submission: SubmissionDetailDto
+  /** When set (from the queue), preferred over raw submission_type for labels. */
+  contributionKind?: ReviewContributionKind
 }
 
 /**
@@ -16,7 +22,12 @@ interface SubmissionInfoSectionProps {
  */
 export function SubmissionInfoSection({
   submission,
+  contributionKind,
 }: SubmissionInfoSectionProps) {
+  const typeLabel = contributionKind
+    ? contributionKindLabel(contributionKind)
+    : submissionTypeLabel(submission.submission_type)
+
   return (
     <DetailSectionCard
       icon={<ClipboardList className="h-4 w-4" strokeWidth={2} />}
@@ -32,9 +43,7 @@ export function SubmissionInfoSection({
         <InfoItem label="Submitted">
           {formatSubmissionDate(submission.created_at, { includeTime: true })}
         </InfoItem>
-        <InfoItem label="Submission type">
-          {submissionTypeLabel(submission.submission_type)}
-        </InfoItem>
+        <InfoItem label="Submission type">{typeLabel}</InfoItem>
         {submission.submission_message?.trim() ? (
           <InfoItem label="Message" className="sm:col-span-2">
             <p className="whitespace-pre-wrap">{submission.submission_message}</p>

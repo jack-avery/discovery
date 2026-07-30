@@ -1,23 +1,25 @@
+import { MultiSelectDropdown } from '@/components/shared/MultiSelectDropdown'
 import { cn } from '@/utils/cn'
-import type {
-  ReviewContributionFilter,
-  ReviewQueueSort,
+import {
+  REVIEW_CONTRIBUTION_KIND_OPTIONS,
+  type ReviewContributionKind,
+  type ReviewQueueSort,
 } from '@/features/staff/submissions/fetchReviewQueue'
 
 interface SubmissionQueueToolbarProps {
-  filter: ReviewContributionFilter
+  /** Empty array = All contribution types. */
+  filters: ReviewContributionKind[]
   sort: ReviewQueueSort
-  onFilterChange: (filter: ReviewContributionFilter) => void
+  onFiltersChange: (filters: ReviewContributionKind[]) => void
   onSortChange: (sort: ReviewQueueSort) => void
   count: number
 }
 
-const FILTER_OPTIONS: { value: ReviewContributionFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'existing_resource', label: 'Existing Resource' },
-  { value: 'event', label: 'Event' },
-  { value: 'skill', label: 'Skills / Services' },
-]
+const FILTER_ITEMS = REVIEW_CONTRIBUTION_KIND_OPTIONS.map((option) => ({
+  id: option.value,
+  slug: option.value,
+  name: option.label,
+}))
 
 const SORT_OPTIONS: { value: ReviewQueueSort; label: string }[] = [
   { value: 'newest', label: 'Newest First' },
@@ -28,9 +30,9 @@ const SORT_OPTIONS: { value: ReviewQueueSort; label: string }[] = [
  * Contribution type filter + sort controls for the pending queue.
  */
 export function SubmissionQueueToolbar({
-  filter,
+  filters,
   sort,
-  onFilterChange,
+  onFiltersChange,
   onSortChange,
   count,
 }: SubmissionQueueToolbarProps) {
@@ -46,24 +48,20 @@ export function SubmissionQueueToolbar({
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        <label className="block space-y-1">
+        <div className="block space-y-1">
           <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Contribution type
           </span>
-          <select
-            value={filter}
-            onChange={(event) =>
-              onFilterChange(event.target.value as ReviewContributionFilter)
+          <MultiSelectDropdown
+            label="Contribution type"
+            items={FILTER_ITEMS}
+            value={filters}
+            onChange={(slugs) =>
+              onFiltersChange(slugs as ReviewContributionKind[])
             }
-            className={selectClassName}
-          >
-            {FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            className="w-full"
+          />
+        </div>
 
         <label className="block space-y-1">
           <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">

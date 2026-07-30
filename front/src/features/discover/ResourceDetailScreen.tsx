@@ -243,7 +243,7 @@ export function ResourceDetailPresentation({
   resourceId,
   version: rawVersion,
 }: {
-  /** When set, shows the public update-request entry point (Discover only). */
+  /** When set, shows the shared Update Resource entry point (Discover only). */
   resourceId?: number
   version: ResourceVersionDto
 }) {

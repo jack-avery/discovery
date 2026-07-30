@@ -5,21 +5,34 @@ import type {
   ResourceUpdateComparisonSection,
 } from './buildResourceUpdateComparison'
 import type { UpdateSectionId } from './updateSections'
+import { cn } from '@/utils/cn'
+
+/**
+ * Field-level Current → Proposed comparison for Resource Updates.
+ *
+ * TODO(resource-update-moderation): Staff review temporarily shows the full
+ * proposed resource only. Re-wire this view (with Keep toggles) once
+ * submission.resource_id is available and a true baseline can be loaded.
+ */
 
 interface ResourceUpdateComparisonViewProps {
   comparison: ResourceUpdateComparison
   /**
-   * Optional per-section edit action for hosts that jump back into an editor
-   * (e.g. future staff moderation). Omit when presentation-only.
+   * Optional per-section edit action for hosts that jump back into an editor.
+   * Omit when presentation-only (e.g. staff change review).
    */
   onEditSection?: (sectionId: UpdateSectionId) => void
   /** Shown when there are no changed sections. */
   emptyMessage?: string
 }
 
+function changeCountLabel(count: number): string {
+  return count === 1 ? '1 change' : `${count} changes`
+}
+
 /**
  * Presentation-only Current → Proposed comparison.
- * No consent, submit, or moderation actions — safe to reuse in staff review.
+ * Supports unavailable Current values without structural changes.
  */
 export function ResourceUpdateComparisonView({
   comparison,
@@ -68,7 +81,10 @@ function ComparisonSection({
           id={headingId}
           className="font-heading text-base font-semibold text-foreground"
         >
-          {section.label}
+          {section.label}{' '}
+          <span className="font-normal text-muted-foreground">
+            ({changeCountLabel(section.changeCount)})
+          </span>
         </h4>
         {onEdit ? (
           <Button
@@ -92,17 +108,27 @@ function ComparisonSection({
 }
 
 function FieldComparison({ field }: { field: ResourceUpdateComparisonField }) {
+  const showCurrent = field.currentAvailable && field.current != null
+
   return (
     <div className="space-y-2">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {field.label}
       </p>
       <div className="space-y-2 text-sm">
-        <ComparisonValue label="Current" value={field.current} />
-        <p className="pl-1 text-muted-foreground" aria-hidden="true">
-          ↓
-        </p>
-        <ComparisonValue label="Proposed" value={field.proposed} emphasized />
+        {showCurrent ? (
+          <>
+            <ComparisonValue label="Current" value={field.current!} />
+            <p className="pl-1 text-muted-foreground" aria-hidden="true">
+              ↓
+            </p>
+          </>
+        ) : null}
+        <ComparisonValue
+          label="Proposed"
+          value={field.proposed}
+          emphasized
+        />
       </div>
     </div>
   )
@@ -121,11 +147,10 @@ function ComparisonValue({
     <div className="rounded-lg bg-muted/50 px-3 py-2">
       <p className="text-xs font-medium text-muted-foreground">{label}</p>
       <p
-        className={
-          emphasized
-            ? 'mt-0.5 whitespace-pre-wrap font-medium text-foreground'
-            : 'mt-0.5 whitespace-pre-wrap text-foreground'
-        }
+        className={cn(
+          'mt-0.5 whitespace-pre-wrap text-foreground',
+          emphasized && 'font-medium',
+        )}
       >
         {value}
       </p>

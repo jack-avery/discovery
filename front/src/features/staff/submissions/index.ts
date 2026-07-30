@@ -11,11 +11,15 @@ export {
   contributionKindLabel,
   fetchReviewQueue,
   nextQueueSelection,
+  REVIEW_CONTRIBUTION_KIND_OPTIONS,
   type ReviewContributionFilter,
   type ReviewContributionKind,
   type ReviewQueueItem,
   type ReviewQueueSort,
 } from './fetchReviewQueue'
+export { ResourceUpdateReviewPanel } from './updateReview/ResourceUpdateReviewPanel'
+export type { ResourceUpdateReviewModerationState } from './updateReview/ResourceUpdateReviewPanel'
+export { useResourceUpdateAcceptance } from './updateReview/useResourceUpdateAcceptance'
 export {
   isEventProposedVersion,
   isRegistrationNotSure,

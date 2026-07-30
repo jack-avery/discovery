@@ -1,6 +1,7 @@
 import { ResourceDetailPresentation } from '@/features/discover/ResourceDetailScreen'
 import { EventDetailPresentation } from '@/features/staff/submissions/EventDetailPresentation'
 import { SkillDetailPresentation } from '@/features/staff/submissions/SkillDetailPresentation'
+import { ResourceUpdateReviewPanel } from '@/features/staff/submissions/updateReview/ResourceUpdateReviewPanel'
 import {
   mapEventVersionForPresentation,
   resolveContributionPresentationKind,
@@ -16,14 +17,18 @@ interface SubmissionDetailDispatcherProps {
 /**
  * Chooses the correct proposed-content presentation for staff review.
  *
+ * Resource Update → proposed preview (+ current-values callout) until baseline
  * Existing Resource → ResourceDetailPresentation
- *   (maps internally via mapResourceVersionForPresentation)
  * Event → EventDetailPresentation
  * Skill / Service → SkillDetailPresentation
  */
 export function SubmissionDetailDispatcher({
   submission,
 }: SubmissionDetailDispatcherProps) {
+  if (submission.submission_type === 'update_resource') {
+    return <ResourceUpdateReviewPanel submission={submission} />
+  }
+
   const version = submission.proposed_version
   if (!version) return null
 
