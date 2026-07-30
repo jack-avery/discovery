@@ -18,7 +18,7 @@ export function CategoryChip({ label, isSelected, onToggle }: CategoryChipProps)
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive focus-visible:ring-offset-1',
         isSelected
           ? 'border-interactive bg-interactive text-interactive-foreground hover:bg-interactive-hover hover:border-interactive-hover'
-          : 'border-border/80 bg-white text-foreground hover:border-interactive/35 hover:shadow-md',
+          : 'border-border/80 bg-surface text-foreground hover:border-interactive/35 hover:shadow-md',
       )}
     >
       {label}
