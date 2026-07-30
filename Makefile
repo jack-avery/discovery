@@ -1,3 +1,5 @@
+.PHONY: initdb importsampledata front up down reup
+
 initdb: down
 	docker volume rm discovery_mysql-data
 	docker compose create db
@@ -36,5 +38,3 @@ down:
 reup:
 	docker compose down
 	docker compose up -d
-
-_PHONY: initdb importsampledata front up down reup
