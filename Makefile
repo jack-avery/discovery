@@ -13,9 +13,11 @@ initdb: down
 	sleep 2
 	docker compose exec db /bin/sh -c 'mysql < schema.sql'
 	docker compose exec db rm schema.sql
-	just down
+	make down
 
-importsampledata: reup
+importsampledata: down
+	docker compose create db
+	docker compose start db
 	docker compose cp ./db/sampledata.sql db:/sampledata.sql
 	# the image starts an initial temp server for an empty vol. wait for this to close
 	docker logs -f discovery-db-1 2>&1 | sed -e '/Temporary server stopped/q'
@@ -25,6 +27,7 @@ importsampledata: reup
 	sleep 2
 	docker compose exec db /bin/sh -c 'mysql < sampledata.sql'
 	docker compose exec db rm sampledata.sql
+	make down
 
 front:
 	cd front && docker run -it --rm -u1000 -v.:/app node:24-alpine sh -c "cd /app && npm i && npm run build"
