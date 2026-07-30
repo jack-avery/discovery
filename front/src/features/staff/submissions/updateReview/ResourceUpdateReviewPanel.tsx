@@ -1,20 +1,21 @@
 import { useEffect, useMemo, useState } from 'react'
+import { ResourceDetailHero } from '@/features/discover/resourceDetailSections'
 import { ResourceUpdateComparisonView } from '@/features/submissions/updateRequest/ResourceUpdateComparisonView'
 import { buildResourceUpdateComparison } from '@/features/submissions/updateRequest/buildResourceUpdateComparison'
 import { mapResourceVersionToExistingResourceData } from '@/features/submissions/updateRequest/mapResourceVersionToExistingResourceData'
+import {
+  EDITED_APPROVAL_BLOCKED_HELPER,
+  type SubmissionApprovalGate,
+} from '@/features/staff/submissions/submissionApprovalGate'
 import { useResourceUpdateAcceptance } from '@/features/staff/submissions/updateReview/useResourceUpdateAcceptance'
 import { useCategories } from '@/hooks/useCategories'
 import { useTags } from '@/hooks/useTags'
 import type { SubmissionDetailDto } from '@/types/moderationSubmission'
 import { cn } from '@/utils/cn'
 
-export interface ResourceUpdateApprovalGate {
-  approveDisabled: boolean
-  approveHelper?: string
-}
+export type ResourceUpdateApprovalGate = SubmissionApprovalGate
 
-const APPROVAL_BLOCKED_HELPER =
-  'Edited approvals cannot be submitted until backend support for the finalized version is connected. Reject remains available, or reset field changes to approve the submission as proposed.'
+const APPROVAL_BLOCKED_HELPER = EDITED_APPROVAL_BLOCKED_HELPER
 
 /**
  * Staff review for Resource Update submissions: stacked current → proposed
@@ -107,8 +108,20 @@ export function ResourceUpdateReviewPanel({
     )
   }
 
+  const approvedVersion = baselineDto?.version ?? null
+  const heroImageUrl = approvedVersion?.image_url ?? null
+  const heroAltName =
+    approvedVersion?.name?.trim() ||
+    version.name?.trim() ||
+    'Resource'
+
   return (
     <div className="space-y-4">
+      <ResourceDetailHero
+        imageUrl={heroImageUrl}
+        alt={`${heroAltName} photo`}
+      />
+
       {missingBaseline ? <MissingBaselineWarning /> : null}
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

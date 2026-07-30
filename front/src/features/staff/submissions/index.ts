@@ -29,6 +29,11 @@ export type {
   ResourceUpdateApprovalGate,
   ResourceUpdateReviewModerationState,
 } from './updateReview/ResourceUpdateReviewPanel'
+export { NewResourceReviewPanel } from './newResourceReview/NewResourceReviewPanel'
+export { EventReviewPanel } from './eventReview/EventReviewPanel'
+export { SkillReviewPanel } from './skillReview/SkillReviewPanel'
+export type { SubmissionApprovalGate } from './submissionApprovalGate'
+export type { ModerationFinalVersion } from './SubmissionDetailDispatcher'
 export { useResourceUpdateAcceptance } from './updateReview/useResourceUpdateAcceptance'
 export {
   isEventProposedVersion,

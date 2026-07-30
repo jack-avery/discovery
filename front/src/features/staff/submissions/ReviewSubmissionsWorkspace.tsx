@@ -12,6 +12,7 @@ import { Button } from '@/components/ui'
 import { RejectSubmissionDialog } from '@/features/staff/submissions/RejectSubmissionDialog'
 import { ReviewActionBar } from '@/features/staff/submissions/ReviewActionBar'
 import { SubmissionDetailDispatcher } from '@/features/staff/submissions/SubmissionDetailDispatcher'
+import type { ModerationFinalVersion } from '@/features/staff/submissions/SubmissionDetailDispatcher'
 import { SubmissionInfoSection } from '@/features/staff/submissions/SubmissionInfoSection'
 import { SubmissionQueueList } from '@/features/staff/submissions/SubmissionQueueList'
 import { SubmissionQueueToolbar } from '@/features/staff/submissions/SubmissionQueueToolbar'
@@ -21,7 +22,7 @@ import {
   type ReviewQueueSort,
 } from '@/features/staff/submissions/fetchReviewQueue'
 import { parseReviewQueueFiltersFromSearchParams } from '@/features/staff/submissions/reviewQueueNavigation'
-import type { ResourceUpdateApprovalGate } from '@/features/staff/submissions/updateReview/ResourceUpdateReviewPanel'
+import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
 import { useReviewSubmission } from '@/hooks/useReviewSubmission'
 import { useSubmissionDetail } from '@/hooks/useSubmissionDetail'
 import { useSubmissionQueue } from '@/hooks/useSubmissionQueue'
@@ -44,11 +45,21 @@ export function ReviewSubmissionsWorkspace() {
   const [rejectOpen, setRejectOpen] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [updateApprovalGate, setUpdateApprovalGate] =
-    useState<ResourceUpdateApprovalGate>({ approveDisabled: false })
+    useState<SubmissionApprovalGate>({ approveDisabled: false })
+  /** Retained at workspace boundary for future approved_version integration. */
+  const [moderationFinalVersion, setModerationFinalVersion] =
+    useState<ModerationFinalVersion | null>(null)
 
-  const handleUpdateApprovalGateChange = useCallback(
-    (gate: ResourceUpdateApprovalGate) => {
+  const handleApprovalGateChange = useCallback(
+    (gate: SubmissionApprovalGate) => {
       setUpdateApprovalGate(gate)
+    },
+    [],
+  )
+
+  const handleFinalVersionChange = useCallback(
+    (data: ModerationFinalVersion | null) => {
+      setModerationFinalVersion(data)
     },
     [],
   )
@@ -85,9 +96,10 @@ export function ReviewSubmissionsWorkspace() {
     }
   }, [items, isLoading, selectedId])
 
-  // Reset update-approval gate when switching submissions.
+  // Reset approval gate when switching submissions.
   useEffect(() => {
     setUpdateApprovalGate({ approveDisabled: false })
+    setModerationFinalVersion(null)
   }, [selectedId])
 
   const resourceName =
@@ -98,6 +110,13 @@ export function ReviewSubmissionsWorkspace() {
 
   async function handleApprove() {
     if (selectedId == null) return
+    // Local edits must not be approved until approved_version is supported.
+    if (
+      updateApprovalGate.approveDisabled ||
+      moderationFinalVersion != null
+    ) {
+      return
+    }
     clearError()
     setStatusMessage(null)
 
@@ -302,7 +321,8 @@ export function ReviewSubmissionsWorkspace() {
                   />
                   <SubmissionDetailDispatcher
                     submission={submission}
-                    onUpdateApprovalGateChange={handleUpdateApprovalGateChange}
+                    onApprovalGateChange={handleApprovalGateChange}
+                    onFinalVersionChange={handleFinalVersionChange}
                   />
                 </div>
               </div>

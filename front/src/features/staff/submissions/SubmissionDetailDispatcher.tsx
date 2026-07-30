@@ -1,40 +1,44 @@
 import { ResourceDetailPresentation } from '@/features/discover/ResourceDetailScreen'
-import { EventDetailPresentation } from '@/features/staff/submissions/EventDetailPresentation'
-import { SkillDetailPresentation } from '@/features/staff/submissions/SkillDetailPresentation'
-import {
-  ResourceUpdateReviewPanel,
-  type ResourceUpdateApprovalGate,
-} from '@/features/staff/submissions/updateReview/ResourceUpdateReviewPanel'
-import {
-  mapEventVersionForPresentation,
-  resolveContributionPresentationKind,
-} from '@/features/staff/submissions/mapEventVersionForPresentation'
-import { mapSkillVersionForPresentation } from '@/features/staff/submissions/mapSkillVersionForPresentation'
+import { EventReviewPanel } from '@/features/staff/submissions/eventReview/EventReviewPanel'
+import { NewResourceReviewPanel } from '@/features/staff/submissions/newResourceReview/NewResourceReviewPanel'
+import { SkillReviewPanel } from '@/features/staff/submissions/skillReview/SkillReviewPanel'
+import { ResourceUpdateReviewPanel } from '@/features/staff/submissions/updateReview/ResourceUpdateReviewPanel'
+import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
+import { resolveContributionPresentationKind } from '@/features/staff/submissions/mapEventVersionForPresentation'
+import type {
+  EventContributionData,
+  ExistingResourceData,
+  SkillsServicesData,
+} from '@/types/submission'
 import type { SubmissionDetailDto } from '@/types/moderationSubmission'
-import { useMemo } from 'react'
+
+export type ModerationFinalVersion =
+  | ExistingResourceData
+  | EventContributionData
+  | SkillsServicesData
 
 interface SubmissionDetailDispatcherProps {
   submission: SubmissionDetailDto
-  onUpdateApprovalGateChange?: (gate: ResourceUpdateApprovalGate) => void
+  onApprovalGateChange?: (gate: SubmissionApprovalGate) => void
+  onFinalVersionChange?: (data: ModerationFinalVersion | null) => void
 }
 
 /**
- * Chooses the correct proposed-content presentation for staff review.
+ * Chooses the editable moderation panel (or read-only fallback) for staff review.
  *
- * Resource Update → current vs proposed comparison with local acceptance
- * Existing Resource → ResourceDetailPresentation
- * Event → EventDetailPresentation
- * Skill / Service → SkillDetailPresentation
+ * Resource Update → comparison panel
+ * Event / Skill / New Resource → editable review panels
  */
 export function SubmissionDetailDispatcher({
   submission,
-  onUpdateApprovalGateChange,
+  onApprovalGateChange,
+  onFinalVersionChange,
 }: SubmissionDetailDispatcherProps) {
   if (submission.submission_type === 'update_resource') {
     return (
       <ResourceUpdateReviewPanel
         submission={submission}
-        onApprovalGateChange={onUpdateApprovalGateChange}
+        onApprovalGateChange={onApprovalGateChange}
       />
     )
   }
@@ -48,37 +52,34 @@ export function SubmissionDetailDispatcher({
   )
 
   if (kind === 'event') {
-    return <EventSubmissionDetail version={version} />
+    return (
+      <EventReviewPanel
+        submission={submission}
+        onApprovalGateChange={onApprovalGateChange}
+        onFinalVersionChange={onFinalVersionChange}
+      />
+    )
   }
 
   if (kind === 'skill') {
-    return <SkillSubmissionDetail submission={submission} />
+    return (
+      <SkillReviewPanel
+        submission={submission}
+        onApprovalGateChange={onApprovalGateChange}
+        onFinalVersionChange={onFinalVersionChange}
+      />
+    )
+  }
+
+  if (submission.submission_type === 'new_resource') {
+    return (
+      <NewResourceReviewPanel
+        submission={submission}
+        onApprovalGateChange={onApprovalGateChange}
+        onFinalVersionChange={onFinalVersionChange}
+      />
+    )
   }
 
   return <ResourceDetailPresentation version={version} />
-}
-
-function EventSubmissionDetail({
-  version,
-}: {
-  version: NonNullable<SubmissionDetailDto['proposed_version']>
-}) {
-  const presentation = useMemo(
-    () => mapEventVersionForPresentation(version),
-    [version],
-  )
-  return <EventDetailPresentation presentation={presentation} />
-}
-
-function SkillSubmissionDetail({
-  submission,
-}: {
-  submission: SubmissionDetailDto
-}) {
-  const presentation = useMemo(
-    () => mapSkillVersionForPresentation(submission),
-    [submission],
-  )
-  if (!presentation) return null
-  return <SkillDetailPresentation presentation={presentation} />
 }
