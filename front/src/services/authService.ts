@@ -1,13 +1,18 @@
 import { api } from '@/services/api'
-import type { LoginRequest, LoginResult, RefreshResult } from '@/types/auth'
+import type {
+  LoginRequest,
+  LoginResult,
+  MeResult,
+  RefreshResult,
+} from '@/types/auth'
 
 export interface AuthRequestOptions {
   signal?: AbortSignal
 }
 
 /**
- * Staff authentication against existing backend endpoints only:
- * POST /auth/login, POST /auth/refresh, POST /auth/logout.
+ * Staff authentication against backend auth routes:
+ * POST /auth/login, POST /auth/refresh, POST /auth/logout, GET /auth/me.
  */
 export async function login(
   request: LoginRequest,
@@ -28,6 +33,18 @@ export async function refreshAccessToken(
 
 export async function logout(options?: AuthRequestOptions): Promise<null> {
   return api.post<null>('/auth/logout', undefined, {
+    signal: options?.signal,
+  })
+}
+
+/**
+ * Current authenticated user for the in-memory access token (GET /auth/me).
+ * Source of truth for profile + roles after login and on session restore.
+ */
+export async function getCurrentUser(
+  options?: AuthRequestOptions,
+): Promise<MeResult> {
+  return api.get<MeResult>('/auth/me', {
     signal: options?.signal,
   })
 }

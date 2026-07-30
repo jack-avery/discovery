@@ -57,6 +57,7 @@ export type {
   BackendStaffRole,
   LoginRequest,
   LoginResult,
+  MeResult,
   RefreshResult,
 } from './auth'
 export { displayName } from './auth'
