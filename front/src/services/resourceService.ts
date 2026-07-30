@@ -11,7 +11,7 @@ import type {
 
 /**
  * Long-term frontend query contract for resource lists.
- * Prefer multi-id arrays; the builder adapts to today's single-id backend.
+ * Prefer multi-id arrays; the builder adapts them to repeated query params.
  */
 export interface ResourceListQuery {
   /** Empty / omitted = all categories. */
@@ -29,7 +29,6 @@ export interface ResourceListQuery {
  * Exposed so callers can observe unsupported multi-select without UI workarounds.
  */
 export type ResourceQueryLimitation =
-  | { code: 'MULTI_CATEGORY_UNSUPPORTED'; selectedIds: number[] }
   | { code: 'MULTI_TAG_UNSUPPORTED'; selectedIds: number[] }
 
 export interface ResourceListResult {
@@ -58,19 +57,20 @@ export const EMPTY_RESOURCE_LIST: ResourceListResult = {
 }
 
 /**
- * Adapts {@link ResourceListQuery} to today's GET /resources query params.
+ * Adapts {@link ResourceListQuery} to GET /resources query params.
  *
- * Backend today: single `category_id`, single `tag_id`, `search`, `resource_type`,
+ * Categories: repeated `category_id` (OR within type). Tags: single `tag_id`
+ * until multi-tag is wired the same way. Also `search`, `resource_type`,
  * `page`, `per_page`.
  *
- * Multi-select policy (0 / 1 / 2+):
+ * Category multi-select policy (0 / 1 / 2+):
  * - 0 selected → omit that param (all)
- * - 1 selected → send that single id (current contract)
- * - 2+ selected → omit that param, record a limitation, preserve UI selection upstream
+ * - 1+ selected → send as `category_id` (scalar or array → repeated params)
  *
- * FUTURE multi-select (change only this function):
- * When backend accepts `category_ids` / `tag_ids` (or repeated `category_id` /
- * `tag_id`), replace the single-id branches below. Hooks and UI should not change.
+ * Tag multi-select policy (0 / 1 / 2+):
+ * - 0 selected → omit
+ * - 1 selected → send that single id
+ * - 2+ selected → omit that param, record a limitation, preserve UI selection upstream
  */
 export function buildResourceListParams(query: ResourceListQuery): {
   params: Record<string, QueryParamValue>
@@ -85,11 +85,7 @@ export function buildResourceListParams(query: ResourceListQuery): {
   if (categoryIds.length === 1) {
     params.category_id = categoryIds[0]
   } else if (categoryIds.length > 1) {
-    limitations.push({
-      code: 'MULTI_CATEGORY_UNSUPPORTED',
-      selectedIds: categoryIds,
-    })
-    // Intentionally omit category_id until backend multi-select exists.
+    params.category_id = categoryIds
   }
 
   if (tagIds.length === 1) {
@@ -99,7 +95,7 @@ export function buildResourceListParams(query: ResourceListQuery): {
       code: 'MULTI_TAG_UNSUPPORTED',
       selectedIds: tagIds,
     })
-    // Intentionally omit tag_id until backend multi-select exists.
+    // Intentionally omit tag_id until backend multi-select is wired here.
   }
 
   const search = query.search?.trim()

@@ -14,7 +14,6 @@ const MAP_QUERY_DEFAULTS = {
 /**
  * Long-term map query. Geo fields adapt to lat/lng/radius_km.
  * Filter fields mirror list filters so Discover can share one query state.
- * Today's GET /resources/map may ignore filter params until the backend is extended.
  */
 export interface ResourceMapQuery {
   lat: number
@@ -43,7 +42,6 @@ export type ResourceMapQueryLimitation =
       code: 'RADIUS_APPROXIMATES_VIEWPORT'
       detail: string
     }
-  | { code: 'MULTI_CATEGORY_UNSUPPORTED'; selectedIds: number[] }
   | { code: 'MULTI_TAG_UNSUPPORTED'; selectedIds: number[] }
 
 export interface FetchMapResourcesOptions {
@@ -89,13 +87,12 @@ export function mapPinToItem(pin: MapPinDto): ResourceMapItem {
 }
 
 /**
- * Adapts {@link ResourceMapQuery} to today's GET /resources/map params.
+ * Adapts {@link ResourceMapQuery} to GET /resources/map params.
  *
- * Backend today (documented): required `lat`, `lng`; optional `radius_km`.
- * Filter params (`category_id`, `tag_id`, `search`) are sent when supported by the
- * long-term contract; if the backend ignores them, pins remain unfiltered.
+ * Required: `lat`, `lng`. Optional: `radius_km`, repeated `category_id` (OR),
+ * single `tag_id` until multi-tag is wired, `search`.
  *
- * Multi-select policy matches the list adapter (0 / 1 / 2+).
+ * Category multi-select matches the list adapter (0 omit / 1+ send).
  */
 export function buildMapQueryParams(query: ResourceMapQuery): {
   params: Record<string, QueryParamValue>
@@ -128,10 +125,7 @@ export function buildMapQueryParams(query: ResourceMapQuery): {
   if (categoryIds.length === 1) {
     params.category_id = categoryIds[0]
   } else if (categoryIds.length > 1) {
-    limitations.push({
-      code: 'MULTI_CATEGORY_UNSUPPORTED',
-      selectedIds: categoryIds,
-    })
+    params.category_id = categoryIds
   }
 
   if (tagIds.length === 1) {
