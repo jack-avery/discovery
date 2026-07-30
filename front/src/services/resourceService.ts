@@ -215,3 +215,53 @@ export async function fetchResourceById(
 
   return mapResourceDetail(data)
 }
+
+/**
+ * Soft-delete a resource via DELETE /resources/<id> (administrator only).
+ * History is preserved server-side; the resource is hidden from public/staff lists.
+ */
+export async function deleteResource(
+  resourceId: string | number,
+  options: FetchResourcesOptions = {},
+): Promise<void> {
+  const numericId =
+    typeof resourceId === 'number' ? resourceId : Number.parseInt(resourceId, 10)
+
+  if (!Number.isFinite(numericId) || numericId <= 0) {
+    throw new ApiError('Invalid resource id.', 400)
+  }
+
+  await api.delete<null>(`/resources/${numericId}`, {
+    signal: options.signal,
+  })
+}
+
+/**
+ * User-facing message for soft-delete failures (401 / 403 / 404 / network).
+ */
+export function toDeleteResourceErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      return 'Your session has expired. Please sign in again to delete this resource.'
+    }
+    if (error.status === 403) {
+      return 'You do not have permission to delete resources.'
+    }
+    if (error.status === 404) {
+      return 'This resource was not found or has already been deleted.'
+    }
+    if (error.message.trim()) {
+      return error.message
+    }
+    if (error.status === 0) {
+      return 'Unable to delete this resource. Check your connection and try again.'
+    }
+    return 'Unable to delete this resource. Please try again.'
+  }
+
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+
+  return 'Unable to delete this resource. Please try again.'
+}

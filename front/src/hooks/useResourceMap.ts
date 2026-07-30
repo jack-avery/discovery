@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react'
 import type { ResourceMapItem } from '@/types'
 import {
   fetchMapResources,
@@ -17,6 +18,7 @@ interface UseResourceMapResult {
   limitations: ResourceMapQueryLimitation[]
   isLoading: boolean
   error: string | null
+  reload: () => void
 }
 
 const EMPTY_RESULT = {
@@ -32,6 +34,7 @@ const EMPTY_RESULT = {
 export function useResourceMap(
   query: ResourceMapQuery = getDefaultMapQuery(),
 ): UseResourceMapResult {
+  const [reloadKey, setReloadKey] = useState(0)
   const key = mapQueryKey(query)
 
   const { data, isLoading, error } = useAbortableQuery(
@@ -39,9 +42,13 @@ export function useResourceMap(
     {
       initialData: EMPTY_RESULT,
       fallbackErrorMessage: 'Failed to load map resources',
-      deps: [key],
+      deps: [key, reloadKey],
     },
   )
+
+  const reload = useCallback(() => {
+    setReloadKey((value) => value + 1)
+  }, [])
 
   return {
     markers: data.items,
@@ -50,5 +57,6 @@ export function useResourceMap(
     limitations: data.limitations,
     isLoading,
     error,
+    reload,
   }
 }

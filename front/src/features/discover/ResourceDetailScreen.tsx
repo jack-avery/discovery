@@ -395,6 +395,7 @@ export function ResourceDetailPresentation({
 
       {typeof resourceId === 'number' ? (
         <RequestResourceUpdateFlow
+          resourceId={resourceId}
           resourceName={hasText(version.name) ? version.name : undefined}
         />
       ) : null}

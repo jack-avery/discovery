@@ -1,3 +1,4 @@
+import { useCallback, useState } from 'react'
 import type { PaginationMeta, Resource } from '@/types'
 import {
   EMPTY_RESOURCE_LIST,
@@ -23,6 +24,7 @@ interface UseResourcesResult {
   limitations: ResourceQueryLimitation[]
   isLoading: boolean
   error: string | null
+  reload: () => void
 }
 
 function toQuery(filters: ResourceFilters): ResourceListQuery {
@@ -48,6 +50,7 @@ function filtersKey(filters: ResourceFilters): string {
 }
 
 export function useResources(filters: ResourceFilters = {}): UseResourcesResult {
+  const [reloadKey, setReloadKey] = useState(0)
   const query = toQuery(filters)
   const key = filtersKey(filters)
 
@@ -56,9 +59,13 @@ export function useResources(filters: ResourceFilters = {}): UseResourcesResult 
     {
       initialData: EMPTY_RESOURCE_LIST,
       fallbackErrorMessage: 'Failed to load resources',
-      deps: [key],
+      deps: [key, reloadKey],
     },
   )
+
+  const reload = useCallback(() => {
+    setReloadKey((value) => value + 1)
+  }, [])
 
   return {
     resources: data.resources,
@@ -66,5 +73,6 @@ export function useResources(filters: ResourceFilters = {}): UseResourcesResult 
     limitations: data.limitations,
     isLoading,
     error,
+    reload,
   }
 }

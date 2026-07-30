@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useSearch } from '@/app/providers'
 import { DiscoverLayout } from '@/app/layouts'
+import { DiscoverCatalogRefreshProvider } from '@/features/discover/providers/DiscoverCatalogRefreshProvider'
 import { WorkspaceNavigationProvider } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { WorkspaceProvider } from '@/features/discover/providers/WorkspaceProvider'
 import {
@@ -81,14 +82,25 @@ function DiscoverPageContent() {
     [viewportQuery, resourceFilters],
   )
 
-  const { items: mapItems, isLoading: mapLoading, error: mapError } = useResourceMap(mapQuery)
+  const {
+    items: mapItems,
+    isLoading: mapLoading,
+    error: mapError,
+    reload: reloadMap,
+  } = useResourceMap(mapQuery)
 
   const {
     resources,
     pagination,
     isLoading: resourcesLoading,
     error: resourcesError,
+    reload: reloadResources,
   } = useResources(resourceFilters)
+
+  const reloadCatalog = useCallback(() => {
+    reloadResources()
+    reloadMap()
+  }, [reloadResources, reloadMap])
 
   const resourcesEmptyReason = getResourceEmptyReason(
     resourceFilters,
@@ -96,30 +108,32 @@ function DiscoverPageContent() {
   )
 
   return (
-    <div className="h-full min-h-0">
-      <DiscoverLayout
-        search={query}
-        onSearchChange={setQuery}
-        selectedCategories={selectedCategories}
-        onCategoriesChange={setSelectedCategories}
-        selectedAdvancedFilters={selectedAdvancedFilters}
-        onAdvancedFiltersChange={setSelectedAdvancedFilters}
-        categories={categories}
-        categoriesLoading={categoriesLoading}
-        categoriesError={categoriesError}
-        tags={tags}
-        tagsLoading={tagsLoading}
-        tagsError={tagsError}
-        resources={resources}
-        resourcesTotal={pagination.total_items}
-        resourcesLoading={resourcesLoading}
-        resourcesError={resourcesError}
-        resourcesEmptyReason={resourcesEmptyReason}
-        mapItems={mapItems}
-        mapLoading={mapLoading}
-        mapError={mapError}
-        onViewportQueryChange={handleViewportQueryChange}
-      />
-    </div>
+    <DiscoverCatalogRefreshProvider reloadCatalog={reloadCatalog}>
+      <div className="h-full min-h-0">
+        <DiscoverLayout
+          search={query}
+          onSearchChange={setQuery}
+          selectedCategories={selectedCategories}
+          onCategoriesChange={setSelectedCategories}
+          selectedAdvancedFilters={selectedAdvancedFilters}
+          onAdvancedFiltersChange={setSelectedAdvancedFilters}
+          categories={categories}
+          categoriesLoading={categoriesLoading}
+          categoriesError={categoriesError}
+          tags={tags}
+          tagsLoading={tagsLoading}
+          tagsError={tagsError}
+          resources={resources}
+          resourcesTotal={pagination.total_items}
+          resourcesLoading={resourcesLoading}
+          resourcesError={resourcesError}
+          resourcesEmptyReason={resourcesEmptyReason}
+          mapItems={mapItems}
+          mapLoading={mapLoading}
+          mapError={mapError}
+          onViewportQueryChange={handleViewportQueryChange}
+        />
+      </div>
+    </DiscoverCatalogRefreshProvider>
   )
 }
