@@ -1,10 +1,8 @@
-import { useId, useState } from 'react'
-import { Eye, EyeOff, Info } from 'lucide-react'
+import { useId } from 'react'
 import { Field } from '@/features/submissions/form/Field'
 import { OptionCardGroup } from '@/features/submissions/form/OptionCardGroup'
-import { Button, Input } from '@/components/ui'
+import { Input } from '@/components/ui'
 import { ROLE_LABELS } from '@/features/staff/users/userDisplay'
-import { DEFAULT_ORG_PASSWORD } from '@/features/staff/users/userFormConstants'
 import type {
   UserFormDraft,
   UserFormFieldErrors,
@@ -42,7 +40,6 @@ export function UserForm({
   onChange,
 }: UserFormProps) {
   const baseId = useId()
-  const [passwordVisible, setPasswordVisible] = useState(false)
 
   return (
     <div className="space-y-4">
@@ -127,64 +124,7 @@ export function UserForm({
         </select>
       </Field>
 
-      {mode === 'create' ? (
-        <>
-          <div className="space-y-1.5">
-            <label
-              htmlFor={`${baseId}-default-password`}
-              className="block text-sm font-medium text-foreground"
-            >
-              Default Password
-            </label>
-            <div className="relative">
-              <Input
-                id={`${baseId}-default-password`}
-                type={passwordVisible ? 'text' : 'password'}
-                name="default_password"
-                value={DEFAULT_ORG_PASSWORD}
-                readOnly
-                autoComplete="off"
-                className="pr-10"
-                aria-readonly="true"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="absolute right-0.5 top-1/2 h-9 w-9 min-h-0 min-w-0 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                aria-label={
-                  passwordVisible
-                    ? 'Hide default password'
-                    : 'Show default password'
-                }
-                onClick={() => setPasswordVisible((visible) => !visible)}
-              >
-                {passwordVisible ? (
-                  <EyeOff className="h-4 w-4" aria-hidden="true" />
-                ) : (
-                  <Eye className="h-4 w-4" aria-hidden="true" />
-                )}
-              </Button>
-            </div>
-          </div>
-
-          <aside
-            className="flex gap-3 rounded-xl border border-interactive/25 bg-interactive-muted px-4 py-3"
-            aria-live="polite"
-          >
-            <Info
-              className="mt-0.5 h-4 w-4 shrink-0 text-interactive"
-              strokeWidth={1.75}
-              aria-hidden="true"
-            />
-            <p className="text-sm leading-relaxed text-foreground">
-              New users will sign in using the organization&apos;s default
-              password and will be required to change it the first time they
-              sign in.
-            </p>
-          </aside>
-        </>
-      ) : (
+      {mode === 'edit' ? (
         <div
           className={cn(disabled && 'pointer-events-none opacity-50')}
           aria-disabled={disabled || undefined}
@@ -205,7 +145,7 @@ export function UserForm({
             className="sm:grid-cols-2"
           />
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
