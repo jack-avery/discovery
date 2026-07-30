@@ -7,6 +7,8 @@ interface SearchBarProps {
   onChange?: (value: string) => void
   onFocus?: () => void
   placeholder?: string
+  /** Accessible name for the search input. */
+  label?: string
   compact?: boolean
   /** Borderless styling for use inside a floating control bubble. */
   floating?: boolean
@@ -19,6 +21,7 @@ export function SearchBar({
   onChange,
   onFocus,
   placeholder = 'Search resources…',
+  label = 'Search resources',
   compact = false,
   floating = false,
   className,
@@ -27,7 +30,7 @@ export function SearchBar({
   return (
     <div className={cn('relative w-full', floating && 'h-full', className)}>
       <label htmlFor={inputId} className="sr-only">
-        Search resources
+        {label}
       </label>
       <Search
         className={cn(

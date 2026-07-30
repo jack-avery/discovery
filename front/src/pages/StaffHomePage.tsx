@@ -8,11 +8,9 @@ import {
   DashboardCategoryCard,
   DashboardHeader,
   DashboardQuickActions,
-  DashboardRecentSubmissions,
   DashboardStatCard,
   PLACEHOLDER_CATEGORY_SEGMENTS,
   PLACEHOLDER_QUICK_ACTIONS,
-  PLACEHOLDER_RECENT_SUBMISSIONS,
 } from '@/features/staff/dashboard'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import {
@@ -138,12 +136,20 @@ export function StaffHomePage() {
 
         <DashboardQuickActions actions={quickActions} />
 
-        <div className="grid gap-section lg:grid-cols-2">
+        <section aria-labelledby="dashboard-analytics-heading">
+          <div className="mb-4">
+            <h3
+              id="dashboard-analytics-heading"
+              className="font-heading text-base font-semibold text-foreground"
+            >
+              Analytics
+            </h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Insights into your published resource directory.
+            </p>
+          </div>
           <DashboardCategoryCard segments={PLACEHOLDER_CATEGORY_SEGMENTS} />
-          <DashboardRecentSubmissions
-            submissions={PLACEHOLDER_RECENT_SUBMISSIONS}
-          />
-        </div>
+        </section>
       </div>
 
       <CategoryManagePanel
