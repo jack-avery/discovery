@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   AlertCircle,
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui'
 import { RejectSubmissionDialog } from '@/features/staff/submissions/RejectSubmissionDialog'
 import { ReviewActionBar } from '@/features/staff/submissions/ReviewActionBar'
 import { SubmissionDetailDispatcher } from '@/features/staff/submissions/SubmissionDetailDispatcher'
+import type { ModerationFinalVersion } from '@/features/staff/submissions/SubmissionDetailDispatcher'
 import { SubmissionInfoSection } from '@/features/staff/submissions/SubmissionInfoSection'
 import { SubmissionQueueList } from '@/features/staff/submissions/SubmissionQueueList'
 import { SubmissionQueueToolbar } from '@/features/staff/submissions/SubmissionQueueToolbar'
@@ -21,6 +22,7 @@ import {
   type ReviewQueueSort,
 } from '@/features/staff/submissions/fetchReviewQueue'
 import { parseReviewQueueFiltersFromSearchParams } from '@/features/staff/submissions/reviewQueueNavigation'
+import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
 import { useReviewSubmission } from '@/hooks/useReviewSubmission'
 import { useSubmissionDetail } from '@/hooks/useSubmissionDetail'
 import { useSubmissionQueue } from '@/hooks/useSubmissionQueue'
@@ -42,6 +44,25 @@ export function ReviewSubmissionsWorkspace() {
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [rejectOpen, setRejectOpen] = useState(false)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [updateApprovalGate, setUpdateApprovalGate] =
+    useState<SubmissionApprovalGate>({ approveDisabled: false })
+  /** Retained at workspace boundary for future approved_version integration. */
+  const [moderationFinalVersion, setModerationFinalVersion] =
+    useState<ModerationFinalVersion | null>(null)
+
+  const handleApprovalGateChange = useCallback(
+    (gate: SubmissionApprovalGate) => {
+      setUpdateApprovalGate(gate)
+    },
+    [],
+  )
+
+  const handleFinalVersionChange = useCallback(
+    (data: ModerationFinalVersion | null) => {
+      setModerationFinalVersion(data)
+    },
+    [],
+  )
 
   const { submission, isLoading: detailLoading, error: detailError } =
     useSubmissionDetail(selectedId)
@@ -75,6 +96,12 @@ export function ReviewSubmissionsWorkspace() {
     }
   }, [items, isLoading, selectedId])
 
+  // Reset approval gate when switching submissions.
+  useEffect(() => {
+    setUpdateApprovalGate({ approveDisabled: false })
+    setModerationFinalVersion(null)
+  }, [selectedId])
+
   const resourceName =
     submission?.proposed_version?.name?.trim() ||
     items.find((item) => item.submission_id === selectedId)
@@ -83,6 +110,13 @@ export function ReviewSubmissionsWorkspace() {
 
   async function handleApprove() {
     if (selectedId == null) return
+    // Local edits must not be approved until approved_version is supported.
+    if (
+      updateApprovalGate.approveDisabled ||
+      moderationFinalVersion != null
+    ) {
+      return
+    }
     clearError()
     setStatusMessage(null)
 
@@ -285,11 +319,17 @@ export function ReviewSubmissionsWorkspace() {
                         ?.contributionKind
                     }
                   />
-                  <SubmissionDetailDispatcher submission={submission} />
+                  <SubmissionDetailDispatcher
+                    submission={submission}
+                    onApprovalGateChange={handleApprovalGateChange}
+                    onFinalVersionChange={handleFinalVersionChange}
+                  />
                 </div>
               </div>
               <ReviewActionBar
                 isSubmitting={isSubmitting}
+                approveDisabled={updateApprovalGate.approveDisabled}
+                approveHelper={updateApprovalGate.approveHelper}
                 onReject={() => {
                   clearError()
                   setRejectOpen(true)

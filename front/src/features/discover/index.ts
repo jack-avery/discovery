@@ -20,6 +20,12 @@ export {
   type ResourceVersionPresentation,
 } from './mapResourceVersionForPresentation'
 export {
+  ResourceDetailAboutShell,
+  ResourceDetailHero,
+  ResourceDetailLocationShell,
+  ResourceDetailServiceDetailsShell,
+} from './resourceDetailSections'
+export {
   ResourceDetailPresentation,
   ResourceDetailScreen,
 } from './ResourceDetailScreen'

@@ -37,6 +37,16 @@ export interface SubmissionReviewDto {
   reviewed_at: string | null
 }
 
+/**
+ * Live approved resource attached to update_resource submission detail.
+ * Null when the published baseline could not be loaded (or for non-update types).
+ */
+export interface CurrentApprovedResourceDto {
+  resource_id: number
+  slug: string
+  version: ResourceVersionDto
+}
+
 export interface SubmissionDetailDto {
   submission_id: number
   submission_type: BackendSubmissionType
@@ -47,6 +57,11 @@ export interface SubmissionDetailDto {
   submission_message: string | null
   created_at: string | null
   proposed_version: ResourceVersionDto | null
+  /**
+   * Present on update_resource detail responses.
+   * Null when the live approved version is unavailable.
+   */
+  current_approved_resource?: CurrentApprovedResourceDto | null
   review_history: SubmissionReviewDto[]
 }
 

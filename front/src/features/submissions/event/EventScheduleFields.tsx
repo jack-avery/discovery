@@ -5,7 +5,6 @@ import type {
   EventFrequency,
   EventScheduleKind,
   EventWeekday,
-  RecurrenceEndKind,
 } from '@/types/submission'
 import { EVENT_WEEKDAY_OPTIONS } from '@/features/submissions/mappers/eventRecurrence'
 import {
@@ -37,16 +36,8 @@ const SCHEDULE_KIND_OPTIONS: {
 const FREQUENCY_OPTIONS: { value: EventFrequency; label: string }[] = [
   { value: 'daily', label: 'Daily' },
   { value: 'weekly', label: 'Weekly' },
-  { value: 'biweekly', label: 'Every two weeks' },
+  { value: 'biweekly', label: 'Bi-weekly' },
   { value: 'monthly', label: 'Monthly' },
-]
-
-const RECURRENCE_END_OPTIONS: {
-  value: RecurrenceEndKind
-  label: string
-}[] = [
-  { value: 'none', label: 'Never' },
-  { value: 'end_date', label: 'On date' },
 ]
 
 type ScheduleOrderField =
@@ -66,6 +57,18 @@ export function EventScheduleFields({
   showErrors = false,
 }: EventScheduleFieldsProps) {
   const [scheduleOrderTouched, setScheduleOrderTouched] = useState(false)
+  /** UI-only: same-day end is the common case; not part of the submission payload. */
+  const [endsSameDay, setEndsSameDay] = useState(() => {
+    if (
+      data.scheduleKind === 'one_time' &&
+      data.startDate &&
+      data.endDate &&
+      data.endDate !== data.startDate
+    ) {
+      return false
+    }
+    return true
+  })
 
   const markScheduleOrderTouched = () => {
     setScheduleOrderTouched(true)
@@ -77,6 +80,23 @@ export function EventScheduleFields({
   ) => {
     onChange({ [field]: value })
     markScheduleOrderTouched()
+  }
+
+  const handleOneTimeStartDateChange = (startDate: string) => {
+    if (endsSameDay) {
+      onChange({ startDate, endDate: startDate })
+      markScheduleOrderTouched()
+      return
+    }
+    handleScheduleOrderChange('startDate', startDate)
+  }
+
+  const handleEndsSameDayChange = (checked: boolean) => {
+    setEndsSameDay(checked)
+    if (checked && data.startDate) {
+      onChange({ endDate: data.startDate })
+      markScheduleOrderTouched()
+    }
   }
 
   const handleSectionFocusOut = (event: FocusEvent<HTMLDivElement>) => {
@@ -101,17 +121,6 @@ export function EventScheduleFields({
       ? [...FREQUENCY_OPTIONS, { value: 'other' as const, label: 'Other' }]
       : FREQUENCY_OPTIONS
 
-  const recurrenceEndOptions =
-    data.recurrenceEndKind === 'occurrences'
-      ? [
-          ...RECURRENCE_END_OPTIONS,
-          {
-            value: 'occurrences' as const,
-            label: 'Number of occurrences',
-          },
-        ]
-      : RECURRENCE_END_OPTIONS
-
   return (
     <div className="space-y-4" onBlur={handleSectionFocusOut}>
       <OptionCardGroup<EventScheduleKind>
@@ -119,65 +128,86 @@ export function EventScheduleFields({
         legend="Is this event:"
         options={SCHEDULE_KIND_OPTIONS}
         value={data.scheduleKind}
-        onChange={(scheduleKind) => onChange({ scheduleKind })}
+        onChange={(scheduleKind) => {
+          if (scheduleKind === 'one_time' && endsSameDay && data.startDate) {
+            onChange({ scheduleKind, endDate: data.startDate })
+            return
+          }
+          onChange({ scheduleKind })
+        }}
         error={errors.scheduleKind}
-        className="sm:grid-cols-2"
       />
 
       {data.scheduleKind === 'one_time' ? (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field
-            id="event-start-date"
-            label="Start date"
-            required
-            error={errors.startDate}
-          >
-            <Input
+        <div className="space-y-3">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field
               id="event-start-date"
-              type="date"
-              value={data.startDate}
-              onChange={(e) =>
-                handleScheduleOrderChange('startDate', e.target.value)
-              }
-              onBlur={markScheduleOrderTouched}
-            />
-          </Field>
-          <Field
-            id="event-start-time"
-            label="Start time"
-            required
-            error={errors.startTime}
-          >
-            <TimeSelect
+              label="Start date"
+              required
+              error={errors.startDate}
+            >
+              <Input
+                id="event-start-date"
+                type="date"
+                value={data.startDate}
+                onChange={(e) => handleOneTimeStartDateChange(e.target.value)}
+                onBlur={markScheduleOrderTouched}
+              />
+            </Field>
+            <Field
               id="event-start-time"
-              value={data.startTime}
-              onChange={(startTime) =>
-                handleScheduleOrderChange('startTime', startTime)
-              }
-              onBlur={markScheduleOrderTouched}
+              label="Start time"
+              required
+              error={errors.startTime}
+            >
+              <TimeSelect
+                id="event-start-time"
+                value={data.startTime}
+                onChange={(startTime) =>
+                  handleScheduleOrderChange('startTime', startTime)
+                }
+                onBlur={markScheduleOrderTouched}
+              />
+            </Field>
+          </div>
+
+          <label className="inline-flex items-center gap-2 text-sm text-foreground">
+            <input
+              id="event-ends-same-day"
+              type="checkbox"
+              checked={endsSameDay}
+              onChange={(e) => handleEndsSameDayChange(e.target.checked)}
+              className="rounded border-border"
             />
-          </Field>
-          <Field id="event-end-date" label="End date" error={endDateError}>
-            <Input
-              id="event-end-date"
-              type="date"
-              value={data.endDate}
-              onChange={(e) =>
-                handleScheduleOrderChange('endDate', e.target.value)
-              }
-              onBlur={markScheduleOrderTouched}
-            />
-          </Field>
-          <Field id="event-end-time" label="End time" error={endTimeError}>
-            <TimeSelect
-              id="event-end-time"
-              value={data.endTime}
-              onChange={(endTime) =>
-                handleScheduleOrderChange('endTime', endTime)
-              }
-              onBlur={markScheduleOrderTouched}
-            />
-          </Field>
+            Ends the same day
+          </label>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field id="event-end-date" label="End date" error={endDateError}>
+              <Input
+                id="event-end-date"
+                type="date"
+                value={data.endDate}
+                disabled={endsSameDay}
+                readOnly={endsSameDay}
+                onChange={(e) =>
+                  handleScheduleOrderChange('endDate', e.target.value)
+                }
+                onBlur={markScheduleOrderTouched}
+              />
+            </Field>
+            <Field id="event-end-time" label="End time" error={endTimeError}>
+              <TimeSelect
+                id="event-end-time"
+                value={data.endTime}
+                onChange={(endTime) =>
+                  handleScheduleOrderChange('endTime', endTime)
+                }
+                onBlur={markScheduleOrderTouched}
+              />
+            </Field>
+          </div>
         </div>
       ) : null}
 
@@ -197,6 +227,9 @@ export function EventScheduleFields({
                 onChange={(e) => onChange({ startDate: e.target.value })}
               />
             </Field>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
             <Field
               id="event-recurring-start-time"
               label="Start time"
@@ -242,7 +275,6 @@ export function EventScheduleFields({
               })
             }
             error={errors.frequency}
-            className="sm:grid-cols-2"
           />
 
           {data.frequency === 'other' ? (
@@ -278,59 +310,6 @@ export function EventScheduleFields({
                 </p>
               ) : null}
             </div>
-          ) : null}
-
-          <OptionCardGroup<RecurrenceEndKind>
-            name="event-recurrence-end"
-            legend="Ends"
-            options={recurrenceEndOptions}
-            value={
-              data.recurrenceEndKind === 'not_sure'
-                ? 'none'
-                : data.recurrenceEndKind
-            }
-            onChange={(recurrenceEndKind) => onChange({ recurrenceEndKind })}
-            className="sm:grid-cols-2"
-          />
-
-          {data.recurrenceEndKind === 'end_date' ? (
-            <Field
-              id="event-recurrence-end-date"
-              label="End date"
-              required
-              error={errors.recurrenceEndDate}
-            >
-              <Input
-                id="event-recurrence-end-date"
-                type="date"
-                value={data.recurrenceEndDate}
-                onChange={(e) =>
-                  onChange({ recurrenceEndDate: e.target.value })
-                }
-              />
-            </Field>
-          ) : null}
-
-          {data.recurrenceEndKind === 'occurrences' ? (
-            <Field
-              id="event-recurrence-occurrences"
-              label="Number of occurrences"
-              required
-              error={errors.recurrenceOccurrences}
-            >
-              <Input
-                id="event-recurrence-occurrences"
-                type="number"
-                min={1}
-                step={1}
-                inputMode="numeric"
-                value={data.recurrenceOccurrences}
-                onChange={(e) =>
-                  onChange({ recurrenceOccurrences: e.target.value })
-                }
-                placeholder="e.g. 8"
-              />
-            </Field>
           ) : null}
         </div>
       ) : null}

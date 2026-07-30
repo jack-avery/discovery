@@ -57,6 +57,7 @@ export type {
   BackendStaffRole,
   LoginRequest,
   LoginResult,
+  MeResult,
   RefreshResult,
 } from './auth'
 export { displayName } from './auth'
@@ -99,6 +100,7 @@ export type {
   PublicSubmissionLocationDto,
 } from './submissionApi'
 export type {
+  CurrentApprovedResourceDto,
   ListSubmissionsQuery,
   ModerationStatus,
   ReviewDecision,

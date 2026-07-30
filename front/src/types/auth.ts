@@ -1,5 +1,5 @@
 /**
- * Auth DTOs matching POST /auth/login and related responses.
+ * Auth DTOs matching POST /auth/login, GET /auth/me, and related responses.
  */
 
 export type BackendStaffRole =
@@ -8,6 +8,7 @@ export type BackendStaffRole =
   | 'staff_editor'
   | 'administrator'
 
+/** User payload from login and GET /auth/me (`user.to_dict(include_roles=True)`). */
 export interface AuthUser {
   user_id: number
   email: string
@@ -15,6 +16,7 @@ export interface AuthUser {
   last_name: string
   is_active: boolean
   created_at: string | null
+  /** Role name strings (e.g. administrator). Permissions are derived client-side. */
   roles: string[]
 }
 
@@ -25,6 +27,12 @@ export interface LoginRequest {
 
 export interface LoginResult {
   access_token: string
+  /** Present on login; prefer GET /auth/me as the session user source of truth. */
+  user: AuthUser
+}
+
+/** Unwrapped `data` from GET /auth/me. */
+export interface MeResult {
   user: AuthUser
 }
 

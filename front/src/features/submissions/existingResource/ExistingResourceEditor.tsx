@@ -473,7 +473,6 @@ export function ExistingResourceEditor({
         options={HOURS_MODE_OPTIONS}
         value={data.hoursAvailability}
         onChange={(hoursAvailability) => patch({ hoursAvailability })}
-        className="sm:grid-cols-3"
       />
       {data.hoursAvailability === 'structured' ? (
         <WeeklyHoursEditor
@@ -518,7 +517,6 @@ export function ExistingResourceEditor({
         options={COST_OPTIONS}
         value={data.costOption}
         onChange={(costOption) => patch({ costOption })}
-        className="sm:grid-cols-2"
       />
       {needsCostDetails ? (
         <Field

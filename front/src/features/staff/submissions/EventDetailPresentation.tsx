@@ -14,17 +14,18 @@ import {
   Tag,
   Users,
 } from 'lucide-react'
-import resourcePlaceholder from '@/assets/resource-placeholder.svg'
 import { Badge } from '@/components/ui'
 import {
   DetailGlanceRow,
   DetailSectionCard,
 } from '@/features/discover/DetailInfoCard'
+import { ResourceDetailHero } from '@/features/discover/resourceDetailSections'
 import { WorkspaceSection } from '@/features/discover/WorkspaceSection'
 import {
   externalHref,
   resolveOnlineLocationUrl,
 } from '@/features/discover/locationPresentation'
+import { RequestResourceUpdateFlow } from '@/features/submissions/updateRequest/RequestResourceUpdateFlow'
 import type { EventVersionPresentation } from '@/features/staff/submissions/mapEventVersionForPresentation'
 import type {
   ResourceContactDto,
@@ -44,9 +45,12 @@ type ContactKind = 'phone' | 'email' | 'website' | 'other'
 export function EventDetailPresentation({
   presentation,
   audience = 'moderator',
+  resourceId,
 }: {
   presentation: EventVersionPresentation
   audience?: 'moderator' | 'public'
+  /** When set, shows the shared Update Resource entry point (Discover only). */
+  resourceId?: number
 }) {
   const { version, eventDetails, isOnlineOnly, accessModeLabel, onlineAccessUrl } =
     presentation
@@ -83,7 +87,11 @@ export function EventDetailPresentation({
 
   return (
     <div className="flex flex-col gap-3">
-      <DetailHero imageUrl={version.image_url} alt={`${version.name} photo`} />
+      <ResourceDetailHero
+        imageUrl={version.image_url}
+        alt={`${version.name} photo`}
+        fallbackAlt="Community event placeholder"
+      />
 
       <WorkspaceSection aria-label="General information" divider className="pb-3">
         <div className="space-y-2.5">
@@ -245,6 +253,13 @@ export function EventDetailPresentation({
         </DetailSectionCard>
       )}
 
+      {typeof resourceId === 'number' ? (
+        <RequestResourceUpdateFlow
+          resourceId={resourceId}
+          resourceName={hasText(version.name) ? version.name : undefined}
+        />
+      ) : null}
+
       <WorkspaceSection aria-label="Disclaimer">
         <p className="text-xs leading-relaxed text-muted-foreground">
           Event details may change. Please confirm date, time, registration, and
@@ -272,36 +287,6 @@ function eventFieldIcon(label: string): ReactNode {
     default:
       return <Info className="h-3.5 w-3.5" strokeWidth={2} />
   }
-}
-
-function DetailHero({
-  imageUrl,
-  alt,
-}: {
-  imageUrl: string | null
-  alt: string
-}) {
-  const [failed, setFailed] = useState(false)
-  const src = hasText(imageUrl) && !failed ? imageUrl : resourcePlaceholder
-  const usingFallback = src === resourcePlaceholder
-
-  return (
-    <div
-      className={cn(
-        '-mx-[var(--ds-workspace-padding)] -mt-[var(--ds-workspace-padding)]',
-        'mb-0 overflow-hidden rounded-b-xl bg-muted',
-      )}
-    >
-      <div className="aspect-[17/8] w-full">
-        <img
-          src={src}
-          alt={usingFallback ? 'Community event placeholder' : alt}
-          className="h-full w-full object-cover"
-          onError={() => setFailed(true)}
-        />
-      </div>
-    </div>
-  )
 }
 
 function PrimaryActions({

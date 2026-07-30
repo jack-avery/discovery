@@ -6,27 +6,26 @@ import {
   Clock,
   FileText,
   Globe,
-  Info,
   Loader2,
   Mail,
-  MapPin,
   Navigation,
   Phone,
-  Settings,
   Users,
 } from 'lucide-react'
-import resourcePlaceholder from '@/assets/resource-placeholder.svg'
 import { EmptyState } from '@/components/shared'
 import { Badge } from '@/components/ui'
-import {
-  DetailGlanceRow,
-  DetailSectionCard,
-} from '@/features/discover/DetailInfoCard'
+import { DetailGlanceRow } from '@/features/discover/DetailInfoCard'
 import { mapResourceVersionForPresentation } from '@/features/discover/mapResourceVersionForPresentation'
 import {
   externalHref,
   resolveOnlineLocationUrl,
 } from '@/features/discover/locationPresentation'
+import {
+  ResourceDetailAboutShell,
+  ResourceDetailHero,
+  ResourceDetailLocationShell,
+  ResourceDetailServiceDetailsShell,
+} from '@/features/discover/resourceDetailSections'
 import { WorkspaceSection } from '@/features/discover/WorkspaceSection'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { RequestResourceUpdateFlow } from '@/features/submissions/updateRequest/RequestResourceUpdateFlow'
@@ -224,6 +223,7 @@ function DiscoverResourceOrEventPresentation({
       <EventDetailPresentation
         presentation={eventPresentation}
         audience="public"
+        resourceId={resourceId}
       />
     )
   }
@@ -298,7 +298,7 @@ export function ResourceDetailPresentation({
   return (
     <div className="flex flex-col gap-3">
       {/* Hero */}
-      <ResourceHero imageUrl={version.image_url} alt={`${version.name} photo`} />
+      <ResourceDetailHero imageUrl={version.image_url} alt={`${version.name} photo`} />
 
       {/* Identity + primary actions */}
       <WorkspaceSection aria-label="General information" divider className="pb-3">
@@ -345,8 +345,7 @@ export function ResourceDetailPresentation({
 
       {/* Location — physical venues and/or online access from presentation mapping. */}
       {hasLocation && (
-        <DetailSectionCard
-          icon={<MapPin className="h-4 w-4" strokeWidth={2} />}
+        <ResourceDetailLocationShell
           title={locations.length > 1 ? 'Locations' : 'Location'}
         >
           {locations.length > 0 ? (
@@ -377,7 +376,7 @@ export function ResourceDetailPresentation({
               ) : null}
             </div>
           )}
-        </DetailSectionCard>
+        </ResourceDetailLocationShell>
       )}
 
       {/* Service Details — collapsed by default */}
@@ -395,6 +394,7 @@ export function ResourceDetailPresentation({
 
       {typeof resourceId === 'number' ? (
         <RequestResourceUpdateFlow
+          resourceId={resourceId}
           resourceName={hasText(version.name) ? version.name : undefined}
         />
       ) : null}
@@ -412,37 +412,6 @@ export function ResourceDetailPresentation({
         Insert staff-only verification UI here (moderation status, approval dates,
         submitted dates, image metadata) without restructuring public sections above.
       */}
-    </div>
-  )
-}
-
-function ResourceHero({
-  imageUrl,
-  alt,
-}: {
-  imageUrl: string | null
-  alt: string
-}) {
-  const [failed, setFailed] = useState(false)
-  const src = hasText(imageUrl) && !failed ? imageUrl : resourcePlaceholder
-  const usingFallback = src === resourcePlaceholder
-
-  return (
-    <div
-      className={cn(
-        '-mx-[var(--ds-workspace-padding)] -mt-[var(--ds-workspace-padding)]',
-        'mb-0 overflow-hidden rounded-b-xl bg-muted',
-      )}
-    >
-      {/* ~25% shorter than the previous 16/10 hero */}
-      <div className="aspect-[17/8] w-full">
-        <img
-          src={src}
-          alt={usingFallback ? 'Community resource placeholder' : alt}
-          className="h-full w-full object-cover"
-          onError={() => setFailed(true)}
-        />
-      </div>
     </div>
   )
 }
@@ -591,10 +560,7 @@ function AboutSection({
   }, [description, expanded])
 
   return (
-    <DetailSectionCard
-      icon={<Info className="h-4 w-4" strokeWidth={2} />}
-      title="About"
-    >
+    <ResourceDetailAboutShell>
       <div className="space-y-2 text-sm leading-relaxed text-muted-foreground">
         {hasText(description) && (
           <div>
@@ -618,7 +584,7 @@ function AboutSection({
         )}
         {hasText(notes) && <p className="whitespace-pre-wrap">{notes}</p>}
       </div>
-    </DetailSectionCard>
+    </ResourceDetailAboutShell>
   )
 }
 
@@ -682,10 +648,7 @@ function ServiceDetailsSection({
     hasText(accessibility)
 
   return (
-    <DetailSectionCard
-      icon={<Settings className="h-4 w-4" strokeWidth={2} />}
-      title="Service Details"
-    >
+    <ResourceDetailServiceDetailsShell>
       <div className="space-y-3">
         <div id={panelId} className="divide-y divide-border">
           {expanded ? (
@@ -875,7 +838,7 @@ function ServiceDetailsSection({
           </div>
         )}
       </div>
-    </DetailSectionCard>
+    </ResourceDetailServiceDetailsShell>
   )
 }
 

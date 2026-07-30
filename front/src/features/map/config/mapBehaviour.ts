@@ -30,6 +30,22 @@ export const MAP_BEHAVIOUR = {
     /** Delay before invalidating map size — slightly after the workspace transition completes. */
     invalidateSizeDelayMs: 320,
   },
+  /**
+   * Selection movement: pan only when the target is outside this padded usable view.
+   * Left padding approximates the Discover workspace when expanded (`w-80` / `md:w-[23rem]`).
+   */
+  selection: {
+    /** Short pan duration (seconds) when movement is required — replaces long flyTo. */
+    panDurationSec: 0.3,
+    paddingExpanded: {
+      topLeft: [352, 56] as const,
+      bottomRight: [48, 48] as const,
+    },
+    paddingCollapsed: {
+      topLeft: [56, 56] as const,
+      bottomRight: [48, 48] as const,
+    },
+  },
 } as const
 
 export type MapBehaviourConfig = typeof MAP_BEHAVIOUR

@@ -411,7 +411,6 @@ export function EventEditor({
             options={COST_OPTIONS}
             value={data.costOption}
             onChange={(costOption) => patch({ costOption })}
-            className="sm:grid-cols-2"
           />
           {needsCostDetails ? (
             <Field

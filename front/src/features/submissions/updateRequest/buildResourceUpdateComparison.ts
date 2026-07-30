@@ -37,6 +37,8 @@ export interface ResourceUpdateComparisonField {
   proposed: string
   /** False until the host can supply a baseline resource. */
   currentAvailable: boolean
+  /** True when current and proposed display values differ (or baseline is missing). */
+  changed: boolean
 }
 
 export interface ResourceUpdateComparisonSection {
@@ -44,6 +46,11 @@ export interface ResourceUpdateComparisonSection {
   label: string
   /** Number of changed fields in this section. */
   changeCount: number
+  /**
+   * Section fields for review. Includes unchanged fields when a baseline is
+   * present so hosts can reveal them; without a baseline, only proposed
+   * content is included (current remains unavailable).
+   */
   fields: ResourceUpdateComparisonField[]
 }
 
@@ -51,6 +58,8 @@ export interface ResourceUpdateComparison {
   sections: ResourceUpdateComparisonSection[]
   /** True when a live baseline was provided for real Current values. */
   hasBaseline: boolean
+  /** Total changed fields across all sections. */
+  changeCount: number
 }
 
 export interface ResourceUpdateComparisonLookups {
@@ -59,20 +68,12 @@ export interface ResourceUpdateComparisonLookups {
 }
 
 /**
- * Pure baseline-vs-proposed change set for update review and staff moderation.
- * Only includes sections/fields that actually changed. No moderation state.
+ * Pure baseline-vs-proposed field set for update review and staff moderation.
+ * No moderation state.
  *
- * Pass `baseline: null` when the live resource is not available yet — proposed
- * values still populate the change set; Current remains unavailable until a
- * baseline is supplied.
- *
- * TODO:
- * When the moderation API exposes submission.resource_id,
- * load the approved resource,
- * map it to ExistingResourceData,
- * and pass it as the baseline to buildResourceUpdateComparison().
- *
- * No UI changes should be required.
+ * Pass `baseline: null` when the live resource is not available — proposed
+ * values still populate the set; Current remains unavailable and fields are
+ * treated as changed for review purposes.
  */
 export function buildResourceUpdateComparison(
   baseline: ExistingResourceData | null,
@@ -96,18 +97,28 @@ export function buildResourceUpdateComparison(
         // that carry proposed content so moderation UI remains usable.
         return field.proposed !== EMPTY_VALUE
       }
-      return field.current !== field.proposed
+      // Keep empty↔empty rows out of the review surface.
+      return field.current !== EMPTY_VALUE || field.proposed !== EMPTY_VALUE
     })
     if (fields.length === 0) continue
+    const changeCount = fields.reduce(
+      (count, field) => count + (field.changed ? 1 : 0),
+      0,
+    )
     sections.push({
       id: option.id,
       label: option.label,
-      changeCount: fields.length,
+      changeCount,
       fields,
     })
   }
 
-  return { sections, hasBaseline }
+  const changeCount = sections.reduce(
+    (count, section) => count + section.changeCount,
+    0,
+  )
+
+  return { sections, hasBaseline, changeCount }
 }
 
 function buildSectionFields(
@@ -285,12 +296,16 @@ function field(
   proposedRaw: string,
   currentAvailable: boolean,
 ): ResourceUpdateComparisonField {
+  const proposed = displayValue(proposedRaw)
+  const current = currentAvailable ? displayValue(currentRaw) : null
+  const changed = !currentAvailable || current !== proposed
   return {
     id: `${sectionId}:${fieldKey}`,
     label,
-    current: currentAvailable ? displayValue(currentRaw) : null,
-    proposed: displayValue(proposedRaw),
+    current,
+    proposed,
     currentAvailable,
+    changed,
   }
 }
 

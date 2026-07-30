@@ -4,7 +4,19 @@ import { PageShell } from '@/components/shared/PageShell'
 import { SignInForm } from '@/features/staff/auth/SignInForm'
 
 export function StaffSignInPage() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
+
+  if (isLoading && !isAuthenticated) {
+    return (
+      <PageShell title="Staff Sign In">
+        <div className="flex items-center justify-center p-6">
+          <p className="text-sm text-muted-foreground" role="status">
+            Checking session…
+          </p>
+        </div>
+      </PageShell>
+    )
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/staff" replace />
