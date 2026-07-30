@@ -189,13 +189,18 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     return () => document.removeEventListener('keydown', handleKeyDown, true)
   }, [requestClose, pendingClose, isSubmitting])
 
-  // Close the workspace when leaving resource detail (no dirty prompt —
-  // detail unmount means the editing context is gone).
+  // Close when leaving resource detail after a resource was selected.
+  // Stay open when launched with no selection (e.g. dashboard quick action)
+  // so staff can search Discover and pick a resource to update.
+  const hadSelectedResourceRef = useRef(false)
   useEffect(() => {
-    if (!selectedResourceId) {
-      resetWorkflow()
-      onClose()
+    if (selectedResourceId) {
+      hadSelectedResourceRef.current = true
+      return
     }
+    if (!hadSelectedResourceRef.current) return
+    resetWorkflow()
+    onClose()
   }, [selectedResourceId, resetWorkflow, onClose])
 
   const goToEditor = useCallback(() => {

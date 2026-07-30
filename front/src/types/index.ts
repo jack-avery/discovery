@@ -103,3 +103,4 @@ export type {
   SubmissionReviewDto,
   SubmissionSummaryDto,
 } from './moderationSubmission'
+export type { DashboardStats } from './dashboard'

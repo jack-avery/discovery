@@ -26,3 +26,9 @@ export const WORKSPACE_STACK_TRANSITION_MS = 300
  * Above floating Staff Portal chrome so the workspace owns the top-right while open.
  */
 export const MAP_REGION_WORKSPACE_Z_CLASS = 'z-[40]'
+
+/**
+ * Search-param flag used by the Staff Dashboard quick action to open the
+ * Update Resource side workspace when landing on Discover.
+ */
+export const DISCOVER_OPEN_UPDATE_QUERY = 'updateResource'

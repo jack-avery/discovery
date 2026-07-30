@@ -1,8 +1,28 @@
-import { api } from '@/services/api'
+import { api, type ApiRequestOptions } from '@/services/api'
 import type { Category, CategoryTreeNode } from '@/types/category'
+import { slugify } from '@/utils/slugify'
 
 export interface FetchCategoriesOptions {
   signal?: AbortSignal
+}
+
+export interface CreateCategoryInput {
+  name: string
+  /** When omitted, derived from `name` via {@link slugify}. */
+  slug?: string
+}
+
+export interface UpdateCategoryInput {
+  name: string
+  /** When omitted, derived from `name` via {@link slugify}. */
+  slug?: string
+}
+
+interface CategoryWriteResult {
+  category_id: number
+  name: string
+  slug: string
+  parent_category_id?: number | null
 }
 
 /**
@@ -55,4 +75,47 @@ export async function fetchCategories(
   })
 
   return flattenCategoryTree(tree ?? [])
+}
+
+/**
+ * POST /categories — staff_editor+.
+ * Sends name + slug (slug auto-generated from name when not provided).
+ */
+export async function createCategory(
+  input: CreateCategoryInput,
+  options?: ApiRequestOptions,
+): Promise<CategoryWriteResult> {
+  const name = input.name.trim()
+  const slug = (input.slug?.trim() || slugify(name)).trim()
+  if (!slug) {
+    throw new Error('Name must include letters or numbers to generate a slug.')
+  }
+
+  return api.post<CategoryWriteResult>(
+    '/categories',
+    { name, slug },
+    options,
+  )
+}
+
+/**
+ * PUT /categories/:id — staff_editor+.
+ * Updates name + slug (slug auto-generated from name when not provided).
+ */
+export async function updateCategory(
+  categoryId: number,
+  input: UpdateCategoryInput,
+  options?: ApiRequestOptions,
+): Promise<CategoryWriteResult> {
+  const name = input.name.trim()
+  const slug = (input.slug?.trim() || slugify(name)).trim()
+  if (!slug) {
+    throw new Error('Name must include letters or numbers to generate a slug.')
+  }
+
+  return api.put<CategoryWriteResult>(
+    `/categories/${categoryId}`,
+    { name, slug },
+    options,
+  )
 }
