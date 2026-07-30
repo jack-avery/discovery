@@ -80,7 +80,17 @@ export function ContributionBuilder() {
   const showTypePicker = canAdd && (isEmpty || ui.showTypePicker)
   const editor = ui.editor
   const editorMeta = editor ? CONTRIBUTION_TYPE_META[editor.type] : null
-  const contributorComplete = isContributorComplete(contributor)
+  const requireResourceConnection = useMemo(
+    () =>
+      contributions.some(
+        (contribution) => contribution.data.kind === 'existing_resource',
+      ),
+    [contributions],
+  )
+
+  const contributorComplete = isContributorComplete(contributor, {
+    requireResourceConnection,
+  })
   const reviewReady = canOpenReview(draft)
   const reviewBlockers = useMemo(
     () => (contributorComplete ? getReviewBlockers(draft) : []),
@@ -581,6 +591,7 @@ export function ContributionBuilder() {
           {contributorComplete ? (
             <ContributorSummaryCard
               contributor={contributor}
+              requireResourceConnection={requireResourceConnection}
               onEdit={() => {
                 if (isSubmitting) return
                 setIsDirty(false)
@@ -684,6 +695,7 @@ export function ContributionBuilder() {
             onShowErrorsChange={setShowErrors}
             onDirtyChange={setIsDirty}
             onRegisterSave={registerContributorSave}
+            requireResourceConnection={requireResourceConnection}
           />
         ) : null}
       </ContributionEditorSheet>

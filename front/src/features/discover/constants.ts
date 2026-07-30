@@ -20,3 +20,9 @@ export const WORKSPACE_COLLAPSED_WIDTH_CLASS = 'w-10'
 
 /** Slide transition duration for workspace navigation stack layers. */
 export const WORKSPACE_STACK_TRANSITION_MS = 300
+
+/**
+ * z-index for Discover editing overlays hosted inside the map region.
+ * Above floating Staff Portal chrome so the workspace owns the top-right while open.
+ */
+export const MAP_REGION_WORKSPACE_Z_CLASS = 'z-[40]'

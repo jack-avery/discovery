@@ -7,7 +7,6 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   PlusCircle,
-  RefreshCw,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
@@ -20,7 +19,6 @@ const publicNavItems = [
   { to: '/home', label: 'Home', icon: Home, end: true as const },
   { to: '/', label: 'Discover Resources', icon: MapPin, end: true as const },
   { to: '/submit', label: 'Submit Resource', icon: PlusCircle, end: false as const },
-  { to: '/request-update', label: 'Request Update', icon: RefreshCw, end: false as const },
 ]
 
 const staffNavItems = [

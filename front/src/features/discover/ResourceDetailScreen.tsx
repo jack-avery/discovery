@@ -29,11 +29,10 @@ import {
 } from '@/features/discover/locationPresentation'
 import { WorkspaceSection } from '@/features/discover/WorkspaceSection'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
+import { RequestResourceUpdateFlow } from '@/features/submissions/updateRequest/RequestResourceUpdateFlow'
 import { EventDetailPresentation } from '@/features/staff/submissions/EventDetailPresentation'
-import {
-  isEventProposedVersion,
-  mapEventVersionForPresentation,
-} from '@/features/staff/submissions/mapEventVersionForPresentation'
+import { hasEventScheduleNotes } from '@/features/submissions/mappers/eventScheduleNotes'
+import { mapEventVersionForPresentation } from '@/features/staff/submissions/mapEventVersionForPresentation'
 import { useResourceDetail } from '@/hooks/useResourceDetail'
 import type {
   ResourceContactDto,
@@ -185,7 +184,10 @@ export function ResourceDetailScreen() {
             className="py-12"
           />
         ) : resource ? (
-          <DiscoverResourceOrEventPresentation version={resource.version} />
+          <DiscoverResourceOrEventPresentation
+            resourceId={resource.resource_id}
+            version={resource.version}
+          />
         ) : (
           <EmptyState
             title="Resource not found"
@@ -204,12 +206,16 @@ export function ResourceDetailScreen() {
  * and schedule match moderator review; everything else uses ResourceDetailPresentation.
  */
 function DiscoverResourceOrEventPresentation({
+  resourceId,
   version,
 }: {
+  resourceId: number
   version: ResourceVersionDto
 }) {
   const eventPresentation = useMemo(() => {
-    if (!isEventProposedVersion(version)) return null
+    // Schedule notes only — do not treat resource_type "Program" as an event.
+    // Sample/seeded Programs (e.g. community centres) must use resource detail + update CTA.
+    if (!hasEventScheduleNotes(version)) return null
     return mapEventVersionForPresentation(version)
   }, [version])
 
@@ -222,7 +228,9 @@ function DiscoverResourceOrEventPresentation({
     )
   }
 
-  return <ResourceDetailPresentation version={version} />
+  return (
+    <ResourceDetailPresentation resourceId={resourceId} version={version} />
+  )
 }
 
 /**
@@ -232,11 +240,12 @@ function DiscoverResourceOrEventPresentation({
  * review share one mapping path (seeded and newly approved resources alike).
  */
 export function ResourceDetailPresentation({
+  resourceId,
   version: rawVersion,
 }: {
+  /** When set, shows the public update-request entry point (Discover only). */
+  resourceId?: number
   version: ResourceVersionDto
-  /** @deprecated Mapping now always runs internally; ignored when provided. */
-  hoursSummary?: string | null
 }) {
   const presentation = useMemo(
     () => mapResourceVersionForPresentation(rawVersion),
@@ -383,6 +392,12 @@ export function ResourceDetailPresentation({
           tags={tags}
         />
       )}
+
+      {typeof resourceId === 'number' ? (
+        <RequestResourceUpdateFlow
+          resourceName={hasText(version.name) ? version.name : undefined}
+        />
+      ) : null}
 
       {/* Disclaimer */}
       <WorkspaceSection aria-label="Disclaimer">

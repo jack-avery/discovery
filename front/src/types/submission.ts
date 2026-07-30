@@ -240,6 +240,13 @@ export interface ContributorInfo {
   phone: string
   /** Null until the contributor chooses a preferred method. */
   preferredContactMethod: PreferredContactMethod | null
+  /**
+   * How the contributor is connected to an existing resource they are
+   * submitting or updating. Required when the draft includes an existing
+   * resource; mapped into submission_message. Not used for events/skills.
+   */
+  relationship: RelationshipOption | null
+  relationshipOther: string
 }
 
 export interface EditorSession {

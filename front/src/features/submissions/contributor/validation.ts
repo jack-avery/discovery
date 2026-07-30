@@ -1,4 +1,7 @@
-import type { ContributorInfo } from '@/types/submission'
+import type {
+  ContributorInfo,
+  RelationshipOption,
+} from '@/types/submission'
 import { CONTRIBUTOR_NAME_MAX_LENGTH } from '@/types/submission'
 import {
   isValidNorthAmericanPhone,
@@ -11,11 +14,32 @@ export interface ContributorFieldErrors {
   email?: string
   phone?: string
   preferredContactMethod?: string
+  relationship?: string
+  relationshipOther?: string
 }
+
+export interface ContributorValidationOptions {
+  /** When true, require Your connection to this resource. */
+  requireResourceConnection?: boolean
+}
+
+export const RESOURCE_RELATIONSHIP_OPTIONS: {
+  value: RelationshipOption
+  label: string
+}[] = [
+  { value: 'represent', label: 'I represent this organization or service' },
+  { value: 'volunteer', label: 'I volunteer here' },
+  { value: 'user', label: 'I use this resource' },
+  { value: 'someone_told_me', label: 'Someone told me about it' },
+  { value: 'public_info', label: 'I found it through public information' },
+  { value: 'other', label: 'Other' },
+]
 
 export function validateContributor(
   contributor: ContributorInfo,
+  options: ContributorValidationOptions = {},
 ): ContributorFieldErrors {
+  const { requireResourceConnection = false } = options
   const errors: ContributorFieldErrors = {}
   const name = contributor.name.trim()
   if (!name) errors.name = 'Enter your full name.'
@@ -47,9 +71,24 @@ export function validateContributor(
     errors.phone = PHONE_VALIDATION_MESSAGE
   }
 
+  if (requireResourceConnection) {
+    if (!contributor.relationship) {
+      errors.relationship =
+        'Tell us how you are connected to this resource.'
+    } else if (
+      contributor.relationship === 'other' &&
+      !contributor.relationshipOther.trim()
+    ) {
+      errors.relationshipOther = 'Please add a short explanation.'
+    }
+  }
+
   return errors
 }
 
-export function isContributorComplete(contributor: ContributorInfo): boolean {
-  return Object.keys(validateContributor(contributor)).length === 0
+export function isContributorComplete(
+  contributor: ContributorInfo,
+  options: ContributorValidationOptions = {},
+): boolean {
+  return Object.keys(validateContributor(contributor, options)).length === 0
 }

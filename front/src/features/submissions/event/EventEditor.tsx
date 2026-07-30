@@ -3,7 +3,6 @@ import { Input, Textarea } from '@/components/ui'
 import { useCategories } from '@/hooks/useCategories'
 import { useTags } from '@/hooks/useTags'
 import type {
-  AccessMode,
   Contribution,
   EventContributionData,
   EventCostOption,
@@ -37,6 +36,10 @@ import { EditorSection } from '../form/EditorSection'
 import { Field } from '../form/Field'
 import { LookupMultiSelect } from '../form/LookupMultiSelect'
 import { OptionCardGroup } from '../form/OptionCardGroup'
+import {
+  AccessModeBothCallout,
+  AccessModeSelector,
+} from '../form/AccessModeSelector'
 import { PhysicalLocationList } from '../form/PhysicalLocationList'
 import type { PhysicalLocationGeocodingHandle } from '../form/PhysicalLocationList'
 
@@ -52,12 +55,6 @@ interface EventEditorProps {
     labelBreakpoint?: 'sm' | 'lg'
   } | null) => void
 }
-
-const ACCESS_OPTIONS = [
-  { value: 'physical' as const, label: 'At a physical location' },
-  { value: 'online' as const, label: 'Online' },
-  { value: 'both' as const, label: 'Both' },
-]
 
 const COST_OPTIONS: { value: EventCostOption; label: string }[] = [
   { value: 'free', label: 'Yes, free' },
@@ -269,12 +266,12 @@ export function EventEditor({
       {revealed >= 3 ? (
         <EditorSection
           id="event-location"
-          title="Where is the event happening?"
+          title="Location"
+          description="Tell us how people can reach this event."
         >
-          <OptionCardGroup<AccessMode>
+          <AccessModeSelector
             name="event-access"
-            legend="Location type"
-            options={ACCESS_OPTIONS}
+            legend="How can people access this event?"
             value={data.accessMode}
             onChange={(accessMode) => {
               const needsSites =
@@ -288,35 +285,75 @@ export function EventEditor({
             error={locationErrors.accessMode}
           />
 
-          {needsPhysical ? (
-            <PhysicalLocationList
-              ref={locationGeocodingRef}
-              locations={data.locations}
-              onChange={(locations) => patch({ locations })}
-              showErrors={showErrors}
-              locationFields={locationErrors.locationFields}
-              listError={locationErrors.locations}
-              requireAtLeastOne
-              onVerifiedChange={setLocationsVerified}
-            />
+          {data.accessMode === 'both' ? (
+            <AccessModeBothCallout>
+              Because you selected &ldquo;Both&rdquo;, please provide both
+              location details and an online event link.
+            </AccessModeBothCallout>
           ) : null}
 
-          {needsOnline ? (
-            <Field
-              id="event-online-url"
-              label="Online event link"
-              required
-              error={locationErrors.onlineUrl}
-            >
-              <Input
-                id="event-online-url"
-                type="url"
-                value={data.onlineUrl}
-                onChange={(e) => patch({ onlineUrl: e.target.value })}
-                placeholder="https://example.org/event"
+          {needsPhysical && needsOnline ? (
+            <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+              <PhysicalLocationList
+                ref={locationGeocodingRef}
+                locations={data.locations}
+                onChange={(locations) => patch({ locations })}
+                showErrors={showErrors}
+                locationFields={locationErrors.locationFields}
+                listError={locationErrors.locations}
+                requireAtLeastOne
+                onVerifiedChange={setLocationsVerified}
               />
-            </Field>
-          ) : null}
+              <Field
+                id="event-online-url"
+                label="Website or online link"
+                required
+                hint="Enter the website or online link where people can access this event."
+                error={locationErrors.onlineUrl}
+              >
+                <Input
+                  id="event-online-url"
+                  type="url"
+                  value={data.onlineUrl}
+                  onChange={(e) => patch({ onlineUrl: e.target.value })}
+                  placeholder="https://example.org/event"
+                />
+              </Field>
+            </div>
+          ) : (
+            <>
+              {needsPhysical ? (
+                <PhysicalLocationList
+                  ref={locationGeocodingRef}
+                  locations={data.locations}
+                  onChange={(locations) => patch({ locations })}
+                  showErrors={showErrors}
+                  locationFields={locationErrors.locationFields}
+                  listError={locationErrors.locations}
+                  requireAtLeastOne
+                  onVerifiedChange={setLocationsVerified}
+                />
+              ) : null}
+
+              {needsOnline ? (
+                <Field
+                  id="event-online-url"
+                  label="Website or online link"
+                  required
+                  hint="Enter the website or online link where people can access this event."
+                  error={locationErrors.onlineUrl}
+                >
+                  <Input
+                    id="event-online-url"
+                    type="url"
+                    value={data.onlineUrl}
+                    onChange={(e) => patch({ onlineUrl: e.target.value })}
+                    placeholder="https://example.org/event"
+                  />
+                </Field>
+              ) : null}
+            </>
+          )}
         </EditorSection>
       ) : null}
 
@@ -448,12 +485,12 @@ export function EventEditor({
         >
           <OptionCardGroup<EventRelationshipOption>
             name="event-relationship"
-            legend="Your connection"
+            legend="Your connection to this event"
             options={RELATIONSHIP_OPTIONS}
             value={data.relationship}
             onChange={(relationship) => patch({ relationship })}
             error={relationshipErrors.relationship}
-            className="sm:grid-cols-1"
+            layout="stack"
           />
           {data.relationship === 'other' ? (
             <Field
