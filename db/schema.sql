@@ -452,7 +452,7 @@ VALUES ('admin', '$2b$12$w9CMXgEO0oncYsOlhDIRKeYwT9EAxc2MzNV/uvoHzVmqAAHASlexy',
 -- 3. Assign administrator role to the default admin user
 INSERT INTO user_roles (user_id, role_id)
 VALUES (
-    (SELECT user_id FROM users WHERE email = 'admin@rrcrc.ca'),
+    (SELECT user_id FROM users WHERE email = 'admin'),
     (SELECT role_id FROM roles WHERE role_name = 'administrator')
 );
 -- END OF SCHEMA
