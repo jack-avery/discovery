@@ -3,20 +3,20 @@
  * Rideau-Rockcliffe Community Resource Centre
  *
  * Typography: Urbanist (headings), Lato (body)
- * Palette: cream background, navy primary, teal interactions, orange pending
+ * Palette: warm-neutral background, maroon primary/interactive, amber pending
  */
 
 :root {
-  /* Navy primary system */
-  --ds-primary: #1b365d;
-  --ds-primary-hover: #152a4a;
-  --ds-primary-muted: #1b365d14;
+  /* Maroon primary system */
+  --ds-primary: #8b1e22;
+  --ds-primary-hover: #6f171b;
+  --ds-primary-muted: #8b1e2214;
   --ds-primary-foreground: #ffffff;
 
-  /* Teal interaction states */
-  --ds-interactive: #0b7a75;
-  --ds-interactive-hover: #096560;
-  --ds-interactive-muted: #0b7a751a;
+  /* Brighter maroon interaction states */
+  --ds-interactive: #a1282d;
+  --ds-interactive-hover: #821f24;
+  --ds-interactive-muted: #a1282d1a;
   --ds-interactive-foreground: #ffffff;
 
   /* Orange pending moderation */
@@ -25,27 +25,27 @@
   --ds-pending-muted: #d977061a;
   --ds-pending-foreground: #ffffff;
 
-  /* Cream / off-white application background */
-  --ds-background: #faf7f2;
-  --ds-foreground: #1b365d;
+  /* Warm-neutral application background */
+  --ds-background: #f6f4f3;
+  --ds-foreground: #1f1a1a;
 
   /* Surfaces */
   --ds-surface: #ffffff;
-  --ds-surface-raised: #f5f1ea;
-  --ds-surface-overlay: #1b365d66;
+  --ds-surface-raised: #f0eeed;
+  --ds-surface-overlay: #8b1e2299;
 
   /* Borders & muted */
-  --ds-border: #e5dfd4;
-  --ds-border-subtle: #efe9df;
-  --ds-muted: #f0ebe3;
-  --ds-muted-foreground: #5c6b7a;
+  --ds-border: #ddd8d7;
+  --ds-border-subtle: #ebe8e7;
+  --ds-muted: #efecec;
+  --ds-muted-foreground: #5e5858;
 
   /* Semantic status */
-  --ds-success: #15803d;
+  --ds-success: #1b7a45;
   --ds-success-foreground: #ffffff;
-  --ds-warning: #d97706;
+  --ds-warning: #c47a0a;
   --ds-warning-foreground: #ffffff;
-  --ds-danger: #b91c1c;
+  --ds-danger: #c62828;
   --ds-danger-foreground: #ffffff;
 
   /* Typography */
@@ -68,11 +68,11 @@
   --ds-radius-xl: 1rem;
   --ds-radius-full: 9999px;
 
-  /* Shadows */
-  --ds-shadow-sm: 0 1px 2px 0 rgb(27 54 93 / 0.06);
-  --ds-shadow-md: 0 4px 12px -2px rgb(27 54 93 / 0.1);
-  --ds-shadow-lg: 0 12px 32px -4px rgb(27 54 93 / 0.14);
-  --ds-shadow-glow: 0 0 0 3px rgb(11 122 117 / 0.25);
+  /* Shadows — soft warm-neutral elevation; glow uses interactive maroon */
+  --ds-shadow-sm: 0 1px 2px 0 rgb(31 26 26 / 0.05);
+  --ds-shadow-md: 0 4px 12px -2px rgb(31 26 26 / 0.08);
+  --ds-shadow-lg: 0 12px 32px -4px rgb(31 26 26 / 0.11);
+  --ds-shadow-glow: 0 0 0 3px rgb(161 40 45 / 0.28);
 
   /* Spacing */
   --ds-space-page: 1.5rem;
@@ -80,7 +80,7 @@
   --ds-space-card: 1.25rem;
   --ds-space-inline: 1rem;
 
-  /* Accessibility */
+  /* Accessibility — ring colour follows interactive via var() */
   --ds-focus-ring: 0 0 0 2px var(--ds-background), 0 0 0 4px var(--ds-interactive);
   --ds-min-touch: 44px;
 }
