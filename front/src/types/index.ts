@@ -60,6 +60,12 @@ export type {
   RefreshResult,
 } from './auth'
 export { displayName } from './auth'
+export type {
+  FetchUsersQuery,
+  ManagedUser,
+  StaffManageRole,
+  UserSortField,
+} from './user'
 export type { Category, CategoryTreeNode } from './category'
 export type { Tag, TagDto } from './tag'
 export type {
