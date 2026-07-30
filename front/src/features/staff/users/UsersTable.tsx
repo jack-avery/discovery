@@ -1,6 +1,6 @@
-import { MoreVertical } from 'lucide-react'
-import { Badge, Button } from '@/components/ui'
+import { Badge } from '@/components/ui'
 import type { ManagedUser } from '@/types/user'
+import { UserActionsMenu } from '@/features/staff/users/UserActionsMenu'
 import {
   formatUserCreatedAt,
   primaryStaffRole,
@@ -17,12 +17,24 @@ import { cn } from '@/utils/cn'
 
 interface UsersTableProps {
   users: ManagedUser[]
+  currentUserId: number
+  onEdit: (user: ManagedUser) => void
+  onResetPassword: (user: ManagedUser) => void
+  onDisable: (user: ManagedUser) => void
+  onEnable: (user: ManagedUser) => void
 }
 
 /**
- * Admin user table. Actions column is a disabled overflow control for Phase 1.
+ * Admin user table with per-row actions menu.
  */
-export function UsersTable({ users }: UsersTableProps) {
+export function UsersTable({
+  users,
+  currentUserId,
+  onEdit,
+  onResetPassword,
+  onDisable,
+  onEnable,
+}: UsersTableProps) {
   return (
     <div className="overflow-x-auto scrollbar-thin">
       <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
@@ -101,17 +113,14 @@ export function UsersTable({ users }: UsersTableProps) {
                   {formatUserCreatedAt(user.created_at)}
                 </td>
                 <td className={cn(usersTableBodyCellClass, 'text-right')}>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    disabled
-                    aria-label={`Actions for ${name}`}
-                    title="Actions coming soon"
-                    className="h-8 w-8 min-h-0 min-w-0"
-                  >
-                    <MoreVertical className="h-4 w-4" aria-hidden="true" />
-                  </Button>
+                  <UserActionsMenu
+                    user={user}
+                    isCurrentUser={user.user_id === currentUserId}
+                    onEdit={() => onEdit(user)}
+                    onResetPassword={() => onResetPassword(user)}
+                    onDisable={() => onDisable(user)}
+                    onEnable={() => onEnable(user)}
+                  />
                 </td>
               </tr>
             )

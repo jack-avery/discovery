@@ -17,6 +17,7 @@ interface UsersToolbarProps {
   onRoleChange: (role: UsersRoleFilter) => void
   onIncludeInactiveChange: (includeInactive: boolean) => void
   onSortChange: (sort: UserSortField) => void
+  onCreateUser: () => void
 }
 
 const ROLE_OPTIONS: { value: UsersRoleFilter; label: string }[] = [
@@ -51,6 +52,7 @@ export function UsersToolbar({
   onRoleChange,
   onIncludeInactiveChange,
   onSortChange,
+  onCreateUser,
 }: UsersToolbarProps) {
   return (
     <div className="space-y-3 border-b border-border px-4 py-4 sm:px-5">
@@ -64,7 +66,7 @@ export function UsersToolbar({
             variant="interactive"
             size="sm"
             className="shrink-0"
-            // Phase 2: open Create User modal
+            onClick={onCreateUser}
           >
             <Plus className="h-4 w-4" aria-hidden="true" />
             Create User

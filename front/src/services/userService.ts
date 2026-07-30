@@ -118,9 +118,28 @@ function assertNotAborted(signal?: AbortSignal): void {
 }
 
 /**
+ * Apply search / role / inactive / sort / pagination to an in-memory user list.
+ * Used by Phase 3 React state; later the same shape can wrap API results.
+ */
+export function applyUserListQuery(
+  source: readonly ManagedUser[],
+  query: FetchUsersQuery = {},
+): UserListResult {
+  const sort = query.sort ?? 'default'
+  const filtered = filterUsers([...source], query)
+  filtered.sort((left, right) => compareBySort(left, right, sort))
+
+  return paginateUsers(
+    filtered,
+    query.page ?? 1,
+    query.perPage ?? USERS_PAGE_SIZE,
+  )
+}
+
+/**
  * List staff users for User Management.
  *
- * Phase 1: filters / sort / pagination run on mock data.
+ * Phase 1–3: filters / sort / pagination run on mock data.
  * Later: swap the body for `api.get('/users', { params, signal })`.
  */
 export async function fetchUsers(
@@ -172,13 +191,5 @@ export async function fetchUsers(
   const source =
     MOCK_USERS_SCENARIO === 'empty' ? [] : [...MOCK_MANAGED_USERS]
 
-  const sort = query.sort ?? 'default'
-  const filtered = filterUsers(source, query)
-  filtered.sort((left, right) => compareBySort(left, right, sort))
-
-  return paginateUsers(
-    filtered,
-    query.page ?? 1,
-    query.perPage ?? USERS_PAGE_SIZE,
-  )
+  return applyUserListQuery(source, query)
 }
