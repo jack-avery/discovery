@@ -117,7 +117,7 @@ export function DashboardStatCard({
   const isInteractive = Boolean(to) && !isLoading && !unavailable && value != null
   const cardClassName = cn(
     'h-full shadow-sm',
-    isInteractive && 'transition-shadow hover:shadow-md',
+    isInteractive && 'cursor-pointer transition-shadow hover:shadow-md',
   )
 
   const content = (
@@ -135,7 +135,7 @@ export function DashboardStatCard({
     return (
       <Link
         to={to}
-        className="block h-full rounded-xl focus-ring"
+        className="block h-full cursor-pointer rounded-xl focus-ring"
         aria-label={`${title}: ${valueLabel}. ${contentProps.description}`}
       >
         <Card className={cardClassName}>{content}</Card>
