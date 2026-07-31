@@ -29,15 +29,16 @@ importsampledata: down
 	docker compose exec db rm sampledata.sql
 	make down
 
+build: front
+	docker compose build
+
 front:
 	cd front && docker run -it --rm -u1000 -v.:/app node:24-alpine sh -c "cd /app && npm i && npm run build"
 
-up: front
+up:
 	docker compose up -d
 
 down:
 	docker compose down
 
-reup:
-	docker compose down
-	docker compose up -d
+reup: down up
