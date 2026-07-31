@@ -19,30 +19,13 @@ The ideal end-goal of this project is such so that users can simply:
 
 1. Clone the repository: `git clone https://github.com/jack-avery/discovery`
 2. Set environment variables in the `docker-compose.yml` file
-3. Copy the sample Caddyfile to `conf/caddy/Caddyfile` and configure Caddy
-4. Create the initial database with `make initdb`
-5. Run the application with `make up`
+3. Copy the sample Caddyfile to `conf/caddy/Caddyfile` and configure the Caddy domain. For local development, `localhost` will work.
+5. Create the initial database with `make initdb`
+6. Copy `front/.env.sample` to `front/.env` and fill out appropriate variables.
+7. Copy `.env.sample` to `.env` and fill out appropriate variables.
+8. Build necessary application resources with `make build`
+9. Run the application with `make up`
 
-## Development
+Remember to run `make build reup` after every change in order for changes to reflect.
 
-The back-end is MariaDB with Flask, the front-end is a Vite web application.
-
-For quick-start, copy the sample Caddyfile into the same directory and replace `example.com` with `localhost`.
-
-After running the above steps in "Running", the application should be available at `localhost` in your browser.
-
-### Frontend environment variables
-
-The frontend uses Vite environment variables for API and map configuration. **Only `front/.env.example` is tracked in Git** — never commit API keys or other secrets.
-
-New developers:
-
-```bash
-cd front
-cp .env.example .env.local
-# Edit .env.local with your MapTiler API key and other values
-npm install
-npm run dev
-```
-
-See [front/README.md](front/README.md) for the full variable reference, production build guidance, and rationale.
+> TODO: The above workflow needs some work. See https://github.com/jack-avery/discovery/issues/35.
