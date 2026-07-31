@@ -15,8 +15,6 @@ Users of other Linux distributions: it is expected you know what you are doing.
 
 ### Running
 
-The ideal end-goal of this project is such so that users can simply:
-
 1. Clone the repository: `git clone https://github.com/jack-avery/discovery`
 2. Set environment variables in the `docker-compose.yml` file
 3. Copy the sample Caddyfile to `conf/caddy/Caddyfile` and configure the Caddy domain. For local development, `localhost` will work.
