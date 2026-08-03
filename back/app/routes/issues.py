@@ -8,8 +8,9 @@ from flask import Blueprint, request
 from flask_jwt_extended import get_jwt_identity, jwt_required
 
 from app.extensions import db
-from app.models import ReportedIssue, Resource, Submission, User
+from app.models import Category, ReportedIssue, Resource, ResourceVersionCategory, Submission, User
 from app.utils import check_and_increment_rate_limit, err, ok, paginate, require_roles, validate_text_length
+from sqlalchemy import func
 
 issues_bp = Blueprint("issues", __name__, url_prefix="/issues")
 dashboard_bp = Blueprint("dashboard", __name__, url_prefix="/dashboard")
@@ -83,7 +84,7 @@ def create_issue():
 
 # GET /issues - moderator+, paginated list
 @issues_bp.get("")
-@require_roles("moderator", "administrator")
+@require_roles("moderator")
 def list_issues():
     status_filter = request.args.get("status", "open")
     resource_filter = request.args.get("resource_id", type=int)
@@ -111,7 +112,7 @@ def list_issues():
 
 # PUT /issues/<id>/resolve - moderator+
 @issues_bp.put("/<int:issue_id>/resolve")
-@require_roles("moderator", "administrator")
+@require_roles("moderator")
 def resolve_issue(issue_id):
     resolver_id = get_jwt_identity()
     data = request.get_json(silent=True) or {}
@@ -136,30 +137,73 @@ def resolve_issue(issue_id):
 
 # GET /dashboard/stats - moderator+
 @dashboard_bp.get("/stats")
-@require_roles("moderator", "administrator")
+@require_roles("moderator")
 def dashboard_stats():
     total_resources = Resource.query.filter_by(deleted_at=None).count()
 
     published_resources = Resource.query.filter(
         Resource.is_active == 1,
-        Resource.deleted_at == None,  # noqa: E711
+        Resource.deleted_at == None,  
     ).count()
 
     pending_submissions = Submission.query.filter_by(
         moderation_status="pending_review"
     ).count()
 
+    new_submission_types = [
+        t for t in Submission.SUBMISSION_TYPES if t != "update_resource"
+    ]
+    pending_new_submissions = Submission.query.filter(
+        Submission.moderation_status == "pending_review",
+        Submission.submission_type.in_(new_submission_types),
+    ).count()
+
+    pending_resource_updates = Submission.query.filter_by(
+        moderation_status="pending_review",
+        submission_type="update_resource",
+    ).count()
+
     open_issues = ReportedIssue.query.filter_by(status="open").count()
 
     total_users = User.query.filter_by(is_active=1).count()
+
+    category_rows = (
+        db.session.query(
+            Category.category_id,
+            Category.name,
+            func.count(func.distinct(Resource.resource_id)).label("resource_count"),
+        )
+        .outerjoin(
+            ResourceVersionCategory,
+            ResourceVersionCategory.category_id == Category.category_id,
+        )
+        .outerjoin(
+            Resource,
+            db.and_(
+                Resource.current_approved_version_id == ResourceVersionCategory.resource_version_id,
+                Resource.is_active == 1,
+                Resource.deleted_at.is_(None),
+            ),
+        )
+        .filter(Category.is_active == 1)
+        .group_by(Category.category_id, Category.name)
+        .order_by(func.count(func.distinct(Resource.resource_id)).desc(), Category.name.asc())
+        .all()
+    )
 
     return ok(
         {
             "total_resources": total_resources,
             "published_resources": published_resources,
             "pending_submissions": pending_submissions,
+            "pending_new_submissions": pending_new_submissions,
+            "pending_resource_updates": pending_resource_updates,
             "open_issues": open_issues,
             "total_users": total_users,
+            "category_distribution": [
+                {"category_id": c.category_id, "name": c.name, "resource_count": c.resource_count}
+                for c in category_rows
+            ],
         },
         "Dashboard stats retrieved.",
     )

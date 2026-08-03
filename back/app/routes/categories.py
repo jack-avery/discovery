@@ -3,8 +3,10 @@
 # pyright: reportCallIssue=false
 
 from flask import Blueprint, request
+from sqlalchemy import func
+
 from app.extensions import db
-from app.models import Category, Tag
+from app.models import Category, Tag, Resource, ResourceVersionCategory, ResourceVersionTag
 from app.utils import ok, err, require_roles, validate_text_length
 
 
@@ -18,7 +20,38 @@ _COLOR_MAX = 7
 
 
 # CATEGORY HELPERS
-def _build_tree(categories: list) -> list:
+
+# usage_count = distinct published (is_active, not deleted) resources whose
+# CURRENT approved version carries this category/tag.
+def _category_usage_counts():
+    rows = (
+        db.session.query(
+            ResourceVersionCategory.category_id,
+            func.count(func.distinct(Resource.resource_id)),
+        )
+        .join(Resource, Resource.current_approved_version_id == ResourceVersionCategory.resource_version_id)
+        .filter(Resource.is_active == 1, Resource.deleted_at.is_(None))
+        .group_by(ResourceVersionCategory.category_id)
+        .all()
+    )
+    return dict(rows)
+
+
+def _tag_usage_counts():
+    rows = (
+        db.session.query(
+            ResourceVersionTag.tag_id,
+            func.count(func.distinct(Resource.resource_id)),
+        )
+        .join(Resource, Resource.current_approved_version_id == ResourceVersionTag.resource_version_id)
+        .filter(Resource.is_active == 1, Resource.deleted_at.is_(None))
+        .group_by(ResourceVersionTag.tag_id)
+        .all()
+    )
+    return dict(rows)
+
+
+def _build_tree(categories: list, usage_counts: dict) -> list:
     node_map = {}
     for cat in categories:
         node_map[cat.category_id] = {
@@ -30,6 +63,7 @@ def _build_tree(categories: list) -> list:
             "color_hex": cat.color_hex,
             "parent_category_id": cat.parent_category_id,
             "display_order": cat.display_order,
+            "usage_count": usage_counts.get(cat.category_id, 0),
             "children": []
         }
 
@@ -59,12 +93,12 @@ def list_categories():
         .order_by(Category.display_order.asc(), Category.name.asc())
         .all()
     )
-    return ok(_build_tree(cats))
+    return ok(_build_tree(cats, _category_usage_counts()))
 
 
 # POST /categories
 @categories_bp.post("")
-@require_roles("staff_editor", "moderator", "administrator")
+@require_roles("staff_editor")
 def create_category():
     data = request.get_json(silent=True)
     if not data:
@@ -120,7 +154,7 @@ def create_category():
 
 # PUT /categories/<category_id>
 @categories_bp.put("/<int:category_id>")
-@require_roles("staff_editor", "moderator", "administrator")
+@require_roles("staff_editor")
 def update_category(category_id):
     category = Category.query.get(category_id)
     if not category:
@@ -197,13 +231,51 @@ def update_category(category_id):
     })
 
 
-# DELETE /categories/<category_id> (soft delete)
+# DELETE /categories/<category_id> (safe deactivation, requirement 6)
 @categories_bp.delete("/<int:category_id>")
-@require_roles("staff_editor", "moderator", "administrator")
+@require_roles("staff_editor")
 def delete_category(category_id):
+    """
+    Deactivate, never hard-delete (unchanged from before).
+    """
     category = Category.query.get(category_id)
     if not category:
         return err("Category not found.", 404)
+
+    version_ids_with_category = [
+        row.resource_version_id
+        for row in ResourceVersionCategory.query.filter_by(category_id=category_id).all()
+    ]
+
+    affected_resources = (
+        Resource.query.filter(
+            Resource.current_approved_version_id.in_(version_ids_with_category),
+            Resource.is_active == 1,
+            Resource.deleted_at.is_(None),
+        ).all()
+        if version_ids_with_category else []
+    )
+
+    blocking_resource_ids = [
+        r.resource_id for r in affected_resources
+        if ResourceVersionCategory.query.filter_by(
+            resource_version_id=r.current_approved_version_id
+        ).count() <= 1
+    ]
+    if blocking_resource_ids:
+        return err(
+            "Cannot deactivate: it is the only category on "
+            f"{len(blocking_resource_ids)} published resource(s). "
+            "Give those resources another category first.",
+            409,
+            {"blocking_resource_ids": blocking_resource_ids},
+        )
+
+    for resource in affected_resources:
+        ResourceVersionCategory.query.filter_by(
+            resource_version_id=resource.current_approved_version_id,
+            category_id=category_id,
+        ).delete(synchronize_session=False)
 
     category.is_active = 0
     db.session.commit()
@@ -213,6 +285,7 @@ def delete_category(category_id):
         "name": category.name,
         "slug": category.slug,
         "is_active": bool(category.is_active),
+        "resources_updated": len(affected_resources),
         "message": "Category deactivated successfully."
     })
 
@@ -226,20 +299,13 @@ def list_tags():
         .order_by(Tag.name.asc())
         .all()
     )
-    return ok([
-        {
-            "tag_id": t.tag_id,
-            "name": t.name,
-            "slug": t.slug,
-            "is_active": bool(t.is_active),
-        }
-        for t in tags
-    ])
+    usage_counts = _tag_usage_counts()
+    return ok([t.to_dict(usage_count=usage_counts.get(t.tag_id, 0)) for t in tags])
 
 
 # POST /tags
 @tags_bp.post("")
-@require_roles("staff_editor", "moderator", "administrator")
+@require_roles("staff_editor")
 def create_tag():
     data = request.get_json(silent=True)
     if not data:
@@ -284,7 +350,7 @@ def create_tag():
 
 # PUT /tags/<tag_id>
 @tags_bp.put("/<int:tag_id>")
-@require_roles("staff_editor", "moderator", "administrator")
+@require_roles("staff_editor")
 def update_tag(tag_id):
     tag = Tag.query.get(tag_id)
     if not tag:
@@ -337,7 +403,7 @@ def update_tag(tag_id):
 
 # DELETE /tags/<tag_id>  (soft delete)
 @tags_bp.delete("/<int:tag_id>")
-@require_roles("staff_editor", "moderator", "administrator")
+@require_roles("staff_editor")
 def delete_tag(tag_id):
     tag = Tag.query.get(tag_id)
     if not tag:

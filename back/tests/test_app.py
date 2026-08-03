@@ -1,3 +1,5 @@
+# pyright: ignore[reportCallIssue, reportOptionalMemberAccess, reportCallIssue]
+# type: ignore
 """
 Phase 9, Automated Test Suite
 RRCRC Community Asset Mapping Platform, Backend
@@ -13,17 +15,27 @@ Coverage map (Phase -> Test class)
   Phase 7  ->  TestSubmissionsCreate, TestSubmissionReview, TestSubmissionComparison
   Phase 8  ->  TestIssues, TestDashboard
   Phase 3  ->  TestRateLimit
+
 """
+import hashlib
+from datetime import datetime, timedelta, timezone
+
+import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db, bcrypt
 from app.models import (
+    Category,
+    PasswordResetToken,
+    ReportedIssue,
     Resource,
     ResourceChangeLog,
     ResourceVersion,
+    ResourceVersionCategory,
     Role,
+    SkillsFollowUp,
     Submission,
     SubmissionReview,
-    ReportedIssue,
     User,
     UserRole,
 )
@@ -406,7 +418,7 @@ class TestRBAC:
         resp = client.get("/dashboard/stats", headers=auth(token))
         assert resp.status_code == 200
 
-    def test_staff_editor_blocked_from_moderator_route(self, client):
+    def test_staff_editor_can_access_moderator_route(self, client):
         """
         staff_editor is a lower-privilege role than moderator.
         Calling /dashboard/stats (requires moderator+) -> 403.
@@ -414,7 +426,7 @@ class TestRBAC:
         make_user("staffonly@example.com", role_name="staff_editor")
         token = get_token(client, "staffonly@example.com")
         resp = client.get("/dashboard/stats", headers=auth(token))
-        assert resp.status_code == 403
+        assert resp.status_code == 200
 
 
 # =================================================================================
@@ -788,7 +800,7 @@ class TestResourcesStaffCRUD:
         assert resource is not None
         assert resource.deleted_at is not None
 
-    def test_delete_requires_administrator_not_staff_editor(self, client):
+    def test_staff_editor_can_delete_resource(self, client):
         """
         staff_editor calling DELETE /resources/<id> -> 403.
         Only administrator is in the allowed set for the delete route.
@@ -798,7 +810,7 @@ class TestResourcesStaffCRUD:
         resource_id = create_resource_api(client, token, name="Not For Staff To Delete")["resource_id"]
 
         resp = client.delete(f"/resources/{resource_id}", headers=auth(token))
-        assert resp.status_code == 403
+        assert resp.status_code == 200
 
     def test_duplicate_name_generates_slug_with_suffix(self, client):
         """
@@ -1542,12 +1554,6 @@ class TestDashboard:
         token = get_token(client, "dash_contrib@example.com")
         assert client.get("/dashboard/stats", headers=auth(token)).status_code == 403
 
-    def test_dashboard_staff_editor_returns_403(self, client):
-        """'staff_editor' role is also below moderator threshold -> 403."""
-        make_user("dash_staff@example.com", role_name="staff_editor")
-        token = get_token(client, "dash_staff@example.com")
-        assert client.get("/dashboard/stats", headers=auth(token)).status_code == 403
-
     def test_dashboard_administrator_returns_200(self, client):
         """'administrator' satisfies the moderator+ requirement -> 200."""
         make_user("d_admin@example.com", role_name="administrator")
@@ -1684,3 +1690,863 @@ def test_trusted_contributor_cannot_access_staff_routes(client):
     token = get_token(client, "tc2@example.com")
     resp = client.post("/resources", json={}, headers=auth(token))
     assert resp.status_code == 403
+
+
+# =================================================================================
+# Role & Permission Model Change Request / backend-requests doc items 2-8
+# (merged in from test_enhancements.py)
+# =================================================================================
+
+def _hash_token(raw: str) -> str:
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+# ============================================================================
+# Role hierarchy: require_roles(min_role) is a rank check now, not an
+# allow-list. Each test below pins the exact superset property the Role &
+# Permission Model Change Request asked for -- a role should never need to
+# be named explicitly on a route it's supposed to inherit access to.
+# ============================================================================
+class TestRoleHierarchy:
+
+    @pytest.mark.parametrize("role,expected_status", [
+        ("trusted_contributor", 403),
+        ("moderator", 200),
+        ("staff_editor", 200),   # the bug this replaces: used to be 403
+        ("administrator", 200),
+    ])
+    def test_dashboard_access_by_role(self, client, role, expected_status):
+        email = f"h_dash_{role}@example.com"
+        make_user(email, role_name=role)
+        token = get_token(client, email)
+        resp = client.get("/dashboard/stats", headers=auth(token))
+        assert resp.status_code == expected_status
+
+    @pytest.mark.parametrize(
+    ("role_name", "expected_status"),
+    [
+        ("trusted_contributor", 403),
+        ("moderator", 201),
+        ("staff_editor", 201),
+        ("administrator", 201),
+    ],
+)
+    def test_create_resource_by_role(self, client, role_name, expected_status):
+        email = f"{role_name}-createres@example.com"
+        make_user(email, role_name=role_name)
+        token = get_token(client, email)
+
+        resp = client.post(
+            "/resources",
+            json={
+                "name": f"{role_name} Resource",
+                "resource_type": "Service",
+            },
+            headers=auth(token),
+        )
+
+        assert resp.status_code == expected_status
+
+    @pytest.mark.parametrize(
+    ("role_name", "expected_status"),
+    [
+        ("trusted_contributor", 403),
+        ("moderator", 403),
+        ("staff_editor", 200),
+        ("administrator", 200),
+    ],
+)
+    def test_delete_resource_by_role(self, client, role_name, expected_status):
+        admin_email = f"creator-{role_name}@example.com"
+        make_user(admin_email, role_name="administrator")
+        admin_token = get_token(client, admin_email)
+
+        created = create_resource_api(
+            client,
+            admin_token,
+            name=f"Delete Target {role_name}",
+        )
+        resource_id = created["resource_id"]
+
+        email = f"{role_name}-delete@example.com"
+        make_user(email, role_name=role_name)
+        token = get_token(client, email)
+
+        resp = client.delete(
+            f"/resources/{resource_id}",
+            headers=auth(token),
+        )
+
+        assert resp.status_code == expected_status
+
+    @pytest.mark.parametrize("role,expected_status", [
+        ("trusted_contributor", 403),
+        ("moderator", 403),      # cannot manage categories/tags
+        ("staff_editor", 201),
+        ("administrator", 201),
+    ])
+    def test_create_category_by_role(self, client, role, expected_status):
+        email = f"h_cat_{role}@example.com"
+        make_user(email, role_name=role)
+        token = get_token(client, email)
+        resp = client.post(
+            "/categories",
+            json={"name": f"Category {role}", "slug": f"category-{role}"},
+            headers=auth(token),
+        )
+        assert resp.status_code == expected_status
+
+    def test_invalid_min_role_raises_clear_error(self, client):
+        """require_roles() with a role name outside Role.HIERARCHY should
+        fail loudly (ValueError), not silently deny/allow everyone."""
+        make_user("h_bad_role@example.com", role_name="administrator")
+        user = User.query.filter_by(email="h_bad_role@example.com").first()
+        with pytest.raises(ValueError):
+            user.has_role_at_least("superadmin")
+
+
+# ============================================================================
+# One role per account (requirement 1 / requirement 2)
+# ============================================================================
+class TestOneRolePerAccount:
+
+    def test_db_rejects_a_second_role_row_for_the_same_user(self, client):
+        make_user("o_dup@example.com", role_name="moderator")
+        user = User.query.filter_by(email="o_dup@example.com").first()
+        staff_editor_role = Role.query.filter_by(role_name="staff_editor").first()
+
+        db.session.add(UserRole(user_id=user.user_id, role_id=staff_editor_role.role_id)) # pyright: ignore[reportCallIssue, reportOptionalMemberAccess]
+        with pytest.raises(IntegrityError):
+            db.session.commit()
+        db.session.rollback()
+
+    def test_admin_patch_role_replaces_not_adds(self, client):
+        make_user("o_admin@example.com", role_name="administrator")
+        admin_token = get_token(client, "o_admin@example.com")
+
+        make_user("o_target@example.com", role_name="moderator")
+        target = User.query.filter_by(email="o_target@example.com").first()
+
+        resp = client.patch(
+            f"/users/{target.user_id}",
+            json={"role": "staff_editor"},
+            headers=auth(admin_token),
+        )
+        assert resp.status_code == 200
+        assert resp.get_json()["data"]["role"] == "staff_editor"
+
+        role_count = UserRole.query.filter_by(user_id=target.user_id).count() # type: ignore
+        assert role_count == 1
+
+
+# ============================================================================
+# Self-registration default role (Role & Permission Model Change Request:
+# "Trusted Contributor becomes the default non-staff role")
+# ============================================================================
+class TestSelfRegistrationDefaultRole:
+
+    def test_register_auto_assigns_trusted_contributor(self, client):
+        resp = client.post("/auth/register", json={
+            "email": "r_new@example.com",
+            "password": "SomeStrongPass1!",
+            "first_name": "New",
+            "last_name": "Person",
+        })
+        assert resp.status_code == 201
+
+        user = User.query.filter_by(email="r_new@example.com").first()
+        assert user is not None
+        assert user.role_name == "trusted_contributor"
+
+
+# ============================================================================
+# POST /auth/setup-password (requirement 2, preferred flow)
+# ============================================================================
+class TestSetupPassword:
+
+    def _make_pending_user(self, email="s_pending@example.com"):
+        role = Role.query.filter_by(role_name="trusted_contributor").first()
+        user = User(
+            email=email,
+            password_hash=bcrypt.generate_password_hash("unusable-placeholder").decode("utf-8"),
+            first_name="Pending",
+            last_name="Setup",
+            is_active=1,
+        )
+        db.session.add(user)
+        db.session.flush()
+        if role:
+            db.session.add(UserRole(user_id=user.user_id, role_id=role.role_id))
+        db.session.commit()
+        return user
+
+    def _issue_token(self, user, expires_delta=timedelta(hours=48), used=False):
+        raw = "raw-test-token-" + user.email
+        db.session.add(PasswordResetToken(
+            user_id=user.user_id, # pyright: ignore[reportCallIssue]
+            token_hash=_hash_token(raw),
+            expires_at=datetime.now(timezone.utc) + expires_delta,
+            used_at=datetime.now(timezone.utc) if used else None,
+        ))
+        db.session.commit()
+        return raw
+
+    def test_valid_token_sets_password_and_can_login(self, client):
+        user = self._make_pending_user("s_valid@example.com")
+        raw_token = self._issue_token(user)
+
+        resp = client.post("/auth/setup-password", json={
+            "token": raw_token,
+            "password": "BrandNewPass1!",
+        })
+        assert resp.status_code == 200
+
+        login_resp = client.post("/auth/login", json={
+            "email": "s_valid@example.com",
+            "password": "BrandNewPass1!",
+        })
+        assert login_resp.status_code == 200
+        assert "access_token" in login_resp.get_json()["data"]
+
+    def test_garbage_token_rejected(self, client):
+        resp = client.post("/auth/setup-password", json={
+            "token": "this-token-does-not-exist",
+            "password": "BrandNewPass1!",
+        })
+        assert resp.status_code == 401
+
+    def test_expired_token_rejected(self, client):
+        user = self._make_pending_user("s_expired@example.com")
+        raw_token = self._issue_token(user, expires_delta=timedelta(hours=-1))
+
+        resp = client.post("/auth/setup-password", json={
+            "token": raw_token,
+            "password": "BrandNewPass1!",
+        })
+        assert resp.status_code == 401
+
+    def test_already_used_token_rejected(self, client):
+        user = self._make_pending_user("s_used@example.com")
+        raw_token = self._issue_token(user, used=True)
+
+        resp = client.post("/auth/setup-password", json={
+            "token": raw_token,
+            "password": "BrandNewPass1!",
+        })
+        assert resp.status_code == 401
+
+    def test_token_cannot_be_replayed(self, client):
+        user = self._make_pending_user("s_replay@example.com")
+        raw_token = self._issue_token(user)
+
+        first = client.post("/auth/setup-password", json={
+            "token": raw_token, "password": "FirstPass1!",
+        })
+        assert first.status_code == 200
+
+        second = client.post("/auth/setup-password", json={
+            "token": raw_token, "password": "SecondPass1!",
+        })
+        assert second.status_code == 401
+
+    def test_password_too_short_rejected(self, client):
+        user = self._make_pending_user("s_short@example.com")
+        raw_token = self._issue_token(user)
+
+        resp = client.post("/auth/setup-password", json={
+            "token": raw_token, "password": "short",
+        })
+        assert resp.status_code == 422
+
+
+# ============================================================================
+# Administrator user management (requirement 2)
+# ============================================================================
+class TestUserManagement:
+
+    def _admin_token(self, client, suffix):
+        email = f"u_admin_{suffix}@example.com"
+        make_user(email, role_name="administrator")
+        return get_token(client, email)
+
+    def test_non_admin_forbidden_on_every_users_route(self, client):
+        make_user("u_mod_noaccess@example.com", role_name="moderator")
+        token = get_token(client, "u_mod_noaccess@example.com")
+
+        assert client.get("/users", headers=auth(token)).status_code == 403
+        assert client.post("/users", json={}, headers=auth(token)).status_code == 403
+        assert client.get("/users/1", headers=auth(token)).status_code == 403
+        assert client.patch("/users/1", json={}, headers=auth(token)).status_code == 403
+        assert client.post("/users/1/reset-password", headers=auth(token)).status_code == 403
+
+    def test_create_user_returns_setup_token_and_correct_role(self, client):
+        admin_token = self._admin_token(client, "create")
+
+        resp = client.post("/users", json={
+            "email": "u_created@example.com",
+            "first_name": "Created",
+            "last_name": "User",
+            "role": "moderator",
+        }, headers=auth(admin_token))
+
+        assert resp.status_code == 201
+        data = resp.get_json()["data"]
+        assert data["role"] == "moderator"
+        assert data["is_active"] is True
+        assert "setup_token" in data and len(data["setup_token"]) > 20
+
+        # The returned token actually works end-to-end.
+        setup_resp = client.post("/auth/setup-password", json={
+            "token": data["setup_token"], "password": "TheirNewPass1!",
+        })
+        assert setup_resp.status_code == 200
+
+    def test_create_user_duplicate_email_conflict(self, client):
+        admin_token = self._admin_token(client, "dupe")
+        payload = {
+            "email": "u_dupe@example.com", "first_name": "A", "last_name": "B",
+            "role": "moderator",
+        }
+        first = client.post("/users", json=payload, headers=auth(admin_token))
+        assert first.status_code == 201
+        second = client.post("/users", json=payload, headers=auth(admin_token))
+        assert second.status_code == 409
+
+    def test_create_user_invalid_role_rejected(self, client):
+        admin_token = self._admin_token(client, "badrole")
+        resp = client.post("/users", json={
+            "email": "u_badrole@example.com", "first_name": "A", "last_name": "B",
+            "role": "super_admin",
+        }, headers=auth(admin_token))
+        assert resp.status_code == 422
+
+    def test_list_users_search_and_role_filter(self, client):
+        admin_token = self._admin_token(client, "list")
+        client.post("/users", json={
+            "email": "u_findme@example.com", "first_name": "Findable",
+            "last_name": "Person", "role": "staff_editor",
+        }, headers=auth(admin_token))
+
+        resp = client.get("/users?search=Findable", headers=auth(admin_token))
+        assert resp.status_code == 200
+        emails = [u["email"] for u in resp.get_json()["data"]["items"]]
+        assert "u_findme@example.com" in emails
+
+        resp = client.get("/users?role=staff_editor", headers=auth(admin_token))
+        assert resp.status_code == 200
+        roles = {u["role"] for u in resp.get_json()["data"]["items"]}
+        assert roles <= {"staff_editor"}
+
+    def test_disabled_account_cannot_authenticate(self, client):
+        admin_token = self._admin_token(client, "disable")
+        create_resp = client.post("/users", json={
+            "email": "u_disableme@example.com", "first_name": "A", "last_name": "B",
+            "role": "moderator",
+        }, headers=auth(admin_token))
+        setup_token = create_resp.get_json()["data"]["setup_token"]
+        client.post("/auth/setup-password", json={
+            "token": setup_token, "password": "SomePass1!",
+        })
+
+        target_id = create_resp.get_json()["data"]["user_id"]
+        patch_resp = client.patch(
+            f"/users/{target_id}", json={"is_active": False}, headers=auth(admin_token)
+        )
+        assert patch_resp.status_code == 200
+
+        login_resp = client.post("/auth/login", json={
+            "email": "u_disableme@example.com", "password": "SomePass1!",
+        })
+        assert login_resp.status_code == 401
+
+    def test_reset_password_invalidates_previous_token(self, client):
+        admin_token = self._admin_token(client, "reset")
+        create_resp = client.post("/users", json={
+            "email": "u_resetme@example.com", "first_name": "A", "last_name": "B",
+            "role": "moderator",
+        }, headers=auth(admin_token))
+        old_token = create_resp.get_json()["data"]["setup_token"]
+        target_id = create_resp.get_json()["data"]["user_id"]
+
+        reset_resp = client.post(f"/users/{target_id}/reset-password", headers=auth(admin_token))
+        assert reset_resp.status_code == 200
+        new_token = reset_resp.get_json()["data"]["setup_token"]
+        assert new_token != old_token
+
+        # Old link is dead.
+        old_attempt = client.post("/auth/setup-password", json={
+            "token": old_token, "password": "WontWork1!",
+        })
+        assert old_attempt.status_code == 401
+
+        # New link works.
+        new_attempt = client.post("/auth/setup-password", json={
+            "token": new_token, "password": "WillWork1!",
+        })
+        assert new_attempt.status_code == 200
+
+
+# ============================================================================
+# Category/tag usage_count + safe deactivation (requirements 5 & 6)
+# ============================================================================
+class TestCategoryUsageAndDeactivation:
+
+    def test_usage_counts_block_and_safe_deactivation(self, client):
+        make_user("c_staff@example.com", role_name="staff_editor")
+        staff_token = get_token(client, "c_staff@example.com")
+
+        def make_category(name):
+            resp = client.post("/categories", json={
+                "name": name, "slug": name.lower().replace(" ", "-"),
+            }, headers=auth(staff_token))
+            assert resp.status_code == 201
+            return resp.get_json()["data"]["category_id"]
+
+        cat_a = make_category("Cat Usage A")
+        cat_b = make_category("Cat Usage B")
+        cat_c = make_category("Cat Usage C Unused")
+        cat_d = make_category("Cat Usage D Removable")
+
+        make_user("c_mod@example.com", role_name="moderator")
+        mod_token = get_token(client, "c_mod@example.com")
+
+        # Resource 1: A + B + D  -- D is never anyone's sole category
+        r1 = create_resource_api(
+            client, mod_token, name="Usage Resource 1", resource_type="Organization",
+            category_ids=[cat_a, cat_b, cat_d],
+        )["resource_id"]
+        # Resource 2: A only -- A is sole here
+        create_resource_api(
+            client, mod_token, name="Usage Resource 2", resource_type="Organization",
+            category_ids=[cat_a],
+        )
+        # Resource 3: B only -- B is sole here
+        create_resource_api(
+            client, mod_token, name="Usage Resource 3", resource_type="Organization",
+            category_ids=[cat_b],
+        )
+
+        # usage_count reflects all of the above
+        list_resp = client.get("/categories")
+        by_id = {c["category_id"]: c for c in list_resp.get_json()["data"]}
+        assert by_id[cat_a]["usage_count"] == 2
+        assert by_id[cat_b]["usage_count"] == 2
+        assert by_id[cat_c]["usage_count"] == 0
+        assert by_id[cat_d]["usage_count"] == 1
+
+        # Deactivating A is blocked -- Resource 2 has no other category
+        blocked = client.delete(f"/categories/{cat_a}", headers=auth(staff_token))
+        assert blocked.status_code == 409
+        assert Category.query.get(cat_a).is_active == 1
+
+        # Deactivating D succeeds -- never anyone's sole category
+        ok_resp = client.delete(f"/categories/{cat_d}", headers=auth(staff_token))
+        assert ok_resp.status_code == 200
+        assert Category.query.get(cat_d).is_active == 0
+
+        # Resource 1 lost D but kept A and B; still published
+        r1_obj = Resource.query.get(r1)
+        remaining = {
+            row.category_id for row in ResourceVersionCategory.query.filter_by(
+                resource_version_id=r1_obj.current_approved_version_id # pyright: ignore[reportOptionalMemberAccess]
+            ).all()
+        }
+        assert remaining == {cat_a, cat_b}
+        assert r1_obj.is_active == 1 # pyright: ignore[reportOptionalMemberAccess]
+
+        # D no longer appears in the active category list
+        list_resp2 = client.get("/categories")
+        ids = {c["category_id"] for c in list_resp2.get_json()["data"]}
+        assert cat_d not in ids
+
+    def test_historical_version_category_link_preserved(self, client):
+        """A category used only on a SUPERSEDED (non-current) version must
+        never block deactivation, and must never be touched by it."""
+        make_user("c_hist_mod@example.com", role_name="moderator")
+        mod_token = get_token(client, "c_hist_mod@example.com")
+        make_user("c_hist_staff@example.com", role_name="staff_editor")
+        staff_token = get_token(client, "c_hist_staff@example.com")
+
+        cat_resp = client.post("/categories", json={
+            "name": "Historical Only Cat", "slug": "historical-only-cat",
+        }, headers=auth(staff_token))
+        historical_cat_id = cat_resp.get_json()["data"]["category_id"]
+
+        # Published resource, but with NO categories on its current version.
+        resource_id = create_resource_api(
+            client, mod_token, name="Historical Version Resource",
+            resource_type="Organization", category_ids=[],
+        )["resource_id"]
+
+        resource = Resource.query.get(resource_id)
+        old_version_id = resource.current_approved_version_id
+
+        # Directly attach the category to that OLD version only (simulating
+        # a version that had it before being superseded).
+        db.session.add(ResourceVersionCategory(
+            resource_version_id=old_version_id, category_id=historical_cat_id
+        ))
+        db.session.commit()
+
+        # Now supersede it with a NEW current version that does NOT carry
+        # the category -- current_approved_version_id moves on.
+        new_version = ResourceVersion(
+            resource_id=resource.resource_id,
+            resource_type="Organization",
+            moderation_status="approved",
+            name="Historical Version Resource (v2)",
+            submitted_by_user_id=None,
+        )
+        db.session.add(new_version)
+        db.session.flush()
+        resource.current_approved_version_id = new_version.resource_version_id
+        db.session.commit()
+
+        # The category is not on the CURRENT version anywhere -- deactivating
+        # it must succeed immediately, and must not touch the old version's row.
+        resp = client.delete(f"/categories/{historical_cat_id}", headers=auth(staff_token))
+        assert resp.status_code == 200
+
+        still_there = ResourceVersionCategory.query.filter_by(
+            resource_version_id=old_version_id, category_id=historical_cat_id
+        ).first()
+        assert still_there is not None  # history untouched
+
+
+# ============================================================================
+# Reviewer-edited approval (requirement 3)
+# ============================================================================
+class TestReviewerEditedApproval:
+
+    def test_approve_without_approved_version_unchanged_behaviour(self, client):
+        submit_resp = client.post("/submissions", json={
+            "submission_type": "new_resource",
+            "name": "Plain Approval Org",
+            "resource_type": "Organization",
+        })
+        assert submit_resp.status_code == 201
+        body = submit_resp.get_json()["data"]
+
+        make_user("rv_mod1@example.com", role_name="moderator")
+        mod_token = get_token(client, "rv_mod1@example.com")
+
+        review_resp = client.post(
+            f"/submissions/{body['submission_id']}/review",
+            json={"decision": "approved"},
+            headers=auth(mod_token),
+        )
+        assert review_resp.status_code == 200
+        review_data = review_resp.get_json()["data"]
+        assert review_data["included_reviewer_edits"] is False
+        assert review_data["published_version_id"] == body["proposed_version_id"]
+
+        resource = Resource.query.get(body["resource_id"])
+        assert resource.current_approved_version_id == body["proposed_version_id"]
+        assert resource.is_active == 1
+
+    def test_approve_with_approved_version_publishes_new_version(self, client):
+        submit_resp = client.post("/submissions", json={
+            "submission_type": "new_resource",
+            "name": "Original Submitter Name",
+            "resource_type": "Organization",
+            "description": "Original description",
+        })
+        body = submit_resp.get_json()["data"]
+        original_version_id = body["proposed_version_id"]
+
+        make_user("rv_mod2@example.com", role_name="moderator")
+        mod_token = get_token(client, "rv_mod2@example.com")
+
+        review_resp = client.post(
+            f"/submissions/{body['submission_id']}/review",
+            json={
+                "decision": "approved",
+                "review_comment": "Cleaned up before publishing.",
+                "approved_version": {
+                    "name": "Reviewer-Edited Name",
+                    "resource_type": "Organization",
+                    "description": "Reviewer-edited description",
+                },
+            },
+            headers=auth(mod_token),
+        )
+        assert review_resp.status_code == 200
+        review_data = review_resp.get_json()["data"]
+        assert review_data["included_reviewer_edits"] is True
+        new_version_id = review_data["published_version_id"]
+        assert new_version_id != original_version_id
+
+        # Resource points at the NEW version, never the original.
+        resource = Resource.query.get(body["resource_id"])
+        assert resource.current_approved_version_id == new_version_id
+        assert resource.is_active == 1
+
+        new_version = ResourceVersion.query.get(new_version_id)
+        assert new_version.name == "Reviewer-Edited Name"
+        assert new_version.moderation_status == "approved"
+
+        # Original submitter's content is untouched.
+        original_version = ResourceVersion.query.get(original_version_id)
+        assert original_version.name == "Original Submitter Name"
+        assert original_version.description == "Original description"
+        assert original_version.moderation_status == "approved"  # metadata updates
+
+        # proposed_version_id still points at the ORIGINAL, never repointed.
+        submission = Submission.query.get(body["submission_id"])
+        assert submission.proposed_version_id == original_version_id
+
+        # Audit trail recorded the edit.
+        review_row = SubmissionReview.query.filter_by(
+            submission_id=body["submission_id"]
+        ).order_by(SubmissionReview.reviewed_at.desc()).first()
+        assert review_row.included_reviewer_edits == 1
+
+    def test_approved_version_missing_name_rejected(self, client):
+        submit_resp = client.post("/submissions", json={
+            "submission_type": "new_resource",
+            "name": "Needs A Name Fix",
+            "resource_type": "Organization",
+        })
+        body = submit_resp.get_json()["data"]
+
+        make_user("rv_mod3@example.com", role_name="moderator")
+        mod_token = get_token(client, "rv_mod3@example.com")
+
+        resp = client.post(
+            f"/submissions/{body['submission_id']}/review",
+            json={"decision": "approved", "approved_version": {"description": "no name given"}},
+            headers=auth(mod_token),
+        )
+        assert resp.status_code == 422
+
+    def test_update_resource_reviewer_edit_does_not_flip_is_active(self, client):
+        make_user("rv_mod4@example.com", role_name="moderator")
+        mod_token = get_token(client, "rv_mod4@example.com")
+
+        resource_id = create_resource_api(
+            client, mod_token, name="Update Target Base", resource_type="Organization",
+        )["resource_id"]
+
+        submit_resp = client.post("/submissions", json={
+            "submission_type": "update_resource",
+            "resource_id": resource_id,
+            "name": "Proposed Update Name",
+            "resource_type": "Organization",
+        })
+        body = submit_resp.get_json()["data"]
+
+        review_resp = client.post(
+            f"/submissions/{body['submission_id']}/review",
+            json={
+                "decision": "approved",
+                "approved_version": {"name": "Reviewer-Edited Update Name", "resource_type": "Organization"},
+            },
+            headers=auth(mod_token),
+        )
+        assert review_resp.status_code == 200
+        resource = Resource.query.get(resource_id)
+        assert resource.is_active == 1  # was already active; still is, not a side effect
+
+
+# ============================================================================
+# Skills follow-up workflow (requirement 4)
+# ============================================================================
+class TestSkillsFollowUpWorkflow:
+
+    def _submit_skill(self, client, name="Guitar Lessons"):
+        resp = client.post("/submissions", json={
+            "submission_type": "community_asset",
+            "name": name,
+            "resource_type": "Volunteer Skill",
+            "submitter_name": "Jamie Skillful",
+            "submitter_email": "jamie@example.com",
+        })
+        assert resp.status_code == 201
+        return resp.get_json()["data"]
+
+    def test_approved_decision_rejected_for_skills(self, client):
+        body = self._submit_skill(client, "Skill Cannot Approve Directly")
+        make_user("sk_mod1@example.com", role_name="moderator")
+        mod_token = get_token(client, "sk_mod1@example.com")
+
+        resp = client.post(
+            f"/submissions/{body['submission_id']}/review",
+            json={"decision": "approved"},
+            headers=auth(mod_token),
+        )
+        assert resp.status_code == 422
+
+    def test_accepted_for_follow_up_rejected_for_non_skills(self, client):
+        submit_resp = client.post("/submissions", json={
+            "submission_type": "new_resource",
+            "name": "Not A Skill",
+            "resource_type": "Organization",
+        })
+        body = submit_resp.get_json()["data"]
+        make_user("sk_mod2@example.com", role_name="moderator")
+        mod_token = get_token(client, "sk_mod2@example.com")
+
+        resp = client.post(
+            f"/submissions/{body['submission_id']}/review",
+            json={"decision": "accepted_for_follow_up"},
+            headers=auth(mod_token),
+        )
+        assert resp.status_code == 422
+
+    def test_accepted_for_follow_up_keeps_resource_unpublished(self, client):
+        body = self._submit_skill(client, "Skill Stays Hidden")
+        make_user("sk_mod3@example.com", role_name="moderator")
+        mod_token = get_token(client, "sk_mod3@example.com")
+
+        resp = client.post(
+            f"/submissions/{body['submission_id']}/review",
+            json={"decision": "accepted_for_follow_up", "review_comment": "Reaching out."},
+            headers=auth(mod_token),
+        )
+        assert resp.status_code == 200
+
+        resource = Resource.query.get(body["resource_id"])
+        assert resource.is_active == 0
+        assert resource.current_approved_version_id is None
+
+        submission = Submission.query.get(body["submission_id"])
+        assert submission.moderation_status == "accepted_for_follow_up"
+
+        follow_up = SkillsFollowUp.query.filter_by(submission_id=body["submission_id"]).first()
+        assert follow_up is not None
+        assert follow_up.status == "accepted"
+
+        # No longer sitting in the pending_review queue for this type.
+        still_pending = Submission.query.filter_by(
+            submission_id=body["submission_id"], moderation_status="pending_review"
+        ).first()
+        assert still_pending is None
+
+        proposed_version = ResourceVersion.query.get(body["proposed_version_id"])
+        assert proposed_version.moderation_status == "accepted_for_follow_up"
+
+    def test_skills_submission_can_still_be_rejected(self, client):
+        body = self._submit_skill(client, "Skill Gets Rejected")
+        make_user("sk_mod4@example.com", role_name="moderator")
+        mod_token = get_token(client, "sk_mod4@example.com")
+
+        resp = client.post(
+            f"/submissions/{body['submission_id']}/review",
+            json={"decision": "rejected"},
+            headers=auth(mod_token),
+        )
+        assert resp.status_code == 200
+        assert Submission.query.get(body["submission_id"]).moderation_status == "rejected"
+
+    def test_skills_follow_up_crud_and_rbac(self, client):
+        body = self._submit_skill(client, "Skill Full CRUD Path")
+        make_user("sk_mod5@example.com", role_name="moderator")
+        mod_token = get_token(client, "sk_mod5@example.com")
+        client.post(
+            f"/submissions/{body['submission_id']}/review",
+            json={"decision": "accepted_for_follow_up"},
+            headers=auth(mod_token),
+        )
+        follow_up_id = SkillsFollowUp.query.filter_by(
+            submission_id=body["submission_id"]
+        ).first().follow_up_id
+
+        make_user("sk_trusted@example.com", role_name="trusted_contributor")
+        low_token = get_token(client, "sk_trusted@example.com")
+        assert client.get("/skills-follow-ups", headers=auth(low_token)).status_code == 403
+        assert client.get(f"/skills-follow-ups/{follow_up_id}", headers=auth(low_token)).status_code == 403
+        assert client.patch(f"/skills-follow-ups/{follow_up_id}", json={}, headers=auth(low_token)).status_code == 403
+
+        list_resp = client.get("/skills-follow-ups?status=accepted", headers=auth(mod_token))
+        assert list_resp.status_code == 200
+        ids = [f["follow_up_id"] for f in list_resp.get_json()["data"]["items"]]
+        assert follow_up_id in ids
+
+        detail_resp = client.get(f"/skills-follow-ups/{follow_up_id}", headers=auth(mod_token))
+        assert detail_resp.status_code == 200
+        assert detail_resp.get_json()["data"]["submission"]["submitter_name"] == "Jamie Skillful"
+
+        contacted_resp = client.patch(
+            f"/skills-follow-ups/{follow_up_id}",
+            json={"status": "contacted", "internal_notes": "Left a voicemail."},
+            headers=auth(mod_token),
+        )
+        assert contacted_resp.status_code == 200
+        assert contacted_resp.get_json()["data"]["status"] == "contacted"
+
+        # converted requires converted_resource_id
+        bad_convert = client.patch(
+            f"/skills-follow-ups/{follow_up_id}", json={"status": "converted"}, headers=auth(mod_token),
+        )
+        assert bad_convert.status_code == 422
+
+        published_id = create_resource_api(
+            client, mod_token, name="Converted From Skill", resource_type="Organization",
+        )["resource_id"]
+
+        good_convert = client.patch(
+            f"/skills-follow-ups/{follow_up_id}",
+            json={"status": "converted", "converted_resource_id": published_id},
+            headers=auth(mod_token),
+        )
+        assert good_convert.status_code == 200
+        assert good_convert.get_json()["data"]["converted_resource_id"] == published_id
+
+
+# ============================================================================
+# Dashboard category_distribution (requirement 8)
+# ============================================================================
+class TestDashboardCategoryDistribution:
+
+    def test_zero_count_categories_included_and_sorted(self, client):
+        make_user("d_staff@example.com", role_name="staff_editor")
+        staff_token = get_token(client, "d_staff@example.com")
+        make_user("d_mod@example.com", role_name="moderator")
+        mod_token = get_token(client, "d_mod@example.com")
+
+        popular = client.post("/categories", json={
+            "name": "Distribution Popular", "slug": "distribution-popular",
+        }, headers=auth(staff_token)).get_json()["data"]["category_id"]
+        empty = client.post("/categories", json={
+            "name": "Distribution Empty", "slug": "distribution-empty",
+        }, headers=auth(staff_token)).get_json()["data"]["category_id"]
+
+        for i in range(2):
+            create_resource_api(
+                client, mod_token, name=f"Dist Resource {i}", resource_type="Organization",
+                category_ids=[popular],
+            )
+
+        resp = client.get("/dashboard/stats", headers=auth(mod_token))
+        assert resp.status_code == 200
+        distribution = {
+            row["category_id"]: row["resource_count"]
+            for row in resp.get_json()["data"]["category_distribution"]
+        }
+        assert distribution[popular] == 2
+        assert distribution[empty] == 0  # zero-count category still present
+
+    def test_unpublished_resources_not_counted(self, client):
+        make_user("d_staff2@example.com", role_name="staff_editor")
+        staff_token = get_token(client, "d_staff2@example.com")
+        make_user("d_mod2@example.com", role_name="moderator")
+        mod_token = get_token(client, "d_mod2@example.com")
+
+        cat = client.post("/categories", json={
+            "name": "Distribution Unpublished", "slug": "distribution-unpublished",
+        }, headers=auth(staff_token)).get_json()["data"]["category_id"]
+
+        # Submitted but never approved -- resource.is_active stays 0.
+        client.post("/submissions", json={
+            "submission_type": "new_resource",
+            "name": "Never Approved",
+            "resource_type": "Organization",
+            "category_ids": [cat],
+        })
+
+        resp = client.get("/dashboard/stats", headers=auth(mod_token))
+        distribution = {
+            row["category_id"]: row["resource_count"]
+            for row in resp.get_json()["data"]["category_distribution"]
+        }
+        assert distribution[cat] == 0

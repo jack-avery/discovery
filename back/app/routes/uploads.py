@@ -43,9 +43,9 @@ def get_resource_image(filename):
     return send_from_directory(upload_folder, safe_name)
 
 
-# POST /uploads/resources,  staff_editor+/administrator
+# POST /uploads/resources,  moderator+
 @uploads_bp.post("/resources")
-@require_roles("staff_editor", "administrator")
+@require_roles("moderator")
 def upload_resource_image():
     """
     Accept a multipart/form-data upload under the "image" field.

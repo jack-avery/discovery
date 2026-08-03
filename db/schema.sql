@@ -1,12 +1,12 @@
 -- ============================================================================
 -- RRCRC Community Asset Mapping Platform
--- TABLES: 18 (down from 20)
+-- TABLES: 19 (down from 20)
 --   Auth:       roles, users, user_roles, password_reset_tokens
 --   Lookup:     categories, tags
 --   Core:       resources, resource_versions, resource_locations,
 --               resource_contacts, resource_hours,
 --               resource_version_categories, resource_version_tags
---   Workflow:   submissions, submission_reviews, reported_issues
+--   Workflow:   submissions, submission_reviews, reported_issues, skills_follow_ups
 --   Ops:        resource_change_log, submission_rate_limits
 -- ============================================================================
 
@@ -27,15 +27,20 @@ SET FOREIGN_KEY_CHECKS = 0;
 
 -- SECTION 1 — AUTHENTICATION & USERS
 
--- Role registry. M:M via user_roles lets staff hold multiple roles
--- (e.g. staff_editor + moderator). Adding roles here never touches user rows.
+-- Role registry. user_roles enforces ONE role per user (Role & Permission
+-- Model Change Request) via UNIQUE(user_id) below -- the table is still
+-- physically M:M-shaped for a low-friction migration path, but the app and
+-- the DB constraint both treat it as 1:1. Adding roles here never touches
+-- user rows.
 CREATE TABLE roles (
     role_id     INT          AUTO_INCREMENT PRIMARY KEY,
     role_name   VARCHAR(50)  NOT NULL UNIQUE,
     description VARCHAR(255) NULL,
     created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
--- Seed values: 'contributor' | 'moderator' | 'staff_editor' | 'administrator'
+-- Seed values: 'trusted_contributor' | 'moderator' | 'staff_editor' | 'administrator'
+-- 'contributor' removed -- see migration note in the handoff doc for existing
+-- installs; a fresh `make initdb` never creates it.
 
 
 CREATE TABLE users (
@@ -51,15 +56,18 @@ CREATE TABLE users (
 );
 
 
--- Many-to-many users ↔ roles.
+-- Many-to-many table shape, one-to-one enforced: uq_user_single_role means
+-- a user_id can appear at most once here (Role & Permission Model Change
+-- Request: "Support one role per staff account").
 -- assigned_by_user_id: admin audit trail (who granted this role?).
 CREATE TABLE user_roles (
     user_role_id        BIGINT   AUTO_INCREMENT PRIMARY KEY,
-    user_id             BIGINT   NOT NULL,
-    role_id             INT      NOT NULL,
-    assigned_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    assigned_by_user_id BIGINT   NULL,
+    user_id              BIGINT   NOT NULL,
+    role_id              INT      NOT NULL,
+    assigned_at          DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    assigned_by_user_id  BIGINT   NULL,
     UNIQUE KEY uq_user_role (user_id, role_id),
+    UNIQUE KEY uq_user_single_role (user_id),
     FOREIGN KEY (user_id)             REFERENCES users(user_id) ON DELETE CASCADE,
     FOREIGN KEY (role_id)             REFERENCES roles(role_id) ON DELETE RESTRICT,
     FOREIGN KEY (assigned_by_user_id) REFERENCES users(user_id) ON DELETE SET NULL
@@ -309,12 +317,13 @@ CREATE TABLE submissions (
 -- submission_reviews = the full trail of how we got there.
 -- Supports multi-step moderation: pending_review → needs_clarification → approved.
 CREATE TABLE submission_reviews (
-    review_id           BIGINT       AUTO_INCREMENT PRIMARY KEY,
-    submission_id       BIGINT       NOT NULL,
-    reviewed_by_user_id BIGINT       NOT NULL,
-    moderation_status   VARCHAR(30)  NOT NULL,
-    review_comment      TEXT         NULL,
-    reviewed_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    review_id                BIGINT       AUTO_INCREMENT PRIMARY KEY,
+    submission_id             BIGINT       NOT NULL,
+    reviewed_by_user_id       BIGINT       NOT NULL,
+    moderation_status         VARCHAR(30)  NOT NULL,
+    review_comment            TEXT         NULL,
+    included_reviewer_edits   TINYINT      NOT NULL DEFAULT 0,
+    reviewed_at                DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (submission_id)       REFERENCES submissions(submission_id) ON DELETE CASCADE,
     FOREIGN KEY (reviewed_by_user_id) REFERENCES users(user_id)             ON DELETE RESTRICT
 ); 
@@ -342,6 +351,25 @@ CREATE TABLE reported_issues (
     FOREIGN KEY (reported_by_user_id)   REFERENCES users(user_id)         ON DELETE SET NULL,
     FOREIGN KEY (resolved_by_user_id)   REFERENCES users(user_id)         ON DELETE SET NULL
 ); 
+
+
+-- Staff-only lifecycle tracking for Skills (community_asset) submissions
+-- accepted via POST /submissions/<id>/review, decision="accepted_for_follow_up"
+CREATE TABLE skills_follow_ups (
+    follow_up_id           BIGINT       AUTO_INCREMENT PRIMARY KEY,
+    submission_id            BIGINT       NOT NULL UNIQUE,
+    status                    VARCHAR(30)  NOT NULL DEFAULT 'accepted',  -- accepted|contacted|in_discussion|converted|closed
+    internal_notes            TEXT         NULL,
+    accepted_at                DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    accepted_by_user_id        BIGINT       NOT NULL,
+    updated_at                  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    updated_by_user_id          BIGINT       NULL,
+    converted_resource_id       BIGINT       NULL,
+    FOREIGN KEY (submission_id)         REFERENCES submissions(submission_id) ON DELETE CASCADE,
+    FOREIGN KEY (accepted_by_user_id)   REFERENCES users(user_id)             ON DELETE RESTRICT,
+    FOREIGN KEY (updated_by_user_id)    REFERENCES users(user_id)             ON DELETE SET NULL,
+    FOREIGN KEY (converted_resource_id) REFERENCES resources(resource_id)     ON DELETE SET NULL
+);
 
 
 -- ============================================================================
@@ -420,6 +448,9 @@ CREATE INDEX idx_submissions_created  ON submissions (created_at DESC);
 CREATE INDEX idx_issues_resource ON reported_issues (resource_id);
 CREATE INDEX idx_issues_status   ON reported_issues (status);
 
+-- Skills follow-ups
+CREATE INDEX idx_skills_follow_ups_status ON skills_follow_ups (status);
+
 -- Audit log
 CREATE INDEX idx_change_log_resource ON resource_change_log (resource_id);
 CREATE INDEX idx_change_log_time     ON resource_change_log (changed_at DESC);
@@ -438,7 +469,6 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- 1. Insert default roles
 INSERT INTO roles (role_name, description) VALUES
-('contributor', 'Standard registered user'),
 ('trusted_contributor', 'Vetted user, unlimited submissions, no staff access'),
 ('staff_editor', 'Staff member who can edit resources'),
 ('moderator', 'Reviews submissions'),
