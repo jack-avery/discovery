@@ -11,7 +11,6 @@ import { RequestResourceUpdatePage } from '@/pages/RequestResourceUpdatePage'
 import { StaffSignInPage } from '@/pages/StaffSignInPage'
 import { StaffHomePage } from '@/pages/StaffHomePage'
 import { StaffSubmissionsPage } from '@/pages/StaffSubmissionsPage'
-import { StaffUpdateRequestsPage } from '@/pages/StaffUpdateRequestsPage'
 import { StaffUsersPage } from '@/pages/StaffUsersPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
@@ -37,7 +36,6 @@ export const routes: RouteObject[] = [
             children: [
               { index: true, element: <StaffHomePage /> },
               { path: 'submissions', element: <StaffSubmissionsPage /> },
-              { path: 'update-requests', element: <StaffUpdateRequestsPage /> },
               { path: 'users', element: <StaffUsersPage /> },
             ],
           },

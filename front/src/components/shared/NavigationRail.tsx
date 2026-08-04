@@ -1,12 +1,14 @@
+import { useMemo } from 'react'
 import {
   ClipboardList,
-  FilePenLine,
   Home,
   LayoutDashboard,
   MapPin,
   PanelLeftClose,
   PanelLeftOpen,
   PlusCircle,
+  Users,
+  type LucideIcon,
 } from 'lucide-react'
 import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
@@ -21,19 +23,29 @@ const publicNavItems = [
   { to: '/submit', label: 'Submit Resource', icon: PlusCircle, end: false as const },
 ]
 
-const staffNavItems = [
-  { to: '/staff', label: 'Dashboard', icon: LayoutDashboard, end: true as const },
+interface StaffNavItem {
+  to: string
+  label: string
+  icon: LucideIcon
+  end: boolean
+  /** When true, only users with `canManageUsers` see this item. */
+  adminOnly?: boolean
+}
+
+const staffNavItems: StaffNavItem[] = [
+  { to: '/staff', label: 'Dashboard', icon: LayoutDashboard, end: true },
   {
     to: '/staff/submissions',
     label: 'Review Submissions',
     icon: ClipboardList,
-    end: false as const,
+    end: false,
   },
   {
-    to: '/staff/update-requests',
-    label: 'Review Resource Updates',
-    icon: FilePenLine,
-    end: false as const,
+    to: '/staff/users',
+    label: 'User Management',
+    icon: Users,
+    end: false,
+    adminOnly: true,
   },
 ]
 
@@ -61,7 +73,15 @@ function navLinkClassName(isActive: boolean, isCollapsed: boolean, nested = fals
 
 export function NavigationRail() {
   const { isCollapsed, toggleCollapsed } = useNavigationRail()
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, permissions } = useAuth()
+
+  const visibleStaffNavItems = useMemo(
+    () =>
+      staffNavItems.filter(
+        (item) => !item.adminOnly || permissions.canManageUsers,
+      ),
+    [permissions.canManageUsers],
+  )
 
   return (
     <aside
@@ -118,7 +138,7 @@ export function NavigationRail() {
             )}
 
             <div className="space-y-1" role="group" aria-label="Staff Workspace">
-              {staffNavItems.map(({ to, label, icon: Icon, end }) => (
+              {visibleStaffNavItems.map(({ to, label, icon: Icon, end }) => (
                 <NavLink
                   key={to}
                   to={to}
