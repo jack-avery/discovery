@@ -13,6 +13,9 @@
   --ds-primary-muted: #8b1e2214;
   --ds-primary-foreground: #ffffff;
 
+  /* Map resource pins — defaults to RRCRC deep maroon; override independently of primary */
+  --ds-map-pin: var(--ds-primary);
+
   /* Brighter maroon interaction states */
   --ds-interactive: #a1282d;
   --ds-interactive-hover: #821f24;

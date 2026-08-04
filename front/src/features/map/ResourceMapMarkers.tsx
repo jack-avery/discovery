@@ -1,7 +1,7 @@
 import { Marker } from 'react-leaflet'
 import { useResourceSelection } from '@/features/discover/useResourceSelection'
 import type { ResourceMapItem } from '@/types'
-import { getCategoryMarkerIcon } from './categoryIcons'
+import { getResourceMarkerIcon } from './resourceMarkerIcon'
 
 interface ResourceMapMarkersProps {
   items: ResourceMapItem[]
@@ -16,9 +16,8 @@ export function ResourceMapMarkers({ items }: ResourceMapMarkersProps) {
         <Marker
           key={item.id}
           position={[item.location.latitude, item.location.longitude]}
-          icon={getCategoryMarkerIcon(item.categorySlug, {
+          icon={getResourceMarkerIcon({
             selected: selectedResourceId === item.id,
-            colorHex: item.colorHex,
           })}
           title={item.name}
           eventHandlers={{

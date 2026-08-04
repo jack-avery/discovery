@@ -46,6 +46,7 @@
   height: 32px;
   border-radius: 50% 50% 50% 0;
   transform: rotate(-45deg);
+  background-color: var(--color-map-pin);
   border: 2px solid var(--color-surface);
   box-shadow: var(--shadow-md);
 }

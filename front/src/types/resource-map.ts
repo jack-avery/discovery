@@ -31,18 +31,15 @@ export interface MapPinsDto {
  * - `id` = String(resource_id)
  * - `location.latitude/longitude` ← `lat`/`lng`
  * - `distanceMeters` ← `distance_km * 1000`
- * - `colorHex` ← `color_hex` (preferred for marker colour)
- * - `categorySlug` ← soft slugify of `category_name` for icon fallback only
- *   (backend does not return category slug on this endpoint)
  * - `categoryName` ← `category_name`
+ *
+ * Marker fill colour is the shared `--color-map-pin` token (not per-category).
  */
 export interface ResourceMapItem {
   id: string
   slug: string
   name: string
-  categorySlug: string
   categoryName?: string | null
-  colorHex?: string | null
   iconIdentifier?: string | null
   resourceType?: string | null
   isVirtual?: boolean
