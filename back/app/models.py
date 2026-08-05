@@ -8,13 +8,13 @@ ResourceVersion and Submission are the most complex models, with multiple relati
 
 models.py, SQLAlchemy ORM models for the RRCRC Asset Mapping Platform.
 
-Table coverage (18 tables):
+Table coverage (19 tables):
   Auth:    roles, users, user_roles, password_reset_tokens
   Lookup:  categories, tags
   Core:    resources, resource_versions, resource_locations,
            resource_contacts, resource_hours,
            resource_version_categories, resource_version_tags
-  Workflow: submissions, submission_reviews, reported_issues
+  Workflow: submissions, submission_reviews, reported_issues, skills_follow_ups
   Ops:     resource_change_log, submission_rate_limits
 
 SQLite compatibility note:
@@ -36,6 +36,12 @@ _BIG = db.BigInteger().with_variant(db.Integer, "sqlite")
 
 class Role(db.Model):
     __tablename__ = "roles"
+
+    # Ascending order of privilege. Each role is a strict superset of every
+    # role before it (Role & Permission Model Change Request): Staff Editor
+    # can do everything Moderator can, Administrator everything Staff Editor
+    # can, etc. require_roles() in app/utils.py checks rank
+    HIERARCHY = ["trusted_contributor", "moderator", "staff_editor", "administrator"]
 
     role_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     role_name   = db.Column(db.String(50),  nullable=False, unique=True)
@@ -90,7 +96,36 @@ class User(db.Model):
     def role_names(self):
         return [ur.role.role_name for ur in self.user_roles.all() if ur.role] # type: ignore[union-attr]
 
+    @property
+    def role_name(self):
+        """
+        The account's single role name, or None. Accounts are meant to carry
+        exactly one role going forward (Role & Permission Model Change
+        Request); if user_roles somehow holds more than one (pre-migration
+        data, a manual DB edit), this deterministically picks the
+        highest-ranked one rather than an arbitrary row.
+        """
+        names = [n for n in self.role_names if n in Role.HIERARCHY]
+        if not names:
+            return None
+        return max(names, key=Role.HIERARCHY.index)
+
+    def role_rank(self):
+        """Index into Role.HIERARCHY, or -1 for no role / an unranked role."""
+        name = self.role_name
+        return Role.HIERARCHY.index(name) if name in Role.HIERARCHY else -1
+
+    def has_role_at_least(self, min_role):
+        """
+        True if this user's role rank is >= min_role's rank in Role.HIERARCHY.
+        """
+        if min_role not in Role.HIERARCHY:
+            raise ValueError(f"Unknown role '{min_role}'. Must be one of {Role.HIERARCHY}.")
+        return self.role_rank() >= Role.HIERARCHY.index(min_role)
+
     def has_role(self, *roles):
+        """Exact-match check, kept for any existing caller that needs it.
+        require_roles() no longer uses this -- see has_role_at_least()."""
         return bool(set(self.role_names) & set(roles))
 
     def to_dict(self, include_roles=True):
@@ -120,7 +155,10 @@ class UserRole(db.Model):
     assigned_at         = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
     assigned_by_user_id = db.Column(_BIG,        db.ForeignKey("users.user_id",  ondelete="SET NULL"), nullable=True)
 
-    __table_args__ = (db.UniqueConstraint("user_id", "role_id", name="uq_user_role"),)
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "role_id", name="uq_user_role"),
+        db.UniqueConstraint("user_id", name="uq_user_single_role"),
+    )
 
     user        = db.relationship("User", foreign_keys=[user_id],             back_populates="user_roles")
     role        = db.relationship("Role", foreign_keys=[role_id],             back_populates="user_roles")
@@ -140,8 +178,8 @@ class PasswordResetToken(db.Model):
     user = db.relationship("User", foreign_keys=[user_id], back_populates="password_resets")
 
     @property
-    def is_valid(self):
-        return self.used_at is None and self.expires_at > datetime.now(timezone.utc)
+    def is_valid(self) -> bool:
+        return self.used_at is None and self.expires_at > datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 
@@ -165,8 +203,14 @@ class Category(db.Model):
     parent = db.relationship("Category", remote_side=[category_id], back_populates="children")
     children = db.relationship("Category", back_populates="parent", lazy="dynamic")
 
-    def to_dict(self):
-        return {
+    def to_dict(self, usage_count=None):
+        """
+        usage_count is caller-supplied (see GET /categories in
+        app/routes/categories.py), never computed here -- a per-instance
+        query for this would be an N+1 query for every list response.
+        Omitted from the payload entirely when not supplied.
+        """
+        data = {
             "category_id":        self.category_id,
             "parent_category_id": self.parent_category_id,
             "name":               self.name,
@@ -177,6 +221,9 @@ class Category(db.Model):
             "display_order":      self.display_order,
             "is_active":          bool(self.is_active),
         }
+        if usage_count is not None:
+            data["usage_count"] = usage_count
+        return data
 
 
 class Tag(db.Model):
@@ -188,13 +235,17 @@ class Tag(db.Model):
     is_active  = db.Column(db.SmallInteger, nullable=False, default=1)
     created_at = db.Column(db.DateTime,    nullable=False, default=lambda: datetime.now(timezone.utc))
 
-    def to_dict(self):
-        return {
+    def to_dict(self, usage_count=None):
+        """See Category.to_dict -- usage_count is caller-supplied, bulk-computed."""
+        data = {
             "tag_id":    self.tag_id,
             "name":      self.name,
             "slug":      self.slug,
             "is_active": bool(self.is_active),
         }
+        if usage_count is not None:
+            data["usage_count"] = usage_count
+        return data
 
 
 # SECTION 3 : CORE RESOURCE TABLES
@@ -263,7 +314,10 @@ class ResourceVersion(db.Model):
         "Organization", "Program", "Service",
         "Volunteer Skill", "Volunteer Service", "Program Idea", "Informal Support"
     ]
-    MODERATION_STATUSES = ["pending_review", "approved", "rejected", "needs_clarification"]
+    MODERATION_STATUSES = [
+        "pending_review", "approved", "rejected", "needs_clarification",
+        "accepted_for_follow_up",  # Skills submissions routed to skills_follow_ups
+    ]
 
     resource_version_id  = db.Column(_BIG,          primary_key=True, autoincrement=True)
     resource_id          = db.Column(_BIG,          db.ForeignKey("resources.resource_id", ondelete="CASCADE"), nullable=False)
@@ -468,7 +522,10 @@ class Submission(db.Model):
     __tablename__ = "submissions"
 
     SUBMISSION_TYPES    = ["new_resource", "update_resource", "community_asset"]
-    MODERATION_STATUSES = ["pending_review", "approved", "rejected", "needs_clarification"]
+    MODERATION_STATUSES = [
+        "pending_review", "approved", "rejected", "needs_clarification",
+        "accepted_for_follow_up",  # Skills only -- see review_submission()
+    ]
 
     submission_id        = db.Column(_BIG,          primary_key=True, autoincrement=True)
     submission_type      = db.Column(db.String(30), nullable=False)
@@ -530,6 +587,10 @@ class SubmissionReview(db.Model):
     reviewed_by_user_id = db.Column(_BIG,       db.ForeignKey("users.user_id",             ondelete="RESTRICT"), nullable=False)
     moderation_status   = db.Column(db.String(30), nullable=False)
     review_comment      = db.Column(db.Text,    nullable=True)
+    # Requirement 3 (Support Reviewer-Edited Versions During Approval):
+    # "Record that the approval included reviewer edits." A real column
+    # instead of parsing review_comment text for a marker.
+    included_reviewer_edits = db.Column(db.SmallInteger, nullable=False, default=0)
     reviewed_at         = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
 
     submission  = db.relationship("Submission", back_populates="reviews")
@@ -541,6 +602,7 @@ class SubmissionReview(db.Model):
             "review_id":         self.review_id,
             "moderation_status": self.moderation_status,
             "review_comment":    self.review_comment,
+            "included_reviewer_edits": bool(self.included_reviewer_edits),
             "reviewed_by":       f"{self.reviewed_by.first_name} {self.reviewed_by.last_name}"
                                  if self.reviewed_by else None,
             "reviewed_at":       self.reviewed_at.isoformat() + "Z" if self.reviewed_at else None,
@@ -584,6 +646,73 @@ class ReportedIssue(db.Model):
             "resolution_notes": self.resolution_notes,
             "resolved_at":      self.resolved_at.isoformat() + "Z" if self.resolved_at else None,
             "created_at":       self.created_at.isoformat() + "Z" if self.created_at else None,
+        }
+
+
+class SkillsFollowUp(db.Model):
+    """
+    Staff-only lifecycle tracking for Skills (submission_type="community_asset")
+    submissions accepted via POST /submissions/<id>/review with
+    decision="accepted_for_follow_up". The linked Resource stays inactive/unpublished for the entire
+    life of this record -- Skills never auto-publish. One row per submission
+    (submission_id is unique): a Skill can only be accepted for follow-up once.
+    """
+    __tablename__ = "skills_follow_ups"
+
+    STATUSES = ["accepted", "contacted", "in_discussion", "converted", "closed"]
+
+    follow_up_id       = db.Column(_BIG, primary_key=True, autoincrement=True)
+    submission_id       = db.Column(_BIG, db.ForeignKey("submissions.submission_id", ondelete="CASCADE"),
+                                    nullable=False, unique=True)
+    status               = db.Column(db.String(30), nullable=False, default="accepted")
+    internal_notes       = db.Column(db.Text, nullable=True)
+    accepted_at           = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    accepted_by_user_id   = db.Column(_BIG, db.ForeignKey("users.user_id", ondelete="RESTRICT"), nullable=False)
+    updated_at             = db.Column(db.DateTime, nullable=False, default=lambda: datetime.now(timezone.utc),
+                                       onupdate=lambda: datetime.now(timezone.utc))
+    updated_by_user_id     = db.Column(_BIG, db.ForeignKey("users.user_id", ondelete="SET NULL"), nullable=True)
+    converted_resource_id  = db.Column(_BIG, db.ForeignKey("resources.resource_id", ondelete="SET NULL"),
+                                       nullable=True)
+
+    submission          = db.relationship("Submission")
+    accepted_by          = db.relationship("User", foreign_keys=[accepted_by_user_id])
+    updated_by            = db.relationship("User", foreign_keys=[updated_by_user_id])
+    converted_resource     = db.relationship("Resource", foreign_keys=[converted_resource_id])
+
+    def to_dict_summary(self):
+        sub = self.submission
+        version = sub.proposed_version if sub else None
+        return {
+            "follow_up_id":  self.follow_up_id,
+            "submission_id": self.submission_id,
+            "status":        self.status,
+            "submitter_name": sub.submitter_name if sub else None,
+            "skill_name":    version.name if version else None,
+            "accepted_at":   self.accepted_at.isoformat() + "Z" if self.accepted_at else None,
+        }
+
+    def to_dict_full(self):
+        sub = self.submission
+        version = sub.proposed_version if sub else None
+        return {
+            "follow_up_id":  self.follow_up_id,
+            "submission_id": self.submission_id,
+            "status":        self.status,
+            "internal_notes": self.internal_notes,
+            "accepted_at":   self.accepted_at.isoformat() + "Z" if self.accepted_at else None,
+            "accepted_by":   f"{self.accepted_by.first_name} {self.accepted_by.last_name}" if self.accepted_by else None,
+            "updated_at":    self.updated_at.isoformat() + "Z" if self.updated_at else None,
+            "updated_by":    f"{self.updated_by.first_name} {self.updated_by.last_name}" if self.updated_by else None,
+            "converted_resource_id": self.converted_resource_id,
+            "submission": {
+                "submitter_name":  sub.submitter_name if sub else None,
+                "submitter_email": sub.submitter_email if sub else None,
+                "submitter_phone": sub.submitter_phone if sub else None,
+                "submission_message": sub.submission_message if sub else None,
+                "skill_description": version.description if version else None,
+                "eligibility_or_availability": version.eligibility if version else None,
+                "general_notes": version.general_notes if version else None,
+            } if sub else None,
         }
 
 

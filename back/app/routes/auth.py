@@ -4,12 +4,22 @@
 Auth Blueprint RRCRC Backend
 
 Routes:
-  POST /auth/register: create account, bcrypt hash, no roles assigned
+  POST /auth/register: create account, bcrypt hash, auto-assigns the
+       "trusted_contributor" role (Role & Permission Model Change Request:
+       Trusted Contributor is the default non-staff role for authenticated
+       users)
   POST /auth/login: verify password, issue access_token (JSON) + refresh_token (HttpOnly cookie)
   POST /auth/refresh: read refresh cookie, mint new access token
   POST /auth/logout: clear the refresh cookie
   GET  /auth/me: return the current user for the presented access token (D2)
+  POST /auth/setup-password: public, token-based. Consumes a one-time
+       setup/reset token issued by an administrator (POST /users or
+       POST /users/<id>/reset-password) and sets the account's real
+       password (requirement 2, preferred setup-link flow)
 """
+
+import hashlib
+from datetime import datetime, timezone
 
 from flask import Blueprint, request
 from flask_jwt_extended import (
@@ -22,12 +32,13 @@ from flask_jwt_extended import (
 )
 
 from app.extensions import db, bcrypt
-from app.models import User
+from app.models import PasswordResetToken, Role, User, UserRole
 from app.utils import ok, err
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 _DUMMY_HASH = "$2b$12$s6xZAo5tXUj9QeGvPbChs.gSBKGdzNwWKfMv8/NPYOlXBrqNnoA.e"
+_DEFAULT_SELF_REGISTER_ROLE = "trusted_contributor"
 
 
 # POST /auth/register
@@ -88,6 +99,18 @@ def register():
         is_active=1,
     )
     db.session.add(user)
+    db.session.flush()  # get user_id before the role FK use below
+
+    role = Role.query.filter_by(role_name=_DEFAULT_SELF_REGISTER_ROLE).first()
+    if role:
+        db.session.add(UserRole(user_id=user.user_id, role_id=role.role_id))
+    else:
+        from flask import current_app
+        current_app.logger.error(
+            "Role '%s' is not seeded; registered user_id=%s with no role.",
+            _DEFAULT_SELF_REGISTER_ROLE, user.user_id,
+        )
+
     db.session.commit()
 
     return ok(user.to_dict(), "Account created successfully.", 201)
@@ -194,3 +217,39 @@ def me():
         return err("Account not found or inactive.", 401)
 
     return ok({"user": user.to_dict(include_roles=True)}, "Current user retrieved.", 200)
+
+
+# POST /auth/setup-password
+@auth_bp.route("/setup-password", methods=["POST"])
+def setup_password():
+    """
+    Public endpoint to set a new password for an account using a one-time
+    """
+    data = request.get_json(silent=True)
+    if data is None:
+        return err("Request body must be JSON.", 400)
+
+    raw_token = (data.get("token") or "").strip()
+    password = data.get("password", "")
+
+    if not raw_token:
+        return err("token is required.", 400)
+    if len(password) < 8:
+        return err("Password too short.", 422, {"password": "Must be at least 8 characters."})
+
+    token_hash = hashlib.sha256(raw_token.encode()).hexdigest()
+    reset_token = PasswordResetToken.query.filter_by(token_hash=token_hash).first()
+
+    if not reset_token or not reset_token.is_valid:
+        return err("This setup link is invalid or has expired.", 401)
+
+    user = User.query.get(reset_token.user_id)
+    if not user:
+        return err("This setup link is invalid or has expired.", 401)
+
+    user.password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+    user.is_active = 1
+    reset_token.used_at = datetime.now(timezone.utc)
+    db.session.commit()
+
+    return ok(None, "Password set successfully. You can now log in.", 200)

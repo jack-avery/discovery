@@ -123,9 +123,9 @@ def generate_unique_slug(name, model_class=None):
 
 
 # 4. RBAC Decorator
-def require_roles(*roles):
+def require_roles(min_role):
     """
-    Route decorator that enforces role-based access control on top of JWT.
+    Route decorator enforcing role-based access control on top of JWT.
     """
     def decorator(fn):
         @wraps(fn)
@@ -141,10 +141,10 @@ def require_roles(*roles):
             if not user or not user.is_active:
                 return err("Account not found or inactive.", 401)
 
-            # RBAC check
-            if not user.has_role(*roles):
+            # RBAC check: hierarchy rank, not exact-match allow-list.
+            if not user.has_role_at_least(min_role):
                 return err(
-                    f"Access denied. Required role(s): {', '.join(roles)}.",
+                    f"Access denied. Requires role '{min_role}' or higher.",
                     403,
                 )
 

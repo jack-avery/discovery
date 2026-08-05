@@ -1,4 +1,3 @@
-
 # pyright: ignore[reportCallIssue, reportOptionalMemberAccess, reportMissingImports]
 
 
@@ -170,6 +169,10 @@ def create_app(config_name: str = "development") -> Flask:
     app.register_blueprint(dashboard_bp)
     from app.routes.uploads import uploads_bp # pyright: ignore[reportMissingImports]
     app.register_blueprint(uploads_bp)
+    from app.routes.users import users_bp
+    app.register_blueprint(users_bp)
+    from app.routes.skills_follow_ups import skills_follow_ups_bp
+    app.register_blueprint(skills_follow_ups_bp)
 
     # 6. CLI commands (S3): the unauthenticated HTTP maintenance endpoint
     _register_cli(app)
@@ -192,7 +195,10 @@ def _register_cli(app: Flask) -> None:
         from app.extensions import bcrypt as _bcrypt
 
         DEV_PASSWORD = "TestPass!2026"
-        ROLE_NAMES = ["administrator", "moderator", "staff_editor", "contributor", "trusted_contributor"]
+        # "contributor" intentionally removed (Role & Permission Model
+        # Change Request): trusted_contributor is now the sole non-staff
+        # role. Must match Role.HIERARCHY in app/models.py.
+        ROLE_NAMES = ["administrator", "staff_editor", "moderator", "trusted_contributor"]
 
         for name in ROLE_NAMES:
             if not Role.query.filter_by(role_name=name).first():

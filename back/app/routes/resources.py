@@ -7,9 +7,9 @@ Routes:
   GET    /resources                 - paginated list with filters (public)
   GET    /resources/<int:id>        - full detail by numeric ID (public)
   GET    /resources/slug/<slug>     - full detail by slug (public)
-  POST   /resources                 - create resource + version (staff_editor+)
-  PUT    /resources/<int:id>        - new version, repoint pointer (staff_editor+)
-  DELETE /resources/<int:id>        - soft delete via deleted_at (administrator)
+  POST   /resources                 - create resource + version (moderator+)
+  PUT    /resources/<int:id>        - new version, repoint pointer (moderator+)
+  DELETE /resources/<int:id>        - soft delete via deleted_at (staff_editor+)
 """
 
 import math
@@ -408,9 +408,9 @@ def _validate_version_text_fields(data):
     return errors
 
 
-# POST /resources  (staff_editor+)
+# POST /resources  (moderator+)
 @resources_bp.route("", methods=["POST"])
-@require_roles("staff_editor", "administrator")
+@require_roles("moderator")
 def create_resource():
     """
     Staff-only: create a new resource + an approved ResourceVersion directly.
@@ -526,9 +526,9 @@ def create_resource():
     )
 
 
-# PUT /resources/<int:resource_id>  (staff_editor+, moderator per project plan)
+# PUT /resources/<int:resource_id>  (moderator+)
 @resources_bp.route("/<int:resource_id>", methods=["PUT"])
-@require_roles("staff_editor", "moderator", "administrator")
+@require_roles("moderator")
 def update_resource(resource_id):
     """
     Staff-only: update a resource by creating a new approved ResourceVersion.
@@ -641,9 +641,9 @@ def update_resource(resource_id):
     )
 
 
-# DELETE /resources/<int:resource_id> (administrator only)
+# DELETE /resources/<int:resource_id> (staff_editor+)
 @resources_bp.route("/<int:resource_id>", methods=["DELETE"])
-@require_roles("administrator")
+@require_roles("staff_editor")
 def delete_resource(resource_id):
     """
     Soft-delete a resource by setting deleted_at.
@@ -671,7 +671,7 @@ def delete_resource(resource_id):
         resource_id=resource.resource_id,
         changed_by_user_id=user_id,
         change_type="deleted",
-        change_summary="Resource soft-deleted by administrator.",
+        change_summary="Resource soft-deleted by staff.",
         changed_at=now,
     ))
 

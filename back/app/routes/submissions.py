@@ -17,6 +17,7 @@ from app.models import (
     ResourceVersion,
     ResourceVersionCategory,
     ResourceVersionTag,
+    SkillsFollowUp,
     Submission,
     SubmissionReview,
 )
@@ -42,6 +43,87 @@ _IMAGE_URL_MAX = 500
 
 def _hash_ip(ip: str) -> str:
     return hashlib.sha256(ip.encode()).hexdigest()
+
+
+def _validate_hours_payload(hours_list):
+    """
+    Pre-validates an `hours` array the same way create_submission always
+    has. Returns (hours_payload, error_response). error_response is None on
+    success; on failure hours_payload is None and error_response is a ready
+    -to-return Flask response from err().
+    """
+    hours_payload = []
+    for h in hours_list or []:
+        day_int = parse_day_of_week(h.get("day_of_week"))
+        if day_int is None:
+            return None, err(
+                f"Invalid day_of_week: {h.get('day_of_week')!r}. "
+                "Use an integer 0-6 (0=Sunday) or a weekday name.",
+                400,
+            )
+        opens_at, opens_error = parse_time_of_day(h.get("open_time"))
+        if opens_error:
+            return None, err(f"open_time: {opens_error}", 400)
+        closes_at, closes_error = parse_time_of_day(h.get("close_time"))
+        if closes_error:
+            return None, err(f"close_time: {closes_error}", 400)
+        hours_payload.append((day_int, opens_at, closes_at, h))
+    return hours_payload, None
+
+
+def _add_version_child_records(vid, data, hours_payload):
+    """
+    Locations, contacts, hours, category/tag associations for resource_version
+    id `vid`, from a payload shaped like create_submission's request body
+    (or requirement 3's `approved_version` object, which uses the identical
+    shape). Shared by create_submission() and review_submission() so the two
+    write paths can't silently diverge on field names.
+    """
+    for loc in data.get("locations") or []:
+        db.session.add(ResourceLocation(
+            resource_version_id=vid,
+            address_line1=loc.get("address"),
+            city=loc.get("city", "Ottawa"),
+            province=loc.get("province", "Ontario"),
+            postal_code=loc.get("postal_code"),
+            lat=loc.get("lat"),
+            lng=loc.get("lng"),
+        ))
+
+    for contact in data.get("contacts") or []:
+        db.session.add(ResourceContact(
+            resource_version_id=vid,
+            contact_type=contact.get("contact_type", "phone"),
+            contact_value=contact.get("value", ""),
+            contact_label=contact.get("label"),
+        ))
+
+    for day_int, opens_at, closes_at, h in (hours_payload or []):
+        db.session.add(ResourceHour(
+            resource_version_id=vid,
+            day_of_week=day_int,
+            opens_at=opens_at,
+            closes_at=closes_at,
+            is_closed=1 if h.get("is_closed") else 0,
+            by_appointment_only=1 if h.get("by_appointment_only") else 0,
+            notes=h.get("notes"),
+        ))
+
+    raw_category_ids = data.get("category_ids", [])
+    if isinstance(raw_category_ids, int):
+        raw_category_ids = [raw_category_ids]
+    elif not isinstance(raw_category_ids, list):
+        raw_category_ids = []
+    for cat_id in raw_category_ids:
+        db.session.add(ResourceVersionCategory(resource_version_id=vid, category_id=cat_id))
+
+    raw_tag_ids = data.get("tag_ids", [])
+    if isinstance(raw_tag_ids, int):
+        raw_tag_ids = [raw_tag_ids]
+    elif not isinstance(raw_tag_ids, list):
+        raw_tag_ids = []
+    for tag_id in raw_tag_ids:
+        db.session.add(ResourceVersionTag(resource_version_id=vid, tag_id=tag_id))
 
 
 # POST /submissions: public, rate-limited for anonymous callers
@@ -99,25 +181,10 @@ def create_submission():
     # *names* while routes/resources.py accepted anything unvalidated. Both
     # now go through app.utils.parse_day_of_week and accept an int 0-6 or a
     # weekday name, so the two paths can't silently diverge again.)
-    hours_payload = []
-    for h in data.get("hours") or []:
-        day_int = parse_day_of_week(h.get("day_of_week"))
-        if day_int is None:
-            db.session.rollback()
-            return err(
-                f"Invalid day_of_week: {h.get('day_of_week')!r}. "
-                "Use an integer 0-6 (0=Sunday) or a weekday name.",
-                400,
-            )
-        opens_at, opens_error = parse_time_of_day(h.get("open_time"))
-        if opens_error:
-            db.session.rollback()
-            return err(f"open_time: {opens_error}", 400)
-        closes_at, closes_error = parse_time_of_day(h.get("close_time"))
-        if closes_error:
-            db.session.rollback()
-            return err(f"close_time: {closes_error}", 400)
-        hours_payload.append((day_int, opens_at, closes_at, h))
+    hours_payload, hours_err_resp = _validate_hours_payload(data.get("hours"))
+    if hours_err_resp:
+        db.session.rollback()
+        return hours_err_resp
 
     #  Flow B: resolve and validate the target resource
     resource = None
@@ -166,62 +233,8 @@ def create_submission():
 
         vid = version.resource_version_id
 
-        #  Locations
-        for loc in data.get("locations") or []:
-            db.session.add(ResourceLocation(
-                resource_version_id=vid,
-                address_line1=loc.get("address"),
-                city=loc.get("city", "Ottawa"),
-                province=loc.get("province", "Ontario"),
-                postal_code=loc.get("postal_code"),
-                lat=loc.get("lat"),
-                lng=loc.get("lng"),
-            ))
-
-        #  Contacts
-        for contact in data.get("contacts") or []:
-            db.session.add(ResourceContact(
-                resource_version_id=vid,
-                contact_type=contact.get("contact_type", "phone"),
-                contact_value=contact.get("value", ""),
-                contact_label=contact.get("label"),
-            ))
-
-        #  Hours (already validated above)
-        for day_int, opens_at, closes_at, h in hours_payload:
-            db.session.add(ResourceHour(
-                resource_version_id=vid,
-                day_of_week=day_int,
-                opens_at=opens_at,
-                closes_at=closes_at,
-                is_closed=1 if h.get("is_closed") else 0,
-                by_appointment_only=1 if h.get("by_appointment_only") else 0,
-                notes=h.get("notes"),
-            ))
-
-        #  Category associations
-        raw_category_ids = data.get("category_ids", [])
-        if isinstance(raw_category_ids, int):
-            raw_category_ids = [raw_category_ids]
-        elif not isinstance(raw_category_ids, list):
-            raw_category_ids = []
-        for cat_id in raw_category_ids:
-            db.session.add(ResourceVersionCategory(
-                resource_version_id=vid,
-                category_id=cat_id,
-            ))
-
-        #  Tag associations
-        raw_tag_ids = data.get("tag_ids", [])
-        if isinstance(raw_tag_ids, int):
-            raw_tag_ids = [raw_tag_ids]
-        elif not isinstance(raw_tag_ids, list):
-            raw_tag_ids = []
-        for tag_id in raw_tag_ids:
-            db.session.add(ResourceVersionTag(
-                resource_version_id=vid,
-                tag_id=tag_id,
-            ))
+        #  Locations, contacts, hours, category/tag associations
+        _add_version_child_records(vid, data, hours_payload)
 
         #  Submission row
         submission = Submission(
@@ -257,7 +270,7 @@ def create_submission():
 
 # GET /submissions: moderator+: moderation queue
 @submissions_bp.get("")
-@require_roles("moderator", "administrator")
+@require_roles("moderator")
 def list_submissions():
     """
     Query params:
@@ -283,7 +296,7 @@ def list_submissions():
 
 # GET /submissions/<id>: moderator+: single submission detail
 @submissions_bp.get("/<int:submission_id>")
-@require_roles("moderator", "administrator")
+@require_roles("moderator")
 def get_submission(submission_id):
     sub = Submission.query.get(submission_id)
     if not sub:
@@ -305,34 +318,24 @@ def get_submission(submission_id):
     return ok(payload, "Submission retrieved.")
 
 
-# POST /submissions/<id>/review: moderator+: approve or reject
+# POST /submissions/<id>/review: moderator+: approve, reject, or (Skills
+# only) accept for follow-up
+_ALLOWED_DECISIONS = ("approved", "rejected", "accepted_for_follow_up")
+
+
 @submissions_bp.post("/<int:submission_id>/review")
-@require_roles("moderator", "administrator")
+@require_roles("moderator")
 def review_submission(submission_id):
     """
-    Most critical block in the backend: touches 5 tables in one transaction.
-    Single db.session.commit() at the end; rollback on any failure.
-
-    APPROVE:
-      1. ResourceVersion.moderation_status -> "approved"  + approved_at set
-      2. Resource.current_approved_version_id -> this version's id
-      3. Resource.is_active -> 1 (new_resource / community_asset only)
-      4. Submission.moderation_status -> "approved"
-      5. INSERT SubmissionReview(moderation_status = "approved")
-      6. INSERT ResourceChangeLog  (change_type = "approved_submission")
-
-    REJECT:
-      1. ResourceVersion.moderation_status  -> "rejected"
-      2. Submission.moderation_status -> "rejected"
-      3. INSERT SubmissionReview (moderation_status = "rejected")
-      Resource.current_approved_version_id is NOT touched on reject.
+    Review a submission and set its moderation_status. The reviewer's
+    decision determines the actions taken.
     """
     data = request.get_json(silent=True) or {}
     reviewer_id = get_jwt_identity()
 
     decision = (data.get("decision") or "").lower()
-    if decision not in ("approved", "rejected"):
-        return err("decision must be 'approved' or 'rejected'.", 400)
+    if decision not in _ALLOWED_DECISIONS:
+        return err(f"decision must be one of: {list(_ALLOWED_DECISIONS)}.", 400)
 
     sub = Submission.query.get(submission_id)
     if not sub:
@@ -349,28 +352,127 @@ def review_submission(submission_id):
     if not resource:
         return err("Associated resource not found.", 422)
 
-    now = datetime.now(timezone.utc)
+    # Requirement 4: Skills submissions cannot be published directly, and
+    # accepted_for_follow_up doesn't make sense for anything else.
+    if decision == "approved" and sub.submission_type == "community_asset":
+        return err(
+            "Skills submissions cannot be approved directly. Use decision "
+            "'accepted_for_follow_up' to route it to the follow-up "
+            "workflow, or 'rejected'.",
+            422,
+        )
+    if decision == "accepted_for_follow_up" and sub.submission_type != "community_asset":
+        return err(
+            "decision 'accepted_for_follow_up' is only valid for Skills "
+            "(community_asset) submissions.",
+            422,
+        )
+
     review_comment = data.get("notes") or data.get("review_comment")
+    approved_version_payload = data.get("approved_version") if decision == "approved" else None
+    included_reviewer_edits = bool(approved_version_payload)
+
+    # Pre-validate the reviewer-edited version, if any, before any DB
+    # writes -- same convention as create_submission().
+    new_version_hours_payload = None
+    if approved_version_payload:
+        new_name = (approved_version_payload.get("name") or "").strip()
+        if not new_name:
+            return err("approved_version.name is required.", 422)
+
+        field_errors = {}
+        validate_text_length(new_name, "name", _NAME_MAX, field_errors)
+        validate_text_length(
+            approved_version_payload.get("cost_description"), "cost_description",
+            _COST_DESCRIPTION_MAX, field_errors,
+        )
+        validate_text_length(
+            approved_version_payload.get("image_url"), "image_url",
+            _IMAGE_URL_MAX, field_errors,
+        )
+        if field_errors:
+            return err(
+                "One or more approved_version fields exceed the maximum allowed length.",
+                422, field_errors,
+            )
+
+        new_version_hours_payload, hours_err_resp = _validate_hours_payload(
+            approved_version_payload.get("hours")
+        )
+        if hours_err_resp:
+            return hours_err_resp
+
+    now = datetime.now(timezone.utc)
+    published_version_id = None
 
     try:
         if decision == "approved":
-            # Step 1: approve the version
-            version.moderation_status = "approved"
-            version.approved_at = now
+            if approved_version_payload:
+                new_version = ResourceVersion(
+                    resource_id=resource.resource_id,
+                    resource_type=(approved_version_payload.get("resource_type") or version.resource_type),
+                    moderation_status="approved",
+                    name=(approved_version_payload.get("name") or "").strip(),
+                    description=approved_version_payload.get("description"),
+                    eligibility=approved_version_payload.get("eligibility"),
+                    cost_description=approved_version_payload.get("cost_description"),
+                    accessibility_notes=approved_version_payload.get("accessibility_notes"),
+                    general_notes=approved_version_payload.get("general_notes"),
+                    image_url=approved_version_payload.get("image_url"),
+                    submitted_by_user_id=sub.submitted_by_user_id,
+                    reviewed_by_user_id=reviewer_id,
+                    reviewed_at=now,
+                    review_comment=review_comment,
+                    approved_at=now,
+                )
+                db.session.add(new_version)
+                db.session.flush()  # get resource_version_id before child rows
+                _add_version_child_records(
+                    new_version.resource_version_id, approved_version_payload, new_version_hours_payload
+                )
+
+                resource.current_approved_version_id = new_version.resource_version_id
+                if sub.submission_type == "new_resource":
+                    resource.is_active = 1
+
+                version.moderation_status = "approved"
+                version.reviewed_by_user_id = reviewer_id
+                version.reviewed_at = now
+                version.review_comment = review_comment
+                version.approved_at = now
+
+                published_version_id = new_version.resource_version_id
+            else:
+                version.moderation_status = "approved"
+                version.approved_at = now
+                version.reviewed_by_user_id = reviewer_id
+                version.reviewed_at = now
+                version.review_comment = review_comment
+
+                resource.current_approved_version_id = version.resource_version_id
+                if sub.submission_type == "new_resource":
+                    resource.is_active = 1
+
+                published_version_id = version.resource_version_id
+
+            sub.moderation_status = "approved"
+            sub.updated_at = now
+
+        elif decision == "accepted_for_follow_up":
+            version.moderation_status = "accepted_for_follow_up"
             version.reviewed_by_user_id = reviewer_id
             version.reviewed_at = now
             version.review_comment = review_comment
 
-            # Step 2: repoint current_approved_version_id
-            resource.current_approved_version_id = version.resource_version_id
-
-            # Step 3: publish resource shell (new_resource and community_asset only)
-            if sub.submission_type in ("new_resource", "community_asset"):
-                resource.is_active = 1
-
-            # Step 4: approve the submission
-            sub.moderation_status = "approved"
+            sub.moderation_status = "accepted_for_follow_up"
             sub.updated_at = now
+
+            db.session.add(SkillsFollowUp(
+                submission_id=submission_id,
+                status="accepted",
+                accepted_by_user_id=reviewer_id,
+                accepted_at=now,
+            ))
 
         else:  # rejected
             # Resource and current_approved_version_id are NOT touched
@@ -382,44 +484,53 @@ def review_submission(submission_id):
             sub.moderation_status = "rejected"
             sub.updated_at = now
 
-        # Step 5: append SubmissionReview (both approve and reject paths)
+        # SubmissionReview: append for every decision.
         review = SubmissionReview(
             submission_id=submission_id,
             reviewed_by_user_id=reviewer_id,
-            moderation_status=decision,  # "approved" | "rejected"
+            moderation_status=decision,
             review_comment=review_comment,
+            included_reviewer_edits=1 if included_reviewer_edits else 0,
             reviewed_at=now,
         )
         db.session.add(review)
 
-        # Step 6: append ResourceChangeLog (approve path only)
+        # ResourceChangeLog: approve path only -- the resource itself
+        # doesn't change state on reject or accepted_for_follow_up.
         if decision == "approved":
-            log_entry = ResourceChangeLog(
+            summary = f"Submission #{submission_id} approved"
+            if included_reviewer_edits:
+                summary += (
+                    f" with reviewer edits. Version #{published_version_id} set as "
+                    f"current (original proposed version #{version.resource_version_id} "
+                    "preserved, unpublished)."
+                )
+            else:
+                summary += f". Version #{published_version_id} set as current."
+            db.session.add(ResourceChangeLog(
                 resource_id=resource.resource_id,
                 changed_by_user_id=reviewer_id,
                 change_type="approved_submission",
-                change_summary=(
-                    f"Submission #{submission_id} approved. "
-                    f"Version #{version.resource_version_id} set as current."
-                ),
+                change_summary=summary,
                 submission_id=submission_id,
                 changed_at=now,
-            )
-            db.session.add(log_entry)
+            ))
 
-        # Single commit: all-or-nothing across all 5 tables
+        # Single commit: all-or-nothing across every table touched above.
         db.session.commit()
 
     except Exception as exc:
         db.session.rollback()
         return err(f"Failed to process review: {str(exc)}", 500)
 
-    return ok(
-        {
-            "submission_id": submission_id,
-            "decision": decision,
-            "resource_id": resource.resource_id,
-            "proposed_version_id": version.resource_version_id,
-        },
-        f"Submission {decision} successfully.",
-    )
+    response_payload = {
+        "submission_id": submission_id,
+        "decision": decision,
+        "resource_id": resource.resource_id,
+        "proposed_version_id": version.resource_version_id,
+    }
+    if decision == "approved":
+        response_payload["published_version_id"] = published_version_id
+        response_payload["included_reviewer_edits"] = included_reviewer_edits
+
+    return ok(response_payload, f"Submission {decision} successfully.")
