@@ -29,6 +29,8 @@ export interface ResourceUpdateComparisonReviewHandlers {
     disabled: boolean
     controlId: string
   }) => ReactNode | null
+  /** Shared validation message for this comparison field, when shown. */
+  getFieldError?: (fieldId: string) => string | undefined
 }
 
 interface ResourceUpdateComparisonViewProps {
@@ -186,6 +188,7 @@ function FieldComparison({
           controlId: proposedControlId,
         })
       : null
+  const fieldError = review?.getFieldError?.(field.id)
 
   return (
     <div className="space-y-2.5">
@@ -272,6 +275,7 @@ function FieldComparison({
                   review.onProposedChange(field.id, event.target.value)
                 }
                 aria-label={`Proposed ${field.label}`}
+                aria-invalid={Boolean(fieldError)}
               />
             ) : (
               <Input
@@ -286,8 +290,14 @@ function FieldComparison({
                   review.onProposedChange(field.id, event.target.value)
                 }
                 aria-label={`Proposed ${field.label}`}
+                aria-invalid={Boolean(fieldError)}
               />
             )}
+            {fieldError && structuredControl == null ? (
+              <p className="text-sm text-danger" role="alert">
+                {fieldError}
+              </p>
+            ) : null}
           </div>
         ) : (
           <ComparisonValue

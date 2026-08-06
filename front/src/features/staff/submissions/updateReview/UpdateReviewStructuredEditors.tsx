@@ -6,6 +6,7 @@ import type {
   HoursAvailability,
   ResourceContactMethod,
 } from '@/types/submission'
+import type { FieldErrors } from '@/features/submissions/existingResource/validation'
 import { ContactMethodList } from '@/features/submissions/form/ContactMethodList'
 import { OptionCardGroup } from '@/features/submissions/form/OptionCardGroup'
 import { PhysicalLocationList } from '@/features/submissions/form/PhysicalLocationList'
@@ -34,6 +35,9 @@ export interface UpdateReviewStructuredEditorHandlers {
   }) => void
   /** Used only to decide requireAtLeastOne for locations. */
   accessMode: ExistingResourceData['accessMode']
+  /** Shared validateExistingResource errors for the composed resource. */
+  errors?: FieldErrors
+  showErrors?: boolean
 }
 
 /**
@@ -46,6 +50,9 @@ export function renderUpdateReviewStructuredEditor(
   handlers: UpdateReviewStructuredEditorHandlers,
 ): ReactNode | null {
   if (!isResourceUpdateStructuredFieldId(fieldId)) return null
+
+  const errors = handlers.errors ?? {}
+  const showErrors = handlers.showErrors ?? false
 
   return (
     <div
@@ -60,6 +67,9 @@ export function renderUpdateReviewStructuredEditor(
           contacts={handlers.getContacts()}
           onChange={handlers.onContactsChange}
           description="Edit the contact methods that will be published for this resource."
+          error={showErrors ? errors.contacts : undefined}
+          valueErrors={showErrors ? errors.contactValues : undefined}
+          showErrors={showErrors}
         />
       ) : null}
 
@@ -71,6 +81,9 @@ export function renderUpdateReviewStructuredEditor(
             handlers.accessMode === 'physical' ||
             handlers.accessMode === 'both'
           }
+          showErrors={showErrors}
+          locationFields={showErrors ? errors.locationFields : undefined}
+          listError={showErrors ? errors.locations : undefined}
         />
       ) : null}
 
@@ -78,6 +91,7 @@ export function renderUpdateReviewStructuredEditor(
         <HoursStructuredEditor
           value={handlers.getHours()}
           onChange={handlers.onHoursChange}
+          hoursError={showErrors ? errors.hours : undefined}
         />
       ) : null}
     </div>
@@ -87,12 +101,14 @@ export function renderUpdateReviewStructuredEditor(
 function HoursStructuredEditor({
   value,
   onChange,
+  hoursError,
 }: {
   value: { hoursAvailability: HoursAvailability; hours: DayHours[] }
   onChange: (slice: {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
   }) => void
+  hoursError?: string
 }) {
   return (
     <div className="space-y-3">
@@ -109,7 +125,12 @@ function HoursStructuredEditor({
         <WeeklyHoursEditor
           hours={value.hours}
           onChange={(hours) => onChange({ ...value, hours })}
+          error={hoursError}
         />
+      ) : hoursError ? (
+        <p className="text-sm text-danger" role="alert">
+          {hoursError}
+        </p>
       ) : null}
     </div>
   )

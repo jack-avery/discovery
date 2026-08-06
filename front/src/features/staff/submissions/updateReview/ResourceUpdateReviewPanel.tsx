@@ -1,10 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ResourceDetailHero } from '@/features/discover/resourceDetailSections'
+import {
+  isExistingResourceComplete,
+  validateExistingResource,
+} from '@/features/submissions/existingResource/validation'
 import { ResourceUpdateComparisonView } from '@/features/submissions/updateRequest/ResourceUpdateComparisonView'
 import { buildResourceUpdateComparison } from '@/features/submissions/updateRequest/buildResourceUpdateComparison'
 import { mapResourceVersionToExistingResourceData } from '@/features/submissions/updateRequest/mapResourceVersionToExistingResourceData'
-import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
+import {
+  INCOMPLETE_EDITED_APPROVAL_HELPER,
+  type SubmissionApprovalGate,
+} from '@/features/staff/submissions/submissionApprovalGate'
 import { useResourceUpdateAcceptance } from '@/features/staff/submissions/updateReview/useResourceUpdateAcceptance'
+import { fieldErrorForUpdateComparisonField } from '@/features/staff/submissions/updateReview/updateReviewFieldErrors'
 import { renderUpdateReviewStructuredEditor } from '@/features/staff/submissions/updateReview/UpdateReviewStructuredEditors'
 import { useCategories } from '@/hooks/useCategories'
 import { useTags } from '@/hooks/useTags'
@@ -76,6 +84,24 @@ export function ResourceUpdateReviewPanel({
     acceptance.composedFinal?.differsFromProposed ??
     acceptance.hasOutcomeChanges
 
+  const composedData = acceptance.composedFinal?.data ?? null
+
+  // Shared public-form publishability check against the composed resource.
+  const isComplete = useMemo(
+    () =>
+      composedData != null ? isExistingResourceComplete(composedData) : true,
+    [composedData],
+  )
+
+  const showValidationErrors = differsFromProposed
+  const validationErrors = useMemo(
+    () =>
+      showValidationErrors && composedData != null
+        ? validateExistingResource(composedData)
+        : {},
+    [composedData, showValidationErrors],
+  )
+
   // Lift composed final into the shared workspace path when outcome ≠ proposal.
   useEffect(() => {
     if (!onFinalVersionChange) return
@@ -90,10 +116,18 @@ export function ResourceUpdateReviewPanel({
     onFinalVersionChange,
   ])
 
-  // Updates no longer block approve for edited outcomes (approved_version handles them).
+  // Gate Approve when the composed (edited) resource would not be publishable.
   useEffect(() => {
-    onApprovalGateChange?.({ approveDisabled: false })
-  }, [onApprovalGateChange])
+    if (!onApprovalGateChange) return
+    if (differsFromProposed && !isComplete) {
+      onApprovalGateChange({
+        approveDisabled: true,
+        approveHelper: INCOMPLETE_EDITED_APPROVAL_HELPER,
+      })
+      return
+    }
+    onApprovalGateChange({ approveDisabled: false })
+  }, [differsFromProposed, isComplete, onApprovalGateChange])
 
   // Clear gate / final version when leaving this panel / switching submissions.
   useEffect(() => {
@@ -176,6 +210,10 @@ export function ResourceUpdateReviewPanel({
           onProposedChange: acceptance.setFieldEdit,
           isFieldEdited: acceptance.isFieldEdited,
           onResetField: acceptance.resetFieldEdit,
+          getFieldError: (fieldId) =>
+            showValidationErrors
+              ? fieldErrorForUpdateComparisonField(validationErrors, fieldId)
+              : undefined,
           renderProposedControl: ({ field, disabled }) =>
             renderUpdateReviewStructuredEditor(field.id, disabled, {
               getContacts: acceptance.getContactsEditorValue,
@@ -185,6 +223,8 @@ export function ResourceUpdateReviewPanel({
               getHours: acceptance.getHoursEditorValue,
               onHoursChange: acceptance.setHoursEdit,
               accessMode: proposed.accessMode,
+              errors: validationErrors,
+              showErrors: showValidationErrors,
             }),
         }}
       />
