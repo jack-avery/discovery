@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { Field } from '@/features/submissions/form/Field'
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui'
@@ -56,6 +57,7 @@ export function SignInForm() {
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [emailError, setEmailError] = useState<string | undefined>()
   const [passwordError, setPasswordError] = useState<string | undefined>()
   const [formError, setFormError] = useState<string | null>(null)
@@ -131,19 +133,60 @@ export function SignInForm() {
             />
           </Field>
 
-          <Field id="staff-password" label="Password" required error={passwordError}>
-            <Input
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              value={password}
-              disabled={isLoading}
-              onChange={(event) => {
-                setPassword(event.target.value)
-                if (formError) setFormError(null)
-              }}
-            />
-          </Field>
+          <div className="space-y-1.5">
+            <label
+              htmlFor="staff-password"
+              className="block text-sm font-medium text-foreground"
+            >
+              Password
+              <span className="text-danger" aria-hidden="true">
+                {' '}
+                *
+              </span>
+            </label>
+            <div className="relative">
+              <Input
+                id="staff-password"
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                autoComplete="current-password"
+                value={password}
+                disabled={isLoading}
+                aria-invalid={passwordError ? true : undefined}
+                aria-describedby={
+                  passwordError ? 'staff-password-error' : undefined
+                }
+                className="pr-11"
+                onChange={(event) => {
+                  setPassword(event.target.value)
+                  if (formError) setFormError(null)
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((visible) => !visible)}
+                disabled={isLoading}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                className="absolute top-1/2 right-1.5 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground focus-ring disabled:pointer-events-none disabled:opacity-50"
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4" aria-hidden="true" strokeWidth={1.75} />
+                ) : (
+                  <Eye className="h-4 w-4" aria-hidden="true" strokeWidth={1.75} />
+                )}
+              </button>
+            </div>
+            {passwordError ? (
+              <p
+                id="staff-password-error"
+                className="text-xs text-danger"
+                role="alert"
+              >
+                {passwordError}
+              </p>
+            ) : null}
+          </div>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading ? 'Signing in…' : 'Sign In'}
