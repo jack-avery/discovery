@@ -8,16 +8,6 @@ import {
   Users,
 } from 'lucide-react'
 import { DISCOVER_OPEN_UPDATE_QUERY } from '@/features/discover/constants'
-import type { CategoryChartSegment } from '@/features/staff/dashboard/DashboardCategoryBarChart'
-
-export const PLACEHOLDER_CATEGORY_SEGMENTS: CategoryChartSegment[] = [
-  { label: 'Housing', value: 121, color: '#2d6a4f' },
-  { label: 'Food & Groceries', value: 96, color: '#22577a' },
-  { label: 'Mental Health', value: 63, color: '#d97706' },
-  { label: 'Youth Programs', value: 52, color: '#1b365d' },
-  { label: 'Employment', value: 41, color: '#ca8a04' },
-  { label: 'Other', value: 59, color: '#94a3b8' },
-]
 
 export interface PlaceholderQuickAction {
   id: string
