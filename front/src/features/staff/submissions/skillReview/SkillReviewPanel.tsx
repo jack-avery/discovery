@@ -13,7 +13,7 @@ import { Field } from '@/features/submissions/form/Field'
 import { OptionCardGroup } from '@/features/submissions/form/OptionCardGroup'
 import { RepeatableTextList } from '@/features/submissions/form/RepeatableTextList'
 import {
-  EDITED_APPROVAL_BLOCKED_HELPER,
+  SKILLS_EDITED_FOLLOW_UP_HELPER,
   type SubmissionApprovalGate,
 } from '@/features/staff/submissions/submissionApprovalGate'
 import { SectionEditChrome } from '@/features/staff/submissions/SectionEditChrome'
@@ -129,8 +129,8 @@ export function SkillReviewPanel({
       onApprovalGateChange({
         approveDisabled: true,
         approveHelper: isComplete
-          ? EDITED_APPROVAL_BLOCKED_HELPER
-          : `${EDITED_APPROVAL_BLOCKED_HELPER} Fix validation errors in the highlighted fields before a future edited approval can be submitted.`,
+          ? SKILLS_EDITED_FOLLOW_UP_HELPER
+          : `${SKILLS_EDITED_FOLLOW_UP_HELPER} Fix validation errors in the highlighted fields, or reset your changes.`,
       })
       return
     }

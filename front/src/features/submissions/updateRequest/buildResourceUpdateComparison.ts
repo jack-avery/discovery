@@ -140,14 +140,6 @@ function buildSectionFields(
           proposed.description,
           currentAvailable,
         ),
-        field(
-          sectionId,
-          'generalNotes',
-          'Notes for staff',
-          baseline.generalNotes,
-          proposed.generalNotes,
-          currentAvailable,
-        ),
       ]
     case 'hours':
       return [

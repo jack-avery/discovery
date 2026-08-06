@@ -77,6 +77,7 @@ export function mapResourceVersionToExistingResourceData(
 
   const contacts = mapContacts(presented.contacts, onlineUrl, moreInfoUrl)
   const locations = mapLocations(presented.locations)
+  const generalNotes = extractAdditionalDetailsNotes(noteSections)
 
   const data: ExistingResourceData = {
     ...createEmptyExistingResourceData(),
@@ -102,12 +103,69 @@ export function mapResourceVersionToExistingResourceData(
     accessibilityNotes: trimText(presented.accessibility_notes) || '',
     eligibility: trimText(presented.eligibility) || '',
     moreInfoUrl,
-    generalNotes: trimText(presented.general_notes) || '',
+    generalNotes,
     relationship: null,
     relationshipOther: '',
   }
 
   return normalizeExistingResourceData(data)
+}
+
+/**
+ * Form `generalNotes` is the underlying staff-note text only.
+ * Mapper headings such as "Additional details:" are presentation and are
+ * re-applied when building `general_notes` / approved_version payloads.
+ */
+function extractAdditionalDetailsNotes(
+  sections: ReturnType<typeof parseNoteSections>,
+): string {
+  const additional: string[] = []
+  const unstructured: string[] = []
+
+  for (const section of sections) {
+    const heading = normalizeNoteHeading(section.heading)
+    if (
+      heading === 'additional details' ||
+      heading === 'additional event details'
+    ) {
+      additional.push(...section.lines)
+      continue
+    }
+    if (!heading) {
+      unstructured.push(...section.lines)
+    }
+  }
+
+  const raw =
+    additional.length > 0
+      ? additional
+      : unstructured.length > 0
+        ? unstructured
+        : []
+
+  return trimText(unwrapAdditionalDetailsLabel(raw).join('\n'))
+}
+
+/** Strip a duplicated "Additional details:" line left in note body text. */
+function unwrapAdditionalDetailsLabel(lines: string[]): string[] {
+  let next = [...lines]
+  while (next.length > 0) {
+    const first = trimText(next[0])
+    if (
+      /^additional details:\s*$/i.test(first) ||
+      /^additional event details:\s*$/i.test(first)
+    ) {
+      next = next.slice(1)
+      continue
+    }
+    const inline = /^additional (?:event )?details:\s*(.+)$/i.exec(first)
+    if (inline) {
+      next = [inline[1], ...next.slice(1)]
+      continue
+    }
+    break
+  }
+  return next
 }
 
 function resolveAccessMode(

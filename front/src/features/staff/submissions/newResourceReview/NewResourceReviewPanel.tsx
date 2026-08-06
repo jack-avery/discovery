@@ -20,7 +20,7 @@ import {
 import { mapResourceVersionToExistingResourceData } from '@/features/submissions/updateRequest/mapResourceVersionToExistingResourceData'
 import type { PhysicalLocationGeocodingHandle } from '@/features/submissions/form/PhysicalLocationList'
 import {
-  EDITED_APPROVAL_BLOCKED_HELPER,
+  INCOMPLETE_EDITED_APPROVAL_HELPER,
   type SubmissionApprovalGate,
 } from '@/features/staff/submissions/submissionApprovalGate'
 import {
@@ -46,8 +46,8 @@ export type { SubmissionApprovalGate }
 
 /**
  * Editable new-resource moderation view.
- * Matches resource-detail section hierarchy; keeps a local finalized version
- * for upcoming approved_version integration (not sent yet).
+ * Matches resource-detail section hierarchy; lifts edited drafts for
+ * approved_version on approve.
  */
 export function NewResourceReviewPanel({
   submission,
@@ -56,7 +56,7 @@ export function NewResourceReviewPanel({
 }: {
   submission: SubmissionDetailDto
   onApprovalGateChange?: (gate: SubmissionApprovalGate) => void
-  /** Local composed final version for future approved_version payload. */
+  /** Composed final version when the reviewer has edited the proposal. */
   onFinalVersionChange?: (data: ExistingResourceData | null) => void
 }) {
   const version = submission.proposed_version
@@ -117,12 +117,10 @@ export function NewResourceReviewPanel({
 
   useEffect(() => {
     if (!onApprovalGateChange) return
-    if (hasEdits) {
+    if (hasEdits && !isComplete) {
       onApprovalGateChange({
         approveDisabled: true,
-        approveHelper: isComplete
-          ? EDITED_APPROVAL_BLOCKED_HELPER
-          : `${EDITED_APPROVAL_BLOCKED_HELPER} Fix validation errors in the highlighted fields before a future edited approval can be submitted.`,
+        approveHelper: INCOMPLETE_EDITED_APPROVAL_HELPER,
       })
       return
     }

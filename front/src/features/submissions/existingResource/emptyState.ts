@@ -182,10 +182,9 @@ export function normalizeExistingResourceData(
     locations,
     categoryIds: Array.isArray(raw.categoryIds) ? raw.categoryIds : [],
     filterIds: Array.isArray(raw.filterIds) ? raw.filterIds : [],
-    contacts:
-      Array.isArray(raw.contacts) && raw.contacts.length > 0
-        ? raw.contacts
-        : [createContactMethod()],
+    contacts: Array.isArray(raw.contacts)
+      ? raw.contacts
+      : [createContactMethod()],
     hours:
       Array.isArray(raw.hours) && raw.hours.length > 0
         ? raw.hours

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { PanelHeader } from '@/components/shared/PanelHeader'
-import { Button } from '@/components/ui'
+import { Button, Textarea } from '@/components/ui'
 import { useResourceDetail } from '@/hooks/useResourceDetail'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { submitCreateSubmissionRequest, toHumanErrorMessage } from '@/services/submissionService'
@@ -15,6 +15,7 @@ import { ContributorEditor } from '../contributor/ContributorEditor'
 import { createEmptyContributorInfo } from '../contributor/emptyState'
 import { isContributorComplete } from '../contributor/validation'
 import { ExistingResourceEditor } from '../existingResource/ExistingResourceEditor'
+import { Field } from '../form/Field'
 import { UnsavedChangesDialog } from '../form/UnsavedChangesDialog'
 import { mapUpdateResourceRequest } from '../mappers/mapExistingResource'
 import { mapResourceVersionToExistingResourceData } from './mapResourceVersionToExistingResourceData'
@@ -88,6 +89,8 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   const [activeSectionId, setActiveSectionId] = useState<UpdateSectionId | null>(
     null,
   )
+  /** Submission metadata only — never mapped into ResourceVersion content. */
+  const [staffNotes, setStaffNotes] = useState('')
 
   const resourceSaveRef = useRef<(() => SavedContributionPayload | null) | null>(
     null,
@@ -120,6 +123,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     setSubmitError(undefined)
     setSuccessOutcome('pending_review')
     setActiveSectionId(null)
+    setStaffNotes('')
     setPendingClose(false)
   }, [])
 
@@ -214,6 +218,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     setContributorComplete(false)
     setSubmitHint(undefined)
     setSubmitError(undefined)
+    setStaffNotes('')
     setStep('editing')
   }, [version, selectedSections])
 
@@ -280,6 +285,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
       proposedData,
       savedContributor,
       proposedData.name || resourceName,
+      staffNotes,
     )
 
     const displayTitle =
@@ -321,6 +327,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     resourceName,
     updateState.isComplete,
     contributorComplete,
+    staffNotes,
   ])
 
   return (
@@ -385,6 +392,8 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
             initialExpandedSections={selectedSections}
             showResourceErrors={showResourceErrors}
             showContributorErrors={showContributorErrors}
+            staffNotes={staffNotes}
+            onStaffNotesChange={setStaffNotes}
             submitHint={submitHint}
             submitError={submitError}
             canSubmit={updateState.hasChanges}
@@ -508,6 +517,8 @@ function EditingStage({
   initialExpandedSections,
   showResourceErrors,
   showContributorErrors,
+  staffNotes,
+  onStaffNotesChange,
   submitHint,
   submitError,
   canSubmit,
@@ -528,6 +539,8 @@ function EditingStage({
   initialExpandedSections: UpdateSectionId[]
   showResourceErrors: boolean
   showContributorErrors: boolean
+  staffNotes: string
+  onStaffNotesChange: (value: string) => void
   submitHint?: string
   submitError?: string
   canSubmit: boolean
@@ -578,6 +591,17 @@ function EditingStage({
         onRegisterSave={onRegisterContributorSave}
         requireResourceConnection
       />
+
+      <Field
+        id="update-staff-notes"
+        label="Anything else RRCRC staff should know? (optional)"
+      >
+        <Textarea
+          id="update-staff-notes"
+          value={staffNotes}
+          onChange={(event) => onStaffNotesChange(event.target.value)}
+        />
+      </Field>
 
       <div className="flex flex-col gap-2 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-end">
         {isSubmitting ? (

@@ -31,7 +31,7 @@ import {
 import { PhysicalLocationList } from '@/features/submissions/form/PhysicalLocationList'
 import type { PhysicalLocationGeocodingHandle } from '@/features/submissions/form/PhysicalLocationList'
 import {
-  EDITED_APPROVAL_BLOCKED_HELPER,
+  INCOMPLETE_EDITED_APPROVAL_HELPER,
   type SubmissionApprovalGate,
 } from '@/features/staff/submissions/submissionApprovalGate'
 import { SectionEditChrome } from '@/features/staff/submissions/SectionEditChrome'
@@ -171,12 +171,10 @@ export function EventReviewPanel({
 
   useEffect(() => {
     if (!onApprovalGateChange) return
-    if (hasEdits) {
+    if (hasEdits && !isComplete) {
       onApprovalGateChange({
         approveDisabled: true,
-        approveHelper: isComplete
-          ? EDITED_APPROVAL_BLOCKED_HELPER
-          : `${EDITED_APPROVAL_BLOCKED_HELPER} Fix validation errors in the highlighted fields before a future edited approval can be submitted.`,
+        approveHelper: INCOMPLETE_EDITED_APPROVAL_HELPER,
       })
       return
     }

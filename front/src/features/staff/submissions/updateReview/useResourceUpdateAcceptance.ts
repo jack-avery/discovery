@@ -86,8 +86,9 @@ export function useResourceUpdateAcceptance(
     (fieldId: string, value: string) => {
       setEdits((current) => {
         const original = proposedById[fieldId]
-        const effective = value.trim() || 'Not provided'
-        if (original != null && effective === original) {
+        // Exact match only — trim-equality would drop trailing spaces while typing
+        // (e.g. "Hello " → trim → "Hello" === original → edit discarded).
+        if (original != null && value === original) {
           if (!(fieldId in current)) return current
           const next = { ...current }
           delete next[fieldId]

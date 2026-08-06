@@ -3,19 +3,15 @@ import { ResourceDetailHero } from '@/features/discover/resourceDetailSections'
 import { ResourceUpdateComparisonView } from '@/features/submissions/updateRequest/ResourceUpdateComparisonView'
 import { buildResourceUpdateComparison } from '@/features/submissions/updateRequest/buildResourceUpdateComparison'
 import { mapResourceVersionToExistingResourceData } from '@/features/submissions/updateRequest/mapResourceVersionToExistingResourceData'
-import {
-  EDITED_APPROVAL_BLOCKED_HELPER,
-  type SubmissionApprovalGate,
-} from '@/features/staff/submissions/submissionApprovalGate'
+import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
 import { useResourceUpdateAcceptance } from '@/features/staff/submissions/updateReview/useResourceUpdateAcceptance'
 import { useCategories } from '@/hooks/useCategories'
 import { useTags } from '@/hooks/useTags'
+import type { ExistingResourceData } from '@/types/submission'
 import type { SubmissionDetailDto } from '@/types/moderationSubmission'
 import { cn } from '@/utils/cn'
 
 export type ResourceUpdateApprovalGate = SubmissionApprovalGate
-
-const APPROVAL_BLOCKED_HELPER = EDITED_APPROVAL_BLOCKED_HELPER
 
 /**
  * Staff review for Resource Update submissions: stacked current → proposed
@@ -24,9 +20,11 @@ const APPROVAL_BLOCKED_HELPER = EDITED_APPROVAL_BLOCKED_HELPER
 export function ResourceUpdateReviewPanel({
   submission,
   onApprovalGateChange,
+  onFinalVersionChange,
 }: {
   submission: SubmissionDetailDto
   onApprovalGateChange?: (gate: ResourceUpdateApprovalGate) => void
+  onFinalVersionChange?: (data: ExistingResourceData | null) => void
 }) {
   const version = submission.proposed_version
   const baselineDto = submission.current_approved_resource ?? null
@@ -73,32 +71,36 @@ export function ResourceUpdateReviewPanel({
     proposed,
   )
 
-  // Keep approval gate in sync with local outcome changes.
+  const differsFromProposed =
+    acceptance.composedFinal?.differsFromProposed ??
+    acceptance.hasOutcomeChanges
+
+  // Lift composed final into the shared workspace path when outcome ≠ proposal.
   useEffect(() => {
-    if (!onApprovalGateChange) return
-    const blocksApproval =
-      acceptance.composedFinal?.differsFromProposed ??
-      acceptance.hasOutcomeChanges
-    if (blocksApproval) {
-      onApprovalGateChange({
-        approveDisabled: true,
-        approveHelper: APPROVAL_BLOCKED_HELPER,
-      })
-      return
-    }
-    onApprovalGateChange({ approveDisabled: false })
+    if (!onFinalVersionChange) return
+    onFinalVersionChange(
+      differsFromProposed && acceptance.composedFinal
+        ? acceptance.composedFinal.data
+        : null,
+    )
   }, [
-    acceptance.composedFinal?.differsFromProposed,
-    acceptance.hasOutcomeChanges,
-    onApprovalGateChange,
+    acceptance.composedFinal,
+    differsFromProposed,
+    onFinalVersionChange,
   ])
 
-  // Clear gate when leaving this panel / switching submissions.
+  // Updates no longer block approve for edited outcomes (approved_version handles them).
+  useEffect(() => {
+    onApprovalGateChange?.({ approveDisabled: false })
+  }, [onApprovalGateChange])
+
+  // Clear gate / final version when leaving this panel / switching submissions.
   useEffect(() => {
     return () => {
       onApprovalGateChange?.({ approveDisabled: false })
+      onFinalVersionChange?.(null)
     }
-  }, [onApprovalGateChange, submission.submission_id])
+  }, [onApprovalGateChange, onFinalVersionChange, submission.submission_id])
 
   if (!version || !proposed || !comparison) {
     return (
@@ -197,9 +199,9 @@ function MissingBaselineWarning() {
         Current published version could not be loaded
       </p>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-        Proposed values are shown for review and can be edited locally. Approval
-        stays available only while you leave the proposal unchanged. Field-by-field
-        comparison will appear once the published baseline is available.
+        Proposed values are shown for review and can be edited locally.
+        Field-by-field comparison will appear once the published baseline is
+        available.
       </p>
     </div>
   )

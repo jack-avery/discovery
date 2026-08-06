@@ -62,7 +62,6 @@ function sectionSnapshot(
       return {
         name: data.name.trim(),
         description: data.description.trim(),
-        generalNotes: data.generalNotes.trim(),
       }
     case 'hours':
       return {

@@ -36,7 +36,6 @@ const EMPTY_DISPLAY = 'Not provided'
 const SIMPLE_STRING_FIELDS = new Set([
   'about:name',
   'about:description',
-  'about:generalNotes',
   'address:onlineUrl',
   'accessibility:accessibilityNotes',
   'website:moreInfoUrl',
@@ -143,9 +142,6 @@ function applySimpleStringEdit(
     case 'about:description':
       target.description = stored
       break
-    case 'about:generalNotes':
-      target.generalNotes = stored
-      break
     case 'address:onlineUrl':
       target.onlineUrl = stored
       break
@@ -174,9 +170,6 @@ function applyFieldFromSource(
       break
     case 'about:description':
       target.description = source.description
-      break
-    case 'about:generalNotes':
-      target.generalNotes = source.generalNotes
       break
     case 'hours:hours':
       target.hoursAvailability = source.hoursAvailability

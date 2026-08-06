@@ -360,19 +360,6 @@ export function ExistingResourceEditor({
           aria-invalid={Boolean(aboutErrors.description)}
         />
       </Field>
-
-      {isUpdate ? (
-        <Field
-          id="general-notes"
-          label="Anything else RRCRC staff should know? (optional)"
-        >
-          <Textarea
-            id="general-notes"
-            value={data.generalNotes}
-            onChange={(e) => patch({ generalNotes: e.target.value })}
-          />
-        </Field>
-      ) : null}
     </>
   )
 
@@ -608,7 +595,7 @@ export function ExistingResourceEditor({
     }
 
     const sectionDescriptions: Partial<Record<UpdateSectionId, string>> = {
-      about: 'Name, description, and notes for staff.',
+      about: 'Name and description.',
       address: 'How people can access this resource.',
       hours: 'When this resource is available.',
       website: 'More-information links.',

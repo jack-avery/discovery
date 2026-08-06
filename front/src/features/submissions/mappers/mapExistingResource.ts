@@ -49,12 +49,14 @@ export function mapExistingResourceContribution(
 /**
  * Build an update_resource payload from proposed editor data.
  * Shared field mapping with new_resource; only type and resource_id differ.
+ * `staffNotes` is submission metadata (submission_message), not version content.
  */
 export function mapUpdateResourceRequest(
   resourceId: number,
   data: ExistingResourceData,
   contributor: ContributorInfo,
   title?: string,
+  staffNotes?: string,
 ): CreateSubmissionRequestDto {
   return buildExistingResourceRequest({
     data,
@@ -62,6 +64,7 @@ export function mapUpdateResourceRequest(
     title,
     submissionType: 'update_resource',
     resourceId,
+    staffNotes,
   })
 }
 
@@ -111,12 +114,15 @@ function buildExistingResourceRequest({
   title,
   submissionType,
   resourceId,
+  staffNotes,
 }: {
   data: ExistingResourceData
   contributor: ContributorInfo
   title?: string
   submissionType: 'new_resource' | 'update_resource'
   resourceId?: number
+  /** Update-only: contributor note for staff; stored on the submission, not the version. */
+  staffNotes?: string
 }): CreateSubmissionRequestDto {
   const content = mapExistingResourceVersionContent(data, {
     name: title,
@@ -130,6 +136,7 @@ function buildExistingResourceRequest({
   const submissionMessage = joinMessageParts([
     preferredContactMessageLine(contributor),
     relationshipMessage(contributor, data),
+    submissionType === 'update_resource' ? trimText(staffNotes) || null : null,
   ])
 
   const payload: CreateSubmissionRequestDto = {
