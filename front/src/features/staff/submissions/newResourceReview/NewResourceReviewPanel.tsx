@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Phone } from 'lucide-react'
 import { Badge } from '@/components/ui'
+import { DetailSectionCard } from '@/features/discover/DetailInfoCard'
 import {
   ResourceDetailAboutShell,
   ResourceDetailHero,
@@ -29,6 +31,7 @@ import {
 } from '@/features/staff/submissions/newResourceReview/newResourceReviewDiff'
 import {
   NewResourceAboutFields,
+  NewResourceContactFields,
   NewResourceIdentityFields,
   NewResourceLocationFields,
   NewResourceServiceFields,
@@ -209,6 +212,26 @@ export function NewResourceReviewPanel({
           showErrors={showErrors}
         />
       </ResourceDetailAboutShell>
+
+      <DetailSectionCard
+        icon={<Phone className="h-4 w-4" strokeWidth={2} />}
+        title="Contact"
+        headerAction={
+          editedSet.has('contact') ? (
+            <SectionEditChrome
+              edited
+              onReset={() => resetSection('contact')}
+            />
+          ) : undefined
+        }
+      >
+        <NewResourceContactFields
+          data={data}
+          patch={patch}
+          errors={errors}
+          showErrors={showErrors}
+        />
+      </DetailSectionCard>
 
       <ResourceDetailLocationShell
         title={locationTitle}

@@ -225,11 +225,28 @@ export function NewResourceLocationFields({
   )
 }
 
-export function NewResourceServiceFields({
+export function NewResourceContactFields({
   data,
   patch,
   errors,
   showErrors,
+}: SharedEditorProps) {
+  return (
+    <ContactMethodList
+      contacts={data.contacts}
+      onChange={(contacts) => patch({ contacts })}
+      error={errors.contacts}
+      valueErrors={errors.contactValues}
+      showErrors={showErrors}
+    />
+  )
+}
+
+export function NewResourceServiceFields({
+  data,
+  patch,
+  errors,
+  showErrors: _showErrors,
 }: SharedEditorProps) {
   const needsCostDetails =
     data.costOption === 'other' ||
@@ -255,14 +272,6 @@ export function NewResourceServiceFields({
           />
         ) : null}
       </div>
-
-      <ContactMethodList
-        contacts={data.contacts}
-        onChange={(contacts) => patch({ contacts })}
-        error={errors.contacts}
-        valueErrors={errors.contactValues}
-        showErrors={showErrors}
-      />
 
       <div className="space-y-3">
         <OptionCardGroup<CostOption>

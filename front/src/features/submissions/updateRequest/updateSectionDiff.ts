@@ -43,12 +43,12 @@ function mapFieldErrorsToUpdateSection(
 ): UpdateSectionId | null {
   if (errors.name || errors.description) return 'about'
   if (errors.categories) return 'categories'
+  if (errors.contacts || errors.contactValues) return 'contact'
   if (errors.accessMode || errors.locations || errors.locationFields || errors.onlineUrl) {
     return 'address'
   }
   if (errors.hours) return 'hours'
   if (errors.moreInfoUrl) return 'website'
-  if (errors.contacts || errors.contactValues) return 'contact'
   if (errors.costDetails) return 'cost'
   return null
 }

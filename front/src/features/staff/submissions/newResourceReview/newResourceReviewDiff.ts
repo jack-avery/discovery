@@ -4,11 +4,12 @@ import { normalizeExistingResourceData } from '@/features/submissions/existingRe
 export type NewResourceReviewSectionId =
   | 'identity'
   | 'about'
+  | 'contact'
   | 'location'
   | 'service'
 
 export const NEW_RESOURCE_REVIEW_SECTIONS: readonly NewResourceReviewSectionId[] =
-  ['identity', 'about', 'location', 'service']
+  ['identity', 'about', 'contact', 'location', 'service']
 
 /**
  * Stable snapshots for section-level dirty detection / reset in new-resource review.
@@ -48,6 +49,9 @@ export function resetNewResourceReviewSection(
       next.description = baseline.description
       next.generalNotes = baseline.generalNotes
       break
+    case 'contact':
+      next.contacts = structuredClone(baseline.contacts)
+      break
     case 'location':
       next.accessMode = baseline.accessMode
       next.locations = structuredClone(baseline.locations)
@@ -56,7 +60,6 @@ export function resetNewResourceReviewSection(
     case 'service':
       next.hoursAvailability = baseline.hoursAvailability
       next.hours = structuredClone(baseline.hours)
-      next.contacts = structuredClone(baseline.contacts)
       next.costOption = baseline.costOption
       next.costDetails = baseline.costDetails
       next.accessibilityNotes = baseline.accessibilityNotes
@@ -87,6 +90,8 @@ function sectionSnapshot(
         description: data.description.trim(),
         generalNotes: data.generalNotes.trim(),
       }
+    case 'contact':
+      return normalizeContacts(data.contacts)
     case 'location':
       return {
         accessMode: data.accessMode,
@@ -112,7 +117,6 @@ function sectionSnapshot(
           closesAt: day.closesAt,
           byAppointment: day.byAppointment,
         })),
-        contacts: normalizeContacts(data.contacts),
         costOption: data.costOption,
         costDetails: data.costDetails.trim(),
         accessibilityNotes: data.accessibilityNotes.trim(),
