@@ -187,12 +187,6 @@ function assertDraftReady(draft: SubmissionDraft): void {
     blockers.push('Complete your contact information before submitting.')
   }
 
-  if (!draft.consent) {
-    blockers.push(
-      'Confirm that the information provided is accurate before submitting.',
-    )
-  }
-
   if (!canOpenReview(draft)) {
     blockers.push(
       'Every contribution needs to be complete before submitting.',

@@ -177,8 +177,4 @@ export function canOpenReview(draft: SubmissionDraft): boolean {
   return getReviewBlockers(draft).length === 0
 }
 
-export function isConsentComplete(consent: boolean): boolean {
-  return consent === true
-}
-
 export type { ContributorInfo }

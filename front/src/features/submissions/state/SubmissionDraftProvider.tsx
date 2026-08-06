@@ -60,10 +60,9 @@ interface SubmissionDraftContextValue {
   saveContributor: (contributor: ContributorInfo) => void
   openReview: () => void
   closeReview: () => void
-  setConsent: (consent: boolean) => void
   /**
    * After partial success: remove accepted contributions from the draft so
-   * retry cannot duplicate them. Keeps contributor details and consent.
+   * retry cannot duplicate them. Keeps contributor details.
    */
   retainFailedContributions: (failedContributionIds: string[]) => void
   /** Full success: clear persisted draft and show the success phase. */
@@ -374,16 +373,6 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
     }))
   }, [updateDraft])
 
-  const setConsent = useCallback(
-    (consent: boolean) => {
-      updateDraft((current) => ({
-        ...current,
-        consent,
-      }))
-    },
-    [updateDraft],
-  )
-
   const retainFailedContributions = useCallback(
     (failedContributionIds: string[]) => {
       const failed = new Set(failedContributionIds)
@@ -507,7 +496,6 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
       saveContributor,
       openReview,
       closeReview,
-      setConsent,
       retainFailedContributions,
       completeSuccessfulSubmission,
       startNewSubmission,
@@ -532,7 +520,6 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
       saveContributor,
       openReview,
       closeReview,
-      setConsent,
       retainFailedContributions,
       completeSuccessfulSubmission,
       startNewSubmission,
@@ -603,10 +590,9 @@ function normalizeDraft(draft: SubmissionDraft): {
   return {
     truncated,
     draft: {
-      ...draft,
+      id: draft.id,
       contributions,
       contributor,
-      consent: draft.consent === true,
       ui: {
         // Transient sheet UI is always closed on restore.
         editor: null,

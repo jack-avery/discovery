@@ -21,7 +21,6 @@ import {
   buildSubmissionSummary,
   canOpenReview,
   getReviewBlockers,
-  isConsentComplete,
 } from '../review/buildSubmissionSummary'
 import { SubmissionOutcomePanel } from './SubmissionOutcomePanel'
 import { useSubmissionDraft } from '../state/SubmissionDraftProvider'
@@ -68,12 +67,11 @@ export function ContributionBuilder() {
     saveContributor,
     openReview,
     closeReview,
-    setConsent,
     retainFailedContributions,
     completeSuccessfulSubmission,
   } = useSubmissionDraft()
 
-  const { contributions, ui, contributor, consent } = draft
+  const { contributions, ui, contributor } = draft
   const isEmpty = contributions.length === 0
   const atLimit = isContributionLimitReached(contributions.length)
   const canAdd = canAddContribution(contributions.length)
@@ -118,7 +116,6 @@ export function ContributionBuilder() {
   const [confirmClose, setConfirmClose] = useState(false)
   const [editorProgress, setEditorProgress] = useState<EditorProgress>(null)
   const [statusMessage, setStatusMessage] = useState('')
-  const [showConsentError, setShowConsentError] = useState(false)
   const [showReviewGate, setShowReviewGate] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitOutcome, setSubmitOutcome] = useState<{
@@ -198,7 +195,6 @@ export function ContributionBuilder() {
 
   useEffect(() => {
     if (!ui.showReview) {
-      setShowConsentError(false)
       if (!isSubmitting) setSubmitOutcome(null)
     }
   }, [ui.showReview, isSubmitting])
@@ -335,19 +331,12 @@ export function ContributionBuilder() {
     }
 
     setShowReviewGate(false)
-    setShowConsentError(false)
     openReview()
   }
 
   const handleReviewSubmit = async () => {
     if (isSubmitting) return
 
-    if (!isConsentComplete(consent)) {
-      setShowConsentError(true)
-      return
-    }
-
-    setShowConsentError(false)
     setSubmitOutcome(null)
     setIsSubmitting(true)
     setStatusMessage('Submitting your contributions…')
@@ -391,7 +380,6 @@ export function ContributionBuilder() {
       )
     } catch (error) {
       if (error instanceof SubmissionValidationError) {
-        setShowConsentError(true)
         setStatusMessage(error.blockers[0] ?? error.message)
         return
       }
@@ -722,7 +710,6 @@ export function ContributionBuilder() {
             dismissSubmitOutcome()
             return
           }
-          setShowConsentError(false)
           closeReview()
           focusNextAction()
         }}
@@ -752,17 +739,7 @@ export function ContributionBuilder() {
             retrying={isSubmitting}
           />
         ) : (
-          <ReviewSubmissionPanel
-            summary={submissionSummary}
-            consent={consent}
-            showConsentError={showConsentError}
-            consentDisabled={isSubmitting}
-            onConsentChange={(value) => {
-              if (isSubmitting) return
-              setConsent(value)
-              if (value) setShowConsentError(false)
-            }}
-          />
+          <ReviewSubmissionPanel summary={submissionSummary} />
         )}
       </ContributionEditorSheet>
 
