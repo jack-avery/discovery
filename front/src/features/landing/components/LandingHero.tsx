@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { PlusCircle, Search } from 'lucide-react'
-import landingHeroPlaceholder from '@/assets/landing-hero-placeholder.svg'
+import heroPlaceholder from '@/assets/hero-placeholder.png'
 import { Button } from '@/components/ui'
 import { cn } from '@/utils/cn'
 
@@ -32,7 +32,7 @@ const ROTATION_MS = 7000
 const CROSSFADE_MS = 700
 
 /**
- * Public landing hero: rotating headline + description, dual CTAs, and image.
+ * Public landing hero: full-bleed background image with rotating copy and dual CTAs.
  */
 export function LandingHero() {
   const [activeIndex, setActiveIndex] = useState(0)
@@ -65,74 +65,77 @@ export function LandingHero() {
   return (
     <section
       aria-labelledby="landing-hero-heading"
-      className="relative flex flex-col overflow-hidden bg-surface lg:min-h-[70vh] lg:flex-row"
+      className="relative h-[60vh] max-h-[700px] min-h-[400px] shrink-0 overflow-hidden"
     >
-      {/* Soft blue wash behind the image column */}
+      {/* Background image */}
+      <img
+        src={heroPlaceholder}
+        alt=""
+        aria-hidden="true"
+        className="absolute inset-0 h-full w-full object-cover object-center"
+        width={1536}
+        height={1024}
+        decoding="async"
+      />
+
+      {/* Left-to-right readability overlay — stronger on mobile */}
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 hidden w-[40%] bg-gradient-to-l from-[#e4eef5] via-[#eef4f8]/80 to-transparent lg:block"
+        className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-white/40 sm:from-white/95 sm:via-white/80 sm:to-transparent"
         aria-hidden="true"
       />
 
-      <div className="relative z-10 flex flex-col justify-center px-5 py-8 sm:px-8 sm:py-10 lg:w-[60%] lg:flex-none lg:px-10 lg:py-12 xl:px-14">
-        <div className="grid" aria-live="polite" aria-atomic="true">
-          {heroSlides.map((slide, index) => {
-            const isActive = index === activeIndex
-            return (
-              <div
-                key={slide.headline}
-                className={cn(
-                  'col-start-1 row-start-1',
-                  !reduceMotion && 'transition-opacity ease-in-out',
-                  isActive ? 'opacity-100' : 'pointer-events-none opacity-0',
-                )}
-                style={
-                  reduceMotion
-                    ? undefined
-                    : { transitionDuration: `${CROSSFADE_MS}ms` }
-                }
-                aria-hidden={!isActive}
-              >
-                <h1
-                  id={isActive ? 'landing-hero-heading' : undefined}
-                  className="max-w-2xl font-heading text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-[2.5rem] lg:leading-[1.15]"
+      {/* Content — fills the fixed hero height; does not contribute to section sizing */}
+      <div className="relative z-10 flex h-full items-center px-5 py-10 sm:px-8 sm:py-12 lg:px-10 lg:py-14 xl:px-14">
+        <div className="w-full max-w-[36rem]">
+          <div className="grid" aria-live="polite" aria-atomic="true">
+            {heroSlides.map((slide, index) => {
+              const isActive = index === activeIndex
+              return (
+                <div
+                  key={slide.headline}
+                  className={cn(
+                    'col-start-1 row-start-1',
+                    !reduceMotion && 'transition-opacity ease-in-out',
+                    isActive ? 'opacity-100' : 'pointer-events-none opacity-0',
+                  )}
+                  style={
+                    reduceMotion
+                      ? undefined
+                      : { transitionDuration: `${CROSSFADE_MS}ms` }
+                  }
+                  aria-hidden={!isActive}
                 >
-                  {slide.headline}
-                </h1>
-                <p className="mt-4 max-w-lg text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg">
-                  {slide.description}
-                </p>
-              </div>
-            )
-          })}
+                  <h1
+                    id={isActive ? 'landing-hero-heading' : undefined}
+                    className="font-heading text-3xl font-bold leading-tight tracking-tight text-foreground sm:text-4xl lg:text-[2.5rem] lg:leading-[1.15]"
+                  >
+                    {slide.headline}
+                  </h1>
+                  <p className="mt-4 text-base leading-relaxed text-muted-foreground sm:mt-5 sm:text-lg">
+                    {slide.description}
+                  </p>
+                </div>
+              )
+            })}
+          </div>
+
+          <div className="mt-6 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:flex-wrap sm:items-center sm:justify-start">
+            <Button href="/" variant="primary" size="lg" className="w-full sm:w-auto">
+              <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Explore the Map
+            </Button>
+
+            <Button
+              href="/submit"
+              variant="outline"
+              size="lg"
+              className="w-full border-interactive text-interactive hover:border-interactive hover:bg-interactive-muted hover:text-interactive sm:w-auto"
+            >
+              <PlusCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+              Contribute a Resource
+            </Button>
+          </div>
         </div>
-
-        <div className="mt-6 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:flex-wrap sm:items-center sm:justify-start">
-          <Button href="/" variant="primary" size="lg" className="w-full sm:w-auto">
-            <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
-            Explore the Map
-          </Button>
-
-          <Button
-            href="/submit"
-            variant="outline"
-            size="lg"
-            className="w-full border-interactive text-interactive hover:border-interactive hover:bg-interactive-muted hover:text-interactive sm:w-auto"
-          >
-            <PlusCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-            Contribute a Resource
-          </Button>
-        </div>
-      </div>
-
-      <div className="relative z-10 flex items-center justify-center px-5 pb-8 sm:px-8 sm:pb-10 lg:w-[40%] lg:flex-none lg:px-8 lg:py-12 xl:px-12">
-        <img
-          src={landingHeroPlaceholder}
-          alt="Illustration of a community centre, park path, and trees"
-          className="h-auto w-full max-w-xl rounded-xl object-cover shadow-md lg:max-w-none"
-          width={720}
-          height={560}
-          decoding="async"
-        />
       </div>
     </section>
   )
