@@ -3,7 +3,9 @@ import type {
   ContributorInfo,
   EventContributionData,
 } from '@/types/submission'
+import type { ApprovedResourceVersionPayload } from '@/types/moderationSubmission'
 import type { CreateSubmissionRequestDto } from '@/types/submissionApi'
+import type { ApprovedVersionSourceFields } from './approvedVersionSource'
 import {
   buildLocationDetailNotes,
   ensureWebsiteContact,
@@ -12,6 +14,7 @@ import {
   mapPublicLocations,
 } from './contactsAndLocations'
 import { mapEventCostDescription } from './cost'
+import { finalizeApprovedVersionPayload } from './finalizeApprovedVersionPayload'
 import {
   ACCESS_MODE_LABELS,
   EVENT_RELATIONSHIP_LABELS,
@@ -44,11 +47,37 @@ export function mapEventContribution(
     throw new Error('Expected event contribution data.')
   }
 
-  const data = contribution.data
-  const name = trimText(data.name) || trimText(contribution.title)
-  if (!name) {
+  const content = mapEventVersionContent(contribution.data, {
+    name: contribution.title,
+    resource_type: TEMP_RESOURCE_TYPE,
+  })
+
+  if (!trimText(content.name)) {
     throw new Error('Event contribution is missing a name.')
   }
+
+  const payload: CreateSubmissionRequestDto = {
+    submission_type: 'new_resource',
+    ...content,
+    ...mapSubmitterFields(contributor),
+    submission_message: joinMessageParts([
+      preferredContactMessageLine(contributor),
+      eventRelationshipMessage(contribution.data),
+    ]),
+  }
+
+  return compactPayload(payload)
+}
+
+/**
+ * Publishable resource/version content for an event form model.
+ * Does not include submission, contributor, or moderation fields.
+ */
+export function mapEventVersionContent(
+  data: EventContributionData,
+  source: ApprovedVersionSourceFields = {},
+): ApprovedResourceVersionPayload {
+  const name = trimText(data.name) || trimText(source.name)
 
   let contacts = mapPublicContacts(data.contacts)
   contacts = ensureWebsiteContact(contacts, data.onlineUrl)
@@ -56,10 +85,9 @@ export function mapEventContribution(
   const locations =
     data.accessMode === 'online' ? [] : mapPublicLocations(data.locations)
 
-  const payload: CreateSubmissionRequestDto = {
-    submission_type: 'new_resource',
-    resource_type: TEMP_RESOURCE_TYPE,
+  return finalizeApprovedVersionPayload({
     name,
+    resource_type: trimText(source.resource_type) || undefined,
     description: trimText(data.description) || undefined,
     eligibility: trimText(data.eligibility) || undefined,
     cost_description: mapEventCostDescription(
@@ -68,18 +96,12 @@ export function mapEventContribution(
     ),
     accessibility_notes: trimText(data.accessibilityNotes) || undefined,
     general_notes: buildEventNotes(data),
+    image_url: trimText(source.image_url) || undefined,
     category_ids: data.categoryIds.length > 0 ? [...data.categoryIds] : undefined,
     tag_ids: data.filterIds.length > 0 ? [...data.filterIds] : undefined,
-    ...mapSubmitterFields(contributor),
-    submission_message: joinMessageParts([
-      preferredContactMessageLine(contributor),
-      eventRelationshipMessage(data),
-    ]),
     locations: locations.length > 0 ? locations : undefined,
     contacts: contacts.length > 0 ? contacts : undefined,
-  }
-
-  return compactPayload(payload)
+  })
 }
 
 function eventRelationshipMessage(data: EventContributionData): string | null {
