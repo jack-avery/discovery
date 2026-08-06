@@ -12,6 +12,7 @@ interface FloatingDiscoveryToolbarProps {
   onCategoriesChange: (slugs: string[]) => void
   categoriesLoading?: boolean
   categoriesError?: string | null
+  onCategoriesRetry?: () => void
 }
 
 export function FloatingDiscoveryToolbar({
@@ -22,6 +23,7 @@ export function FloatingDiscoveryToolbar({
   onCategoriesChange,
   categoriesLoading,
   categoriesError,
+  onCategoriesRetry,
 }: FloatingDiscoveryToolbarProps) {
   return (
     <div
@@ -40,6 +42,7 @@ export function FloatingDiscoveryToolbar({
           onCategoriesChange={onCategoriesChange}
           isLoading={categoriesLoading}
           error={categoriesError}
+          onRetry={onCategoriesRetry}
         />
       </div>
     </div>

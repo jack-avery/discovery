@@ -101,7 +101,7 @@ export function EventReviewPanel({
   onFinalVersionChange?: (data: EventContributionData | null) => void
 }) {
   const version = submission.proposed_version
-  const { categories, isLoading: categoriesLoading, error: categoriesError } =
+  const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } =
     useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
   const locationGeocodingRef = useRef<PhysicalLocationGeocodingHandle>(null)
@@ -390,16 +390,17 @@ export function EventReviewPanel({
             onChange={(categoryIds) => patch({ categoryIds })}
             isLoading={categoriesLoading}
             error={categoriesError}
+            onRetry={reloadCategories}
             fieldError={categoryErrors.categories}
           />
           <LookupMultiSelect
-            label="Additional Filters"
+            label="Filters"
             options={filterOptions}
             value={data.filterIds}
             onChange={(filterIds) => patch({ filterIds })}
             isLoading={tagsLoading}
             error={tagsError}
-            emptyMessage="No additional filters are available yet."
+            emptyMessage="No filters are available yet."
           />
         </div>
       </DetailSectionCard>

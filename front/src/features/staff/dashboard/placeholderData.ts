@@ -76,8 +76,8 @@ export const PLACEHOLDER_QUICK_ACTIONS: PlaceholderQuickAction[] = [
   },
   {
     id: 'manage-tags',
-    title: 'Manage Tags',
-    description: 'Maintain tags used to filter and describe resources.',
+    title: 'Manage Filters',
+    description: 'Maintain filters used to discover and describe resources.',
     icon: Tag,
     iconClassName: 'bg-pending-muted text-pending',
   },

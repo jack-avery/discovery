@@ -60,7 +60,7 @@ export function NewResourceReviewPanel({
   onFinalVersionChange?: (data: ExistingResourceData | null) => void
 }) {
   const version = submission.proposed_version
-  const { categories, isLoading: categoriesLoading, error: categoriesError } =
+  const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } =
     useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
   const locationGeocodingRef = useRef<PhysicalLocationGeocodingHandle>(null)
@@ -191,6 +191,7 @@ export function NewResourceReviewPanel({
             tagsLoading={tagsLoading}
             categoriesError={categoriesError}
             tagsError={tagsError}
+            onCategoriesRetry={reloadCategories}
           />
         </div>
       </WorkspaceSection>

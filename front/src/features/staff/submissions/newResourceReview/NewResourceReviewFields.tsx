@@ -56,6 +56,7 @@ export function NewResourceIdentityFields({
   tagsLoading,
   categoriesError,
   tagsError,
+  onCategoriesRetry,
 }: SharedEditorProps & {
   categories: Category[]
   tags: Tag[]
@@ -63,6 +64,7 @@ export function NewResourceIdentityFields({
   tagsLoading: boolean
   categoriesError: string | null
   tagsError: string | null
+  onCategoriesRetry?: () => void
 }) {
   const categoryOptions = categories.map((category) => ({
     id: category.category_id,
@@ -100,17 +102,18 @@ export function NewResourceIdentityFields({
         onChange={(categoryIds) => patch({ categoryIds })}
         isLoading={categoriesLoading}
         error={categoriesError}
+        onRetry={onCategoriesRetry}
         fieldError={errors.categories}
       />
 
       <LookupMultiSelect
-        label="Additional Filters"
+        label="Filters"
         options={filterOptions}
         value={data.filterIds}
         onChange={(filterIds) => patch({ filterIds })}
         isLoading={tagsLoading}
         error={tagsError}
-        emptyMessage="No additional filters are available yet."
+        emptyMessage="No filters are available yet."
       />
     </div>
   )

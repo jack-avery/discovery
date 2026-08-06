@@ -1,6 +1,7 @@
 import { FolderOpen, Loader2 } from 'lucide-react'
 import type { Category } from '@/types'
 import { EmptyState } from '@/components/shared'
+import { Button } from '@/components/ui'
 import { CategoryChip } from '@/features/discover/CategoryChip'
 import { toggleFilterSelection } from '@/utils/filter-selection'
 import { cn } from '@/utils/cn'
@@ -11,6 +12,7 @@ interface CategoryChipGroupProps {
   onCategoriesChange: (slugs: string[]) => void
   isLoading?: boolean
   error?: string | null
+  onRetry?: () => void
   className?: string
 }
 
@@ -20,6 +22,7 @@ export function CategoryChipGroup({
   onCategoriesChange,
   isLoading = false,
   error = null,
+  onRetry,
   className,
 }: CategoryChipGroupProps) {
   const allSlugs = categories.map((category) => category.slug)
@@ -44,10 +47,17 @@ export function CategoryChipGroup({
   if (error) {
     return (
       <EmptyState
-        title="Unable to load categories"
+        title="Couldn't load categories"
         description={error}
         icon={<FolderOpen className="h-6 w-6 text-danger" strokeWidth={1.5} />}
         className="py-6"
+        action={
+          onRetry ? (
+            <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+              Retry
+            </Button>
+          ) : undefined
+        }
       />
     )
   }

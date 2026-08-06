@@ -801,7 +801,7 @@ function ServiceDetailsSection({
             )}
           >
             <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Tags
+              Filters
             </p>
             <div className="flex flex-wrap gap-1.5">
               {visibleTags.map((tag) => (

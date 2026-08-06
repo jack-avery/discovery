@@ -15,7 +15,7 @@ export function useTags(): UseTagsResult {
     (signal) => fetchTags({ signal }),
     {
       initialData: EMPTY_TAGS,
-      fallbackErrorMessage: 'Failed to load tags',
+      fallbackErrorMessage: 'Failed to load filters',
     },
   )
 

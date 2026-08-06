@@ -19,6 +19,7 @@ interface MultiSelectDropdownProps {
   onChange?: (slugs: string[]) => void
   isLoading?: boolean
   error?: string | null
+  onRetry?: () => void
   disabled?: boolean
   className?: string
 }
@@ -45,6 +46,7 @@ export function MultiSelectDropdown({
   onChange,
   isLoading = false,
   error = null,
+  onRetry,
   disabled = false,
   className,
 }: MultiSelectDropdownProps) {
@@ -197,6 +199,18 @@ export function MultiSelectDropdown({
         aria-hidden
         className="pointer-events-none invisible absolute left-0 top-0 -z-10 whitespace-nowrap text-sm"
       />
+      {error ? (
+        <div className="mt-1.5 space-y-1.5">
+          <p className="text-xs text-danger" role="alert">
+            {error}
+          </p>
+          {onRetry ? (
+            <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+              Retry
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
       {menu}
     </div>
   )

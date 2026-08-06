@@ -129,7 +129,7 @@ export function ExistingResourceEditor({
   onUpdateStateChange,
 }: ExistingResourceEditorProps) {
   const isUpdate = mode === 'update'
-  const { categories, isLoading: categoriesLoading, error: categoriesError } =
+  const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } =
     useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
 
@@ -386,17 +386,18 @@ export function ExistingResourceEditor({
         onChange={(categoryIds) => patch({ categoryIds })}
         isLoading={categoriesLoading}
         error={categoriesError}
+        onRetry={reloadCategories}
         fieldError={categoryErrors.categories}
       />
 
       <LookupMultiSelect
-        label="Additional Filters"
+        label="Filters"
         options={filterOptions}
         value={data.filterIds}
         onChange={(filterIds) => patch({ filterIds })}
         isLoading={tagsLoading}
         error={tagsError}
-        emptyMessage="No additional filters are available yet."
+        emptyMessage="No filters are available yet."
       />
     </>
   )

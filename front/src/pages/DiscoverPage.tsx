@@ -59,7 +59,7 @@ function DiscoverPageContent() {
     )
   }, [])
 
-  const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories()
+  const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } = useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
 
   /** Shared Discover filter state — drives both the resource list and map pins. */
@@ -120,6 +120,7 @@ function DiscoverPageContent() {
           categories={categories}
           categoriesLoading={categoriesLoading}
           categoriesError={categoriesError}
+          onCategoriesRetry={reloadCategories}
           tags={tags}
           tagsLoading={tagsLoading}
           tagsError={tagsError}

@@ -34,7 +34,6 @@ export function AccessModeSelector({
     <OptionCardGroup<AccessMode>
       name={name}
       legend={legend}
-      hint="Choose all that apply."
       options={ACCESS_MODE_OPTIONS}
       value={value}
       onChange={onChange}

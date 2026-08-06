@@ -15,6 +15,7 @@ interface MapCanvasProps {
   categories: Category[]
   categoriesLoading?: boolean
   categoriesError?: string | null
+  onCategoriesRetry?: () => void
   mapItems?: ResourceMapItem[]
   mapLoading?: boolean
   mapError?: string | null
@@ -34,6 +35,7 @@ export function MapCanvas({
   categories,
   categoriesLoading,
   categoriesError,
+  onCategoriesRetry,
   mapItems = [],
   mapLoading = false,
   mapError = null,
@@ -66,6 +68,7 @@ export function MapCanvas({
           onCategoriesChange={onCategoriesChange}
           categoriesLoading={categoriesLoading}
           categoriesError={categoriesError}
+          onCategoriesRetry={onCategoriesRetry}
         />
       ) : null}
 

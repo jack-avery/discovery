@@ -8,6 +8,7 @@ interface CategoryDropdownProps {
   onChange?: (slugs: string[]) => void
   isLoading?: boolean
   error?: string | null
+  onRetry?: () => void
   disabled?: boolean
   className?: string
 }
@@ -18,6 +19,7 @@ export function CategoryDropdown({
   onChange,
   isLoading = false,
   error = null,
+  onRetry,
   disabled = false,
   className,
 }: CategoryDropdownProps) {
@@ -29,6 +31,7 @@ export function CategoryDropdown({
       onChange={onChange}
       isLoading={isLoading}
       error={error}
+      onRetry={onRetry}
       disabled={disabled}
       className={cn(className)}
     />

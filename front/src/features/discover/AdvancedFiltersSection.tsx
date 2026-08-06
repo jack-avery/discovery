@@ -18,9 +18,9 @@ export function AdvancedFiltersSection({
   error,
 }: AdvancedFiltersSectionProps) {
   return (
-    <WorkspaceSection title="Advanced Filters">
+    <WorkspaceSection title="Filters">
       <FilterPopover
-        label="Advanced Filters"
+        label="Filters"
         hideLabel
         items={tags}
         value={selectedFilters}

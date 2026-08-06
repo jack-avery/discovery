@@ -17,6 +17,7 @@ interface DiscoverLayoutProps {
   categories: Category[]
   categoriesLoading?: boolean
   categoriesError?: string | null
+  onCategoriesRetry?: () => void
   tags: Tag[]
   tagsLoading?: boolean
   tagsError?: string | null
@@ -45,6 +46,7 @@ export function DiscoverLayout({
   categories,
   categoriesLoading,
   categoriesError,
+  onCategoriesRetry,
   tags,
   tagsLoading,
   tagsError,
@@ -62,6 +64,7 @@ export function DiscoverLayout({
     onCategoriesChange,
     categoriesLoading,
     categoriesError,
+    onCategoriesRetry,
   }
 
   const workspaceProps = {
@@ -74,6 +77,7 @@ export function DiscoverLayout({
     categories,
     categoriesLoading,
     categoriesError,
+    onCategoriesRetry,
     tags,
     tagsLoading,
     tagsError,
