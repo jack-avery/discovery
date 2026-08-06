@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Button, Input, Textarea } from '@/components/ui'
 import type {
   ResourceUpdateComparison,
@@ -19,6 +20,15 @@ export interface ResourceUpdateComparisonReviewHandlers {
   onProposedChange: (fieldId: string, value: string) => void
   isFieldEdited: (fieldId: string) => boolean
   onResetField: (fieldId: string) => void
+  /**
+   * Optional structured proposed control (contacts / locations / hours).
+   * Return a node to replace the default input/textarea; return null to fall back.
+   */
+  renderProposedControl?: (args: {
+    field: ResourceUpdateComparisonField
+    disabled: boolean
+    controlId: string
+  }) => ReactNode | null
 }
 
 interface ResourceUpdateComparisonViewProps {
@@ -168,6 +178,14 @@ function FieldComparison({
   const multiline = prefersMultiline(field)
   const proposedControlId = `proposed-${field.id}`
   const acceptControlId = `accept-${field.id}`
+  const structuredControl =
+    interactive && review
+      ? review.renderProposedControl?.({
+          field,
+          disabled: !proposedEditable,
+          controlId: proposedControlId,
+        })
+      : null
 
   return (
     <div className="space-y-2.5">
@@ -239,7 +257,9 @@ function FieldComparison({
                 ) : null}
               </div>
             </div>
-            {multiline ? (
+            {structuredControl != null ? (
+              structuredControl
+            ) : multiline ? (
               <Textarea
                 id={proposedControlId}
                 value={proposedValue === 'Not provided' ? '' : proposedValue}

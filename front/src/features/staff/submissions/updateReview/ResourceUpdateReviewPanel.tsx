@@ -5,6 +5,7 @@ import { buildResourceUpdateComparison } from '@/features/submissions/updateRequ
 import { mapResourceVersionToExistingResourceData } from '@/features/submissions/updateRequest/mapResourceVersionToExistingResourceData'
 import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
 import { useResourceUpdateAcceptance } from '@/features/staff/submissions/updateReview/useResourceUpdateAcceptance'
+import { renderUpdateReviewStructuredEditor } from '@/features/staff/submissions/updateReview/UpdateReviewStructuredEditors'
 import { useCategories } from '@/hooks/useCategories'
 import { useTags } from '@/hooks/useTags'
 import type { ExistingResourceData } from '@/types/submission'
@@ -175,6 +176,16 @@ export function ResourceUpdateReviewPanel({
           onProposedChange: acceptance.setFieldEdit,
           isFieldEdited: acceptance.isFieldEdited,
           onResetField: acceptance.resetFieldEdit,
+          renderProposedControl: ({ field, disabled }) =>
+            renderUpdateReviewStructuredEditor(field.id, disabled, {
+              getContacts: acceptance.getContactsEditorValue,
+              onContactsChange: acceptance.setContactsEdit,
+              getLocations: acceptance.getLocationsEditorValue,
+              onLocationsChange: acceptance.setLocationsEdit,
+              getHours: acceptance.getHoursEditorValue,
+              onHoursChange: acceptance.setHoursEdit,
+              accessMode: proposed.accessMode,
+            }),
         }}
       />
     </div>
