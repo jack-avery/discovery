@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui'
+import { useAuth } from '@/app/providers/AuthProvider'
 import type { ContributionType } from '@/types/submission'
 import { CONTRIBUTION_TYPE_ORDER } from '../constants/contributionTypes'
 import { CONTRIBUTION_LIMIT_HELPER } from '../constants/contributionLimits'
@@ -19,6 +20,8 @@ export function ContributionTypePicker({
   onCancel,
   onSelect,
 }: ContributionTypePickerProps) {
+  const { isAuthenticated } = useAuth()
+
   if (!visible) return null
 
   return (
@@ -46,9 +49,11 @@ export function ContributionTypePicker({
         <p className="mx-auto mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
           Choose the option that best fits what you&apos;d like to share.
         </p>
-        <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
-          {CONTRIBUTION_LIMIT_HELPER}
-        </p>
+        {!isAuthenticated ? (
+          <p className="mx-auto mt-2 max-w-xl text-xs leading-relaxed text-muted-foreground sm:text-sm">
+            {CONTRIBUTION_LIMIT_HELPER}
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-8 grid w-full gap-5 sm:mt-10 md:grid-cols-3 md:gap-6">
