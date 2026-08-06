@@ -4,6 +4,11 @@ import { useAuth } from '@/app/providers/AuthProvider'
 import { Field } from '@/features/submissions/form/Field'
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui'
 import { ApiError } from '@/services/api'
+import {
+  looksLikeTechnicalErrorMessage,
+  logTechnicalError,
+  toUserFacingErrorMessage,
+} from '@/utils/userFacingError'
 
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.'
 
@@ -25,17 +30,23 @@ function resolveReturnPath(state: unknown): string {
 }
 
 function resolveLoginErrorMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    // Credential / inactive-account failures from POST /auth/login.
-    if (error.status === 401) {
-      return INVALID_CREDENTIALS_MESSAGE
+  if (error instanceof ApiError && error.status === 401) {
+    logTechnicalError('auth-login', error)
+    return INVALID_CREDENTIALS_MESSAGE
+  }
+
+  if (error instanceof ApiError && error.status === 403) {
+    const message = error.message.trim()
+    if (message && !looksLikeTechnicalErrorMessage(message)) {
+      logTechnicalError('auth-login', error)
+      return message
     }
-    return error.message || INVALID_CREDENTIALS_MESSAGE
   }
-  if (error instanceof Error && error.message.trim()) {
-    return error.message
-  }
-  return 'Unable to sign in. Please try again.'
+
+  return toUserFacingErrorMessage(error, {
+    fallback: 'Unable to sign in. Please try again.',
+    context: 'auth-login',
+  })
 }
 
 export function SignInForm() {

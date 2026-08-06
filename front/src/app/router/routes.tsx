@@ -1,13 +1,13 @@
 import { Navigate, type RouteObject } from 'react-router-dom'
 import { AppLayout, StaffLayout } from '@/app/layouts'
 import { RequireAuth } from '@/app/router/RequireAuth'
+import { DISCOVER_OPEN_UPDATE_QUERY } from '@/features/discover/constants'
 import { DiscoverPage } from '@/pages/DiscoverPage'
 import { HomePage } from '@/pages/HomePage'
 import { MapPage } from '@/pages/MapPage'
 import { ResourcesPage } from '@/pages/ResourcesPage'
 import { SubmissionsPage } from '@/pages/SubmissionsPage'
 import { SubmitResourcePage } from '@/pages/SubmitResourcePage'
-import { RequestResourceUpdatePage } from '@/pages/RequestResourceUpdatePage'
 import { StaffSignInPage } from '@/pages/StaffSignInPage'
 import { StaffHomePage } from '@/pages/StaffHomePage'
 import { StaffSubmissionsPage } from '@/pages/StaffSubmissionsPage'
@@ -22,7 +22,12 @@ export const routes: RouteObject[] = [
       { index: true, element: <DiscoverPage /> },
       { path: 'home', element: <HomePage /> },
       { path: 'submit', element: <SubmitResourcePage /> },
-      { path: 'request-update', element: <RequestResourceUpdatePage /> },
+      {
+        path: 'request-update',
+        element: (
+          <Navigate to={`/?${DISCOVER_OPEN_UPDATE_QUERY}=1`} replace />
+        ),
+      },
       { path: 'sign-in', element: <StaffSignInPage /> },
       { path: 'map', element: <MapPage /> },
       { path: 'resources', element: <ResourcesPage /> },

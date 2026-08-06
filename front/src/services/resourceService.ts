@@ -8,6 +8,10 @@ import type {
   ResourceSummaryDto,
   ResourceVersionDto,
 } from '@/types/resource'
+import {
+  logTechnicalError,
+  toUserFacingErrorMessage,
+} from '@/utils/userFacingError'
 
 /**
  * Long-term frontend query contract for resource lists.
@@ -238,26 +242,21 @@ export async function deleteResource(
 export function toDeleteResourceErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.status === 401) {
+      logTechnicalError('delete-resource', error)
       return 'Your session has expired. Please sign in again to delete this resource.'
     }
     if (error.status === 403) {
+      logTechnicalError('delete-resource', error)
       return 'You do not have permission to delete resources.'
     }
     if (error.status === 404) {
+      logTechnicalError('delete-resource', error)
       return 'This resource was not found or has already been deleted.'
     }
-    if (error.message.trim()) {
-      return error.message
-    }
-    if (error.status === 0) {
-      return 'Unable to delete this resource. Check your connection and try again.'
-    }
-    return 'Unable to delete this resource. Please try again.'
   }
 
-  if (error instanceof Error && error.message.trim()) {
-    return error.message
-  }
-
-  return 'Unable to delete this resource. Please try again.'
+  return toUserFacingErrorMessage(error, {
+    fallback: 'Unable to delete this resource. Please try again.',
+    context: 'delete-resource',
+  })
 }

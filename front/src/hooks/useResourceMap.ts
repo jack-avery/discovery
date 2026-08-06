@@ -51,7 +51,7 @@ export function useResourceMap(
     (signal) => fetchMapResources(query, { signal }),
     {
       initialData: EMPTY_RESULT,
-      fallbackErrorMessage: 'Failed to load map resources',
+      fallbackErrorMessage: "We couldn't load map resources. Please try again.",
       deps: [key, reloadKey],
     },
   )

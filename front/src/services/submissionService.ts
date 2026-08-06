@@ -8,6 +8,10 @@ import { MAX_CONTRIBUTIONS_PER_SUBMISSION } from '@/features/submissions/constan
 import { isContributorComplete } from '@/features/submissions/contributor/validation'
 import { mapContributionToRequest } from '@/features/submissions/mappers/mapContribution'
 import { canOpenReview } from '@/features/submissions/review/buildSubmissionSummary'
+import {
+  looksLikeTechnicalErrorMessage,
+  logTechnicalError,
+} from '@/utils/userFacingError'
 
 /** Internal per-contribution success — IDs retained for support, not shown as a shared reference. */
 export interface ContributionSubmitSuccess {
@@ -211,6 +215,8 @@ export function toHumanErrorMessage(
   error: unknown,
   contributionTitle: string,
 ): string {
+  logTechnicalError('submit-contribution', error)
+
   if (error instanceof ApiError) {
     if (error.status === 429) {
       return `We couldn’t submit “${contributionTitle}” because the submission limit has been reached. Please try again later.`
@@ -240,8 +246,6 @@ export function toHumanErrorMessage(
 function sanitizeBackendMessage(message: string): string | null {
   const trimmed = message.trim()
   if (!trimmed) return null
-  // Avoid dumping technical validation internals.
-  if (/stack|traceback|sqlalchemy|json/i.test(trimmed)) return null
-  if (trimmed.length > 280) return `${trimmed.slice(0, 277)}…`
+  if (looksLikeTechnicalErrorMessage(trimmed)) return null
   return trimmed
 }

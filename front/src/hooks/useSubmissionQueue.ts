@@ -32,7 +32,7 @@ export function useSubmissionQueue(
     (signal) => fetchReviewQueue({ filters, sort, signal }),
     {
       initialData: [],
-      fallbackErrorMessage: 'Failed to load submission queue',
+      fallbackErrorMessage: "We couldn't load the submission queue. Please try again.",
       deps: [reloadKey, filtersKey, sort],
     },
   )

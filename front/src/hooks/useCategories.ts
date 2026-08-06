@@ -34,7 +34,7 @@ export function useCategories(): UseCategoriesResult {
   return {
     categories,
     isLoading,
-    error: error ? CATEGORIES_LOAD_ERROR : null,
+    error,
     reload,
   }
 }
