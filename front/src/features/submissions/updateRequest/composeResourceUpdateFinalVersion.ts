@@ -5,7 +5,7 @@ import type {
   ResourceUpdateComparisonField,
 } from './buildResourceUpdateComparison'
 import {
-  areContactEditorEqual,
+  areContactSlicesEqual,
   areHoursSlicesEqual,
   areLocationSlicesEqual,
   isResourceUpdateStructuredFieldId,
@@ -164,7 +164,7 @@ function isStructuredFieldEdited(
     case 'contact:contacts': {
       const edited = structuredEdits['contact:contacts']
       if (!edited) return false
-      return !areContactEditorEqual(
+      return !areContactSlicesEqual(
         nonWebsiteContacts(edited),
         nonWebsiteContacts(proposed.contacts),
       )

@@ -5,6 +5,7 @@ import type {
   HoursAvailability,
   ResourceContactMethod,
 } from '@/types/submission'
+import { normalizePhoneE164 } from '@/utils/phone'
 
 /** Comparison field ids that edit structured ExistingResourceData slices. */
 export const RESOURCE_UPDATE_STRUCTURED_FIELD_IDS = [
@@ -25,7 +26,8 @@ export function isResourceUpdateStructuredFieldId(
 }
 
 /**
- * Reviewer overrides for collection fields. Absent key = still at proposed.
+ * Reviewer working values for collection fields (always held while reviewing).
+ * Edited vs proposed is derived via structural slice equality — not edit history.
  * Contacts store non-website methods only; websites stay on the resource model
  * via the separate website field / proposed contacts.
  */
@@ -35,6 +37,88 @@ export type ResourceUpdateStructuredEdits = {
   'hours:hours'?: {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
+  }
+}
+
+/** Live editor drafts for structured Update-review fields. */
+export interface ResourceUpdateStructuredWorkingValues {
+  contacts: ResourceContactMethod[]
+  locations: ExistingResourceLocation[]
+  hours: {
+    hoursAvailability: HoursAvailability
+    hours: DayHours[]
+  }
+}
+
+export function createStructuredWorkingValues(
+  proposed: ExistingResourceData,
+): ResourceUpdateStructuredWorkingValues {
+  return {
+    contacts: structuredClone(nonWebsiteContacts(proposed.contacts)),
+    locations: structuredClone(proposed.locations),
+    hours: {
+      hoursAvailability: proposed.hoursAvailability,
+      hours: structuredClone(proposed.hours),
+    },
+  }
+}
+
+/**
+ * Sparse compose overrides: only slices that structurally differ from proposed.
+ */
+export function structuredEditsFromWorking(
+  proposed: ExistingResourceData,
+  working: ResourceUpdateStructuredWorkingValues,
+): ResourceUpdateStructuredEdits {
+  const edits: ResourceUpdateStructuredEdits = {}
+
+  if (
+    !areContactSlicesEqual(
+      working.contacts,
+      nonWebsiteContacts(proposed.contacts),
+    )
+  ) {
+    edits['contact:contacts'] = working.contacts
+  }
+
+  if (!areLocationSlicesEqual(working.locations, proposed.locations)) {
+    edits['address:locations'] = working.locations
+  }
+
+  if (
+    !areHoursSlicesEqual(working.hours, {
+      hoursAvailability: proposed.hoursAvailability,
+      hours: proposed.hours,
+    })
+  ) {
+    edits['hours:hours'] = working.hours
+  }
+
+  return edits
+}
+
+export function isStructuredWorkingFieldEdited(
+  fieldId: ResourceUpdateStructuredFieldId,
+  proposed: ExistingResourceData,
+  working: ResourceUpdateStructuredWorkingValues,
+): boolean {
+  switch (fieldId) {
+    case 'contact:contacts':
+      return !areContactSlicesEqual(
+        working.contacts,
+        nonWebsiteContacts(proposed.contacts),
+      )
+    case 'address:locations':
+      return !areLocationSlicesEqual(working.locations, proposed.locations)
+    case 'hours:hours':
+      return !areHoursSlicesEqual(working.hours, {
+        hoursAvailability: proposed.hoursAvailability,
+        hours: proposed.hours,
+      })
+    default: {
+      const exhaustive: never = fieldId
+      return exhaustive
+    }
   }
 }
 
@@ -55,20 +139,6 @@ export function areContactSlicesEqual(
   b: ResourceContactMethod[],
 ): boolean {
   return stableStringify(normalizeContacts(a)) === stableStringify(normalizeContacts(b))
-}
-
-/** Editor dirty check — includes empty rows so “Add contact” is not discarded. */
-export function areContactEditorEqual(
-  a: ResourceContactMethod[],
-  b: ResourceContactMethod[],
-): boolean {
-  if (a.length !== b.length) return false
-  return a.every(
-    (contact, index) =>
-      contact.type === b[index].type &&
-      contact.value === b[index].value &&
-      contact.label === b[index].label,
-  )
 }
 
 export function areLocationSlicesEqual(
@@ -115,11 +185,17 @@ function normalizeContacts(
   contacts: ResourceContactMethod[],
 ): Array<{ type: string; value: string; label: string }> {
   return contacts
-    .map((contact) => ({
-      type: contact.type,
-      value: contact.value.trim(),
-      label: contact.label.trim(),
-    }))
+    .map((contact) => {
+      const raw = contact.value.trim()
+      // Same canonical phone form as mapPublicContacts / approved_version publish.
+      const value =
+        contact.type === 'phone' ? (normalizePhoneE164(raw) ?? raw) : raw
+      return {
+        type: contact.type,
+        value,
+        label: contact.label.trim(),
+      }
+    })
     .filter((contact) => contact.value)
     .sort((a, b) =>
       `${a.type}:${a.value}:${a.label}`.localeCompare(

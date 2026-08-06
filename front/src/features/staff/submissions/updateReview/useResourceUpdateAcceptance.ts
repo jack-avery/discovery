@@ -12,13 +12,15 @@ import {
   type ComposedResourceUpdateVersion,
 } from '@/features/submissions/updateRequest/composeResourceUpdateFinalVersion'
 import {
-  areContactEditorEqual,
-  areHoursSlicesEqual,
-  areLocationSlicesEqual,
+  createStructuredWorkingValues,
   isResourceUpdateStructuredFieldId,
+  isStructuredWorkingFieldEdited,
   nonWebsiteContacts,
+  RESOURCE_UPDATE_STRUCTURED_FIELD_IDS,
+  structuredEditsFromWorking,
   type ResourceUpdateStructuredEdits,
   type ResourceUpdateStructuredFieldId,
+  type ResourceUpdateStructuredWorkingValues,
 } from '@/features/submissions/updateRequest/resourceUpdateStructuredFields'
 
 export type FieldAcceptanceMap = Record<string, boolean>
@@ -59,6 +61,9 @@ export interface ResourceUpdateAcceptanceState {
 /**
  * Moderator field acceptance + local edits for a Resource Update comparison.
  * Defaults every field to accepted; resets when the comparison identity changes.
+ *
+ * Structured collection fields keep a live working draft; “edited” is derived
+ * from structural equality to the proposal (not from interaction history).
  */
 export function useResourceUpdateAcceptance(
   comparison: ResourceUpdateComparison | null,
@@ -95,8 +100,8 @@ export function useResourceUpdateAcceptance(
 
   const [accepted, setAccepted] = useState<FieldAcceptanceMap>({})
   const [edits, setEdits] = useState<FieldEditMap>({})
-  const [structuredEdits, setStructuredEdits] =
-    useState<ResourceUpdateStructuredEdits>({})
+  const [structuredWorking, setStructuredWorking] =
+    useState<ResourceUpdateStructuredWorkingValues | null>(null)
 
   useEffect(() => {
     const next: FieldAcceptanceMap = {}
@@ -105,8 +110,15 @@ export function useResourceUpdateAcceptance(
     }
     setAccepted(next)
     setEdits({})
-    setStructuredEdits({})
-  }, [resetKey, fieldIdsKey])
+    setStructuredWorking(
+      proposed ? createStructuredWorkingValues(proposed) : null,
+    )
+  }, [resetKey, fieldIdsKey, proposed])
+
+  const structuredEdits = useMemo((): ResourceUpdateStructuredEdits => {
+    if (!proposed || !structuredWorking) return {}
+    return structuredEditsFromWorking(proposed, structuredWorking)
+  }, [proposed, structuredWorking])
 
   const setFieldAccepted = useCallback((fieldId: string, value: boolean) => {
     setAccepted((current) => ({ ...current, [fieldId]: value }))
@@ -131,116 +143,81 @@ export function useResourceUpdateAcceptance(
     [proposedById],
   )
 
-  const setContactsEdit = useCallback(
-    (contacts: ResourceContactMethod[]) => {
-      if (!proposed) return
-      const cleaned = nonWebsiteContacts(contacts)
-      setStructuredEdits((current) => {
-        const next = { ...current }
-        if (
-          areContactEditorEqual(
-            cleaned,
-            nonWebsiteContacts(proposed.contacts),
-          )
-        ) {
-          delete next['contact:contacts']
-        } else {
-          next['contact:contacts'] = cleaned
-        }
-        return next
-      })
-    },
-    [proposed],
-  )
+  const setContactsEdit = useCallback((contacts: ResourceContactMethod[]) => {
+    const cleaned = nonWebsiteContacts(contacts)
+    setStructuredWorking((current) =>
+      current ? { ...current, contacts: cleaned } : current,
+    )
+  }, [])
 
   const setLocationsEdit = useCallback(
     (locations: ExistingResourceLocation[]) => {
-      if (!proposed) return
-      setStructuredEdits((current) => {
-        const next = { ...current }
-        if (areLocationSlicesEqual(locations, proposed.locations)) {
-          delete next['address:locations']
-        } else {
-          next['address:locations'] = locations
-        }
-        return next
-      })
+      setStructuredWorking((current) =>
+        current ? { ...current, locations } : current,
+      )
     },
-    [proposed],
+    [],
   )
 
   const setHoursEdit = useCallback(
     (slice: { hoursAvailability: HoursAvailability; hours: DayHours[] }) => {
-      if (!proposed) return
-      setStructuredEdits((current) => {
-        const next = { ...current }
-        if (
-          areHoursSlicesEqual(slice, {
-            hoursAvailability: proposed.hoursAvailability,
-            hours: proposed.hours,
-          })
-        ) {
-          delete next['hours:hours']
-        } else {
-          next['hours:hours'] = {
-            hoursAvailability: slice.hoursAvailability,
-            hours: slice.hours,
-          }
-        }
-        return next
-      })
+      setStructuredWorking((current) =>
+        current
+          ? {
+              ...current,
+              hours: {
+                hoursAvailability: slice.hoursAvailability,
+                hours: slice.hours,
+              },
+            }
+          : current,
+      )
     },
-    [proposed],
+    [],
   )
 
-  const resetFieldEdit = useCallback((fieldId: string) => {
-    if (isResourceUpdateStructuredFieldId(fieldId)) {
-      setStructuredEdits((current) => {
+  const resetFieldEdit = useCallback(
+    (fieldId: string) => {
+      if (isResourceUpdateStructuredFieldId(fieldId)) {
+        if (!proposed) return
+        setStructuredWorking((current) => {
+          if (!current) return current
+          const fromProposed = createStructuredWorkingValues(proposed)
+          switch (fieldId) {
+            case 'contact:contacts':
+              return { ...current, contacts: fromProposed.contacts }
+            case 'address:locations':
+              return { ...current, locations: fromProposed.locations }
+            case 'hours:hours':
+              return { ...current, hours: fromProposed.hours }
+            default: {
+              const exhaustive: never = fieldId
+              return exhaustive
+            }
+          }
+        })
+        return
+      }
+      setEdits((current) => {
         if (!(fieldId in current)) return current
         const next = { ...current }
         delete next[fieldId]
         return next
       })
-      return
-    }
-    setEdits((current) => {
-      if (!(fieldId in current)) return current
-      const next = { ...current }
-      delete next[fieldId]
-      return next
-    })
-  }, [])
+    },
+    [proposed],
+  )
 
   const isStructuredEdited = useCallback(
     (fieldId: ResourceUpdateStructuredFieldId) => {
-      if (!proposed || !(fieldId in structuredEdits)) return false
-      switch (fieldId) {
-        case 'contact:contacts': {
-          const edited = structuredEdits['contact:contacts']
-          if (!edited) return false
-          return !areContactEditorEqual(
-            nonWebsiteContacts(edited),
-            nonWebsiteContacts(proposed.contacts),
-          )
-        }
-        case 'address:locations': {
-          const edited = structuredEdits['address:locations']
-          if (!edited) return false
-          return !areLocationSlicesEqual(edited, proposed.locations)
-        }
-        case 'hours:hours': {
-          const edited = structuredEdits['hours:hours']
-          if (!edited) return false
-          return !areHoursSlicesEqual(edited, {
-            hoursAvailability: proposed.hoursAvailability,
-            hours: proposed.hours,
-          })
-        }
-        default:
-          return false
-      }
+      if (!proposed || !structuredWorking) return false
+      return isStructuredWorkingFieldEdited(
+        fieldId,
+        proposed,
+        structuredWorking,
+      )
     },
-    [proposed, structuredEdits],
+    [proposed, structuredWorking],
   )
 
   const isFieldEdited = useCallback(
@@ -263,36 +240,21 @@ export function useResourceUpdateAcceptance(
   )
 
   const getContactsEditorValue = useCallback((): ResourceContactMethod[] => {
-    if (!proposed) return []
-    if (structuredEdits['contact:contacts']) {
-      return structuredEdits['contact:contacts']
-    }
-    return nonWebsiteContacts(proposed.contacts)
-  }, [proposed, structuredEdits])
+    return structuredWorking?.contacts ?? []
+  }, [structuredWorking])
 
   const getLocationsEditorValue = useCallback((): ExistingResourceLocation[] => {
-    if (!proposed) return []
-    if (structuredEdits['address:locations']) {
-      return structuredEdits['address:locations']
-    }
-    return proposed.locations
-  }, [proposed, structuredEdits])
+    return structuredWorking?.locations ?? []
+  }, [structuredWorking])
 
   const getHoursEditorValue = useCallback(() => {
-    if (!proposed) {
-      return {
+    return (
+      structuredWorking?.hours ?? {
         hoursAvailability: 'structured' as HoursAvailability,
         hours: [] as DayHours[],
       }
-    }
-    if (structuredEdits['hours:hours']) {
-      return structuredEdits['hours:hours']
-    }
-    return {
-      hoursAvailability: proposed.hoursAvailability,
-      hours: proposed.hours,
-    }
-  }, [proposed, structuredEdits])
+    )
+  }, [structuredWorking])
 
   const totalCount = fieldIds.length
   const selectedCount = fieldIds.reduce(
@@ -318,13 +280,8 @@ export function useResourceUpdateAcceptance(
       const effective = value.trim() || 'Not provided'
       if (effective !== proposedById[id]) return true
     }
-    for (const id of Object.keys(structuredEdits)) {
-      if (
-        isResourceUpdateStructuredFieldId(id) &&
-        isStructuredEdited(id)
-      ) {
-        return true
-      }
+    for (const id of RESOURCE_UPDATE_STRUCTURED_FIELD_IDS) {
+      if (isStructuredEdited(id)) return true
     }
     return false
   }, [
@@ -333,7 +290,6 @@ export function useResourceUpdateAcceptance(
     edits,
     isStructuredEdited,
     proposedById,
-    structuredEdits,
   ])
 
   const composedFinal = useMemo(() => {
