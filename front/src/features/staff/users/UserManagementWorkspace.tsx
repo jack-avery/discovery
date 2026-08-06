@@ -89,7 +89,7 @@ export function UserManagementWorkspace() {
     const target = dialog.user
     setUserActive(target.user_id, false)
     closeDialog()
-    toast.success('User disabled.')
+    toast.success('User set to inactive.')
   }
 
   const handleEnableConfirm = () => {
@@ -97,7 +97,7 @@ export function UserManagementWorkspace() {
     const target = dialog.user
     setUserActive(target.user_id, true)
     closeDialog()
-    toast.success('User enabled.')
+    toast.success('User set to active.')
   }
 
   let body: ReactNode

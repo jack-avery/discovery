@@ -20,7 +20,7 @@ import { cn } from '@/utils/cn'
 const publicNavItems = [
   { to: '/home', label: 'Home', icon: Home, end: true as const },
   { to: '/', label: 'Discover Resources', icon: MapPin, end: true as const },
-  { to: '/submit', label: 'Submit Resource', icon: PlusCircle, end: false as const },
+  { to: '/submit', label: 'Contribute Resource', icon: PlusCircle, end: false as const },
 ]
 
 interface StaffNavItem {
