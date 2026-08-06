@@ -393,7 +393,7 @@ export function EventReviewPanel({
             fieldError={categoryErrors.categories}
           />
           <LookupMultiSelect
-            label="Help people find this event"
+            label="Additional Filters"
             options={filterOptions}
             value={data.filterIds}
             onChange={(filterIds) => patch({ filterIds })}

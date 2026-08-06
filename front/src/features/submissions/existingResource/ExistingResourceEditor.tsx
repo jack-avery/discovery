@@ -389,7 +389,7 @@ export function ExistingResourceEditor({
       />
 
       <LookupMultiSelect
-        label="Help people find this resource"
+        label="Additional Filters"
         options={filterOptions}
         value={data.filterIds}
         onChange={(filterIds) => patch({ filterIds })}

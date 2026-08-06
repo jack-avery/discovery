@@ -43,7 +43,7 @@ export function SubmissionSuccessPanel({
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Button href="/" variant="primary" className="w-full sm:w-auto">
-          Return to Discover
+          Explore the Map
         </Button>
         <Button
           type="button"
