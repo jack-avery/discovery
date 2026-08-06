@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react'
 import { Button, Textarea } from '@/components/ui'
+import { useDialogAccessibility } from '@/hooks/useDialogAccessibility'
 import { cn } from '@/utils/cn'
 
 interface RejectSubmissionDialogProps {
@@ -15,7 +16,7 @@ interface RejectSubmissionDialogProps {
  */
 export function RejectSubmissionDialog({
   open,
-  resourceName: _resourceName,
+  resourceName,
   isSubmitting,
   onCancel,
   onConfirm,
@@ -24,6 +25,11 @@ export function RejectSubmissionDialog({
   const descId = useId()
   const notesId = useId()
   const [notes, setNotes] = useState('')
+  const containerRef = useDialogAccessibility({
+    open,
+    onDismiss: onCancel,
+    dismissDisabled: isSubmitting,
+  })
 
   useEffect(() => {
     if (open) setNotes('')
@@ -31,8 +37,11 @@ export function RejectSubmissionDialog({
 
   if (!open) return null
 
+  const displayName = resourceName.trim() || 'this submission'
+
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       role="presentation"
     >
@@ -40,6 +49,7 @@ export function RejectSubmissionDialog({
         type="button"
         className="absolute inset-0 bg-surface-overlay"
         aria-label="Dismiss"
+        tabIndex={-1}
         disabled={isSubmitting}
         onClick={onCancel}
       />
@@ -56,7 +66,7 @@ export function RejectSubmissionDialog({
           id={titleId}
           className="font-heading text-lg font-semibold text-foreground"
         >
-          Reject submission?
+          Reject &ldquo;{displayName}&rdquo;?
         </h2>
         <div id={descId} className="mt-2 space-y-2 text-sm text-muted-foreground">
           <p>

@@ -120,11 +120,20 @@ export function ReviewSubmissionsWorkspace() {
     clearError()
     setStatusMessage(null)
 
+    const isSkillApproval =
+      items.find((item) => item.submission_id === selectedId)
+        ?.contributionKind === 'skill' ||
+      submission?.submission_type === 'community_asset'
+
     const nextId = nextQueueSelection(items, selectedId)
     const result = await submitDecision(selectedId, 'approved')
     if (!result) return
 
-    setStatusMessage(`“${resourceName}” was approved and published.`)
+    setStatusMessage(
+      isSkillApproval
+        ? 'Skills submission added to the follow-up list.'
+        : `“${resourceName}” was approved and published.`,
+    )
     setRejectOpen(false)
     removeItem(selectedId)
     setSelectedId(nextId === selectedId ? null : nextId)

@@ -113,6 +113,7 @@ export function NavigationRail() {
             key={to}
             to={to}
             end={end}
+            aria-label={isCollapsed ? label : undefined}
             title={isCollapsed ? label : undefined}
             className={({ isActive }) => navLinkClassName(isActive, isCollapsed)}
           >
@@ -143,6 +144,7 @@ export function NavigationRail() {
                   key={to}
                   to={to}
                   end={end}
+                  aria-label={isCollapsed ? label : undefined}
                   title={isCollapsed ? label : undefined}
                   className={({ isActive }) => navLinkClassName(isActive, isCollapsed, true)}
                 >
