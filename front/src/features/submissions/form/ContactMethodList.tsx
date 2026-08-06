@@ -11,11 +11,25 @@ import { Field } from './Field'
 import { PhoneInput } from './PhoneInput'
 
 const CONTACT_TYPES: { value: ResourceContactType; label: string }[] = [
-  { value: 'phone', label: 'Phone' },
+  { value: 'phone', label: 'Phone Number' },
   { value: 'email', label: 'Email' },
   { value: 'website', label: 'Website' },
-  { value: 'other', label: 'Other link' },
+  { value: 'other', label: 'Other' },
 ]
+
+const CONTACT_VALUE_LABELS: Record<ResourceContactType, string> = {
+  phone: 'Phone Number',
+  email: 'Email Address',
+  website: 'Website',
+  other: 'Contact Information',
+}
+
+const CONTACT_VALUE_PLACEHOLDERS: Record<ResourceContactType, string> = {
+  phone: '(613) 555-1234',
+  email: 'info@example.org',
+  website: 'https://',
+  other: 'Enter contact information...',
+}
 
 interface ContactMethodListProps {
   contacts: ResourceContactMethod[]
@@ -160,14 +174,21 @@ function ContactValueField({
       ? PHONE_VALIDATION_MESSAGE
       : undefined
   const displayError = show ? (error ?? localPhoneError) : undefined
+  const valueLabel = CONTACT_VALUE_LABELS[contact.type]
+  const valueHint =
+    contact.type === 'phone'
+      ? 'Canada and US numbers only.'
+      : contact.type === 'other'
+        ? 'Provide any other way someone can contact this organization.'
+        : undefined
 
   if (contact.type === 'phone') {
     return (
       <Field
         id={`contact-value-${contact.id}`}
-        label="Value"
+        label={valueLabel}
         required
-        hint="Canada and US numbers only."
+        hint={valueHint}
         error={displayError}
       >
         <PhoneInput
@@ -175,6 +196,7 @@ function ContactValueField({
           value={contact.value}
           onChange={onChange}
           onBlur={() => setBlurred(true)}
+          placeholder={CONTACT_VALUE_PLACEHOLDERS.phone}
           aria-invalid={Boolean(displayError)}
         />
       </Field>
@@ -184,17 +206,16 @@ function ContactValueField({
   return (
     <Field
       id={`contact-value-${contact.id}`}
-      label="Value"
+      label={valueLabel}
       required
+      hint={valueHint}
       error={forceShowError ? error : undefined}
     >
       <Input
         id={`contact-value-${contact.id}`}
         value={contact.value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={
-          contact.type === 'email' ? 'info@example.org' : 'https://'
-        }
+        placeholder={CONTACT_VALUE_PLACEHOLDERS[contact.type]}
         aria-invalid={Boolean(forceShowError && error)}
       />
     </Field>
