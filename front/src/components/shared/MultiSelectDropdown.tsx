@@ -21,6 +21,10 @@ interface MultiSelectDropdownProps {
   error?: string | null
   onRetry?: () => void
   disabled?: boolean
+  /** Borderless trigger for use inside a floating control bubble. */
+  floating?: boolean
+  /** Label for the clear-all option (defaults to "All"). */
+  allOptionLabel?: string
   className?: string
 }
 
@@ -48,6 +52,8 @@ export function MultiSelectDropdown({
   error = null,
   onRetry,
   disabled = false,
+  floating = false,
+  allOptionLabel = 'All',
   className,
 }: MultiSelectDropdownProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -154,7 +160,7 @@ export function MultiSelectDropdown({
             className="max-h-60 w-max overflow-y-auto rounded-lg border border-border bg-surface py-1 shadow-md scrollbar-thin"
           >
             <OptionRow
-              name="All"
+              name={allOptionLabel}
               isSelected={isAllSelected(value)}
               onSelect={() => handleSelect('all')}
             />
@@ -172,8 +178,8 @@ export function MultiSelectDropdown({
       : null
 
   return (
-    <div ref={containerRef} className={cn('relative shrink-0', className)}>
-      <div ref={triggerRef} className="w-full">
+    <div ref={containerRef} className={cn('relative shrink-0', floating && 'h-full', className)}>
+      <div ref={triggerRef} className="h-full w-full">
         <Button
           type="button"
           variant="outline"
@@ -182,7 +188,12 @@ export function MultiSelectDropdown({
           onClick={() => setIsOpen((open) => !open)}
           aria-expanded={isOpen}
           aria-haspopup="listbox"
-          className="h-9 min-w-[6.5rem] w-full !justify-between gap-2 px-3 text-left text-sm"
+          className={cn(
+            'min-w-[6.5rem] w-full !justify-between gap-2 px-3 text-left text-sm',
+            floating
+              ? 'h-full rounded-none border-0 bg-transparent shadow-none hover:bg-transparent hover:text-foreground'
+              : 'h-9',
+          )}
         >
           <span ref={textRef} className="min-w-0 flex-1 truncate text-left">
             {summary}
