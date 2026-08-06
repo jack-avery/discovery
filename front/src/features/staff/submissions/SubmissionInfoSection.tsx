@@ -45,7 +45,7 @@ export function SubmissionInfoSection({
         </InfoItem>
         <InfoItem label="Submission type">{typeLabel}</InfoItem>
         {submission.submission_message?.trim() ? (
-          <InfoItem label="Message" className="sm:col-span-2">
+          <InfoItem label="Notes" className="sm:col-span-2">
             <p className="whitespace-pre-wrap">{submission.submission_message}</p>
           </InfoItem>
         ) : null}
