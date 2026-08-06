@@ -22,7 +22,7 @@ interface UseReviewSubmissionResult {
 }
 
 /**
- * Approve/reject mutation for a selected submission.
+ * Approve / reject / accept-for-follow-up mutation for a selected submission.
  */
 export function useReviewSubmission(): UseReviewSubmissionResult {
   const [isSubmitting, setIsSubmitting] = useState(false)

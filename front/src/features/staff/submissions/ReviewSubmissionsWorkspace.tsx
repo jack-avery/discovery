@@ -108,6 +108,11 @@ export function ReviewSubmissionsWorkspace() {
       ?.proposed_resource_name?.trim() ||
     'this submission'
 
+  const isSkillSubmission =
+    items.find((item) => item.submission_id === selectedId)
+      ?.contributionKind === 'skill' ||
+    submission?.submission_type === 'community_asset'
+
   async function handleApprove() {
     if (selectedId == null) return
     // Local edits must not be approved until approved_version is supported.
@@ -120,17 +125,15 @@ export function ReviewSubmissionsWorkspace() {
     clearError()
     setStatusMessage(null)
 
-    const isSkillApproval =
-      items.find((item) => item.submission_id === selectedId)
-        ?.contributionKind === 'skill' ||
-      submission?.submission_type === 'community_asset'
-
     const nextId = nextQueueSelection(items, selectedId)
-    const result = await submitDecision(selectedId, 'approved')
+    const result = await submitDecision(
+      selectedId,
+      isSkillSubmission ? 'accepted_for_follow_up' : 'approved',
+    )
     if (!result) return
 
     setStatusMessage(
-      isSkillApproval
+      isSkillSubmission
         ? 'Skills submission added to the follow-up list.'
         : `“${resourceName}” was approved and published.`,
     )
@@ -339,6 +342,9 @@ export function ReviewSubmissionsWorkspace() {
                 isSubmitting={isSubmitting}
                 approveDisabled={updateApprovalGate.approveDisabled}
                 approveHelper={updateApprovalGate.approveHelper}
+                approveLabel={
+                  isSkillSubmission ? 'Accept for Follow-up' : 'Approve'
+                }
                 onReject={() => {
                   clearError()
                   setRejectOpen(true)

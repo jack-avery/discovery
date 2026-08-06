@@ -65,7 +65,7 @@ export interface SubmissionDetailDto {
   review_history: SubmissionReviewDto[]
 }
 
-export type ReviewDecision = 'approved' | 'rejected'
+export type ReviewDecision = 'approved' | 'rejected' | 'accepted_for_follow_up'
 
 export interface ReviewSubmissionRequestDto {
   decision: ReviewDecision
