@@ -5,6 +5,8 @@ import { Field } from '@/features/submissions/form/Field'
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui'
 import { ApiError } from '@/services/api'
 
+const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.'
+
 function resolveReturnPath(state: unknown): string {
   if (
     state &&
@@ -20,6 +22,20 @@ function resolveReturnPath(state: unknown): string {
     return `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
   }
   return '/staff'
+}
+
+function resolveLoginErrorMessage(error: unknown): string {
+  if (error instanceof ApiError) {
+    // Credential / inactive-account failures from POST /auth/login.
+    if (error.status === 401) {
+      return INVALID_CREDENTIALS_MESSAGE
+    }
+    return error.message || INVALID_CREDENTIALS_MESSAGE
+  }
+  if (error instanceof Error && error.message.trim()) {
+    return error.message
+  }
+  return 'Unable to sign in. Please try again.'
 }
 
 export function SignInForm() {
@@ -58,17 +74,14 @@ export function SignInForm() {
 
     try {
       await login({ email: trimmedEmail, password })
+      setFormError(null)
       navigate(resolveReturnPath(location.state), { replace: true })
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.errors?.email) setEmailError(error.errors.email)
         if (error.errors?.password) setPasswordError(error.errors.password)
-        setFormError(error.message)
-        return
       }
-      setFormError(
-        error instanceof Error ? error.message : 'Unable to sign in. Please try again.',
-      )
+      setFormError(resolveLoginErrorMessage(error))
     }
   }
 
@@ -100,7 +113,10 @@ export function SignInForm() {
               autoComplete="username"
               value={email}
               disabled={isLoading}
-              onChange={(event) => setEmail(event.target.value)}
+              onChange={(event) => {
+                setEmail(event.target.value)
+                if (formError) setFormError(null)
+              }}
             />
           </Field>
 
@@ -111,7 +127,10 @@ export function SignInForm() {
               autoComplete="current-password"
               value={password}
               disabled={isLoading}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event) => {
+                setPassword(event.target.value)
+                if (formError) setFormError(null)
+              }}
             />
           </Field>
 

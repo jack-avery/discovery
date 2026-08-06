@@ -26,6 +26,13 @@ interface AuthContextValue {
   accessToken: string | null
   permissions: StaffPermissions
   isAuthenticated: boolean
+  /**
+   * True only during the initial silent session restore on app load.
+   * Login / logout / refresh use {@link isLoading} so the sign-in form
+   * can stay mounted and show errors.
+   */
+  isInitializing: boolean
+  /** True during login, logout, refresh, and cold-start restore. */
   isLoading: boolean
   login: (credentials: LoginRequest) => Promise<void>
   logout: () => Promise<void>
@@ -80,7 +87,9 @@ async function establishSessionFromAccessToken(
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null)
   const [accessToken, setTokenState] = useState<string | null>(null)
-  /** True during cold-start session restore and auth mutations. */
+  /** True until the first silent refresh attempt finishes. */
+  const [isInitializing, setIsInitializing] = useState(true)
+  /** True during cold-start restore and auth mutations. */
   const [isLoading, setIsLoading] = useState(true)
 
   const applySession = useCallback((nextUser: AuthUser, token: string) => {
@@ -121,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } finally {
         if (!cancelled) {
           setIsLoading(false)
+          setIsInitializing(false)
         }
       }
     }
@@ -197,12 +207,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       accessToken,
       permissions,
       isAuthenticated: Boolean(user && accessToken),
+      isInitializing,
       isLoading,
       login,
       logout,
       refresh,
     }),
-    [user, accessToken, permissions, isLoading, login, logout, refresh],
+    [
+      user,
+      accessToken,
+      permissions,
+      isInitializing,
+      isLoading,
+      login,
+      logout,
+      refresh,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

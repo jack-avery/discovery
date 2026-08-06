@@ -4,9 +4,9 @@ import { PageShell } from '@/components/shared/PageShell'
 import { SignInForm } from '@/features/staff/auth/SignInForm'
 
 export function StaffSignInPage() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isInitializing } = useAuth()
 
-  if (isLoading && !isAuthenticated) {
+  if (isInitializing && !isAuthenticated) {
     return (
       <PageShell title="Staff Sign In">
         <div className="flex items-center justify-center p-6">
