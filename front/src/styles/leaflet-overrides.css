@@ -62,3 +62,39 @@
   height: 16px;
   color: var(--color-surface);
 }
+
+/* Resource pin hover / focus name label */
+.leaflet-tooltip.resource-map-tooltip {
+  margin: 0;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  color: var(--color-foreground);
+  box-shadow: var(--shadow-md);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.25;
+  width: max-content;
+  max-width: min(16rem, 70vw);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
+
+.leaflet-tooltip-top.resource-map-tooltip::before {
+  border-top-color: var(--color-surface);
+}
+
+.leaflet-tooltip-bottom.resource-map-tooltip::before {
+  border-bottom-color: var(--color-surface);
+}
+
+.leaflet-tooltip-left.resource-map-tooltip::before {
+  border-left-color: var(--color-surface);
+}
+
+.leaflet-tooltip-right.resource-map-tooltip::before {
+  border-right-color: var(--color-surface);
+}
