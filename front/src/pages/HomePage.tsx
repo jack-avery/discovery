@@ -1,4 +1,6 @@
 import {
+  GetStartedSection,
+  HelpKeepMapGrowingSection,
   LandingHeader,
   LandingHero,
   WhatYouCanDiscoverSection,
@@ -7,7 +9,7 @@ import {
 
 /**
  * Public landing page at `/home`.
- * Hero → Why This Exists → What You Can Discover.
+ * Hero → Why This Exists → What You Can Discover → Contribute → Get Started.
  */
 export function HomePage() {
   return (
@@ -16,6 +18,8 @@ export function HomePage() {
       <LandingHero />
       <WhyThisExistsSection />
       <WhatYouCanDiscoverSection />
+      <HelpKeepMapGrowingSection />
+      <GetStartedSection />
     </div>
   )
 }
