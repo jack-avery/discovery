@@ -1,12 +1,13 @@
 import {
   LandingHeader,
   LandingHero,
+  WhatYouCanDiscoverSection,
   WhyThisExistsSection,
 } from '@/features/landing'
 
 /**
  * Public landing page at `/home`.
- * Hero + “Why This Exists” for now — additional sections will follow later.
+ * Hero → Why This Exists → What You Can Discover.
  */
 export function HomePage() {
   return (
@@ -14,6 +15,7 @@ export function HomePage() {
       <LandingHeader />
       <LandingHero />
       <WhyThisExistsSection />
+      <WhatYouCanDiscoverSection />
     </div>
   )
 }

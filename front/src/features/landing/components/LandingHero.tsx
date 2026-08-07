@@ -80,7 +80,7 @@ export function LandingHero() {
 
       {/* Left-to-right readability overlay — stronger on mobile */}
       <div
-        className="absolute inset-0 bg-gradient-to-r from-white via-white/90 to-white/40 sm:from-white/95 sm:via-white/80 sm:to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-surface via-surface/90 to-surface/40 sm:from-surface/95 sm:via-surface/80 sm:to-transparent"
         aria-hidden="true"
       />
 

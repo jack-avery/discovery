@@ -4,8 +4,5 @@ export {
   heroSlides,
   type LandingHeroSlide,
 } from './components/LandingHero'
-export {
-  WhyThisExistsSection,
-  discoverySlides,
-  type DiscoverySlide,
-} from './components/WhyThisExistsSection'
+export { WhyThisExistsSection } from './components/WhyThisExistsSection'
+export { WhatYouCanDiscoverSection } from './components/WhatYouCanDiscoverSection'
