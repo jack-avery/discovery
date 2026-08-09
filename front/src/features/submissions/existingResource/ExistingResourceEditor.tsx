@@ -364,7 +364,7 @@ export function ExistingResourceEditor({
       {isUpdate ? (
         <Field
           id="general-notes"
-          label="Anything else RRCRC staff should know? (optional)"
+          label="Anything else we should know? (optional)"
         >
           <Textarea
             id="general-notes"
@@ -581,7 +581,7 @@ export function ExistingResourceEditor({
 
           <Field
             id="general-notes"
-            label="Anything else RRCRC staff should know? (optional)"
+            label="Anything else we should know? (optional)"
           >
             <Textarea
               id="general-notes"
@@ -713,7 +713,7 @@ export function ExistingResourceEditor({
           </Field>
           <Field
             id="general-notes"
-            label="Anything else RRCRC staff should know? (optional)"
+            label="Anything else we should know? (optional)"
           >
             <Textarea
               id="general-notes"
