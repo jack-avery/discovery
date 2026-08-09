@@ -18,7 +18,8 @@
     "test:cost-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/costStructuredModeration.test.ts",
     "test:website-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/websiteStructuredModeration.test.ts",
     "test:empty-structured-edit": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/emptyStructuredEditComposition.test.ts",
-    "test:update-submit-gate": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/deriveUpdateSubmitGate.test.ts"
+    "test:update-submit-gate": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/deriveUpdateSubmitGate.test.ts",
+    "test:user-management": "tsx --tsconfig tsconfig.app.json --test src/services/userService.test.ts src/features/staff/auth/SetupPasswordForm.test.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

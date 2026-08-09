@@ -43,7 +43,7 @@ function filtersKey(filters: UsersFilters): string {
 }
 
 /**
- * Staff User Management list — Phase 1 uses mocked fetchUsers.
+ * Staff User Management list — GET /users via userService.
  */
 export function useUsers(filters: UsersFilters = {}) {
   const [reloadKey, setReloadKey] = useState(0)

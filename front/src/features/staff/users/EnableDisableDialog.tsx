@@ -7,6 +7,7 @@ interface EnableDisableDialogProps {
   open: boolean
   mode: EnableDisableMode
   user: ManagedUser | null
+  isSubmitting?: boolean
   onCancel: () => void
   onConfirm: () => void
 }
@@ -18,6 +19,7 @@ export function EnableDisableDialog({
   open,
   mode,
   user,
+  isSubmitting = false,
   onCancel,
   onConfirm,
 }: EnableDisableDialogProps) {
@@ -36,6 +38,7 @@ export function EnableDisableDialog({
       }
       cancelLabel="Cancel"
       confirmLabel={isDisable ? 'Set Inactive' : 'Set Active'}
+      isSubmitting={isSubmitting}
       onCancel={onCancel}
       onConfirm={onConfirm}
     />

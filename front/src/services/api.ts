@@ -25,7 +25,7 @@ function normalizeApiBaseUrl(raw: string | undefined): string {
   return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
 }
 
-const configuredBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_URL)
+const configuredBaseUrl = normalizeApiBaseUrl(import.meta.env?.VITE_API_URL)
 
 export const API_URL = configuredBaseUrl
 

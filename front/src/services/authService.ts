@@ -48,3 +48,21 @@ export async function getCurrentUser(
     signal: options?.signal,
   })
 }
+
+export interface SetupPasswordRequest {
+  token: string
+  password: string
+}
+
+/**
+ * Public one-time password setup — POST /auth/setup-password.
+ * Consumes a token from admin create-user or reset-password.
+ */
+export async function setupPassword(
+  request: SetupPasswordRequest,
+  options?: AuthRequestOptions,
+): Promise<null> {
+  return api.post<null>('/auth/setup-password', request, {
+    signal: options?.signal,
+  })
+}
