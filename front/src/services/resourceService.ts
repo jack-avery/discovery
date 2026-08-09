@@ -272,8 +272,8 @@ export type FeaturedResourceCard = {
   imageUrl: string | null
 }
 
-const FEATURED_RESOURCE_COUNT = 8
-const FEATURED_DESCRIPTION_MAX = 160
+const FEATURED_RESOURCE_COUNT = 9
+const FEATURED_DESCRIPTION_MAX = 140
 
 function truncateText(value: string, maxLength: number): string {
   const normalized = value.trim().replace(/\s+/g, ' ')
