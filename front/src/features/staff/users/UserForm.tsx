@@ -134,7 +134,7 @@ export function UserForm({
             legend="Status"
             options={[
               { value: 'active', label: 'Active' },
-              { value: 'disabled', label: 'Disabled' },
+              { value: 'disabled', label: 'Inactive' },
             ]}
             value={values.is_active ? 'active' : 'disabled'}
             onChange={(next) => {

@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react'
-import { ApiError } from '@/services/api'
 import {
   reviewSubmission,
 } from '@/services/staffSubmissionService'
@@ -7,6 +6,7 @@ import type {
   ReviewDecision,
   ReviewSubmissionResultDto,
 } from '@/types/moderationSubmission'
+import { toUserFacingErrorMessage } from '@/utils/userFacingError'
 
 interface UseReviewSubmissionResult {
   isSubmitting: boolean
@@ -22,7 +22,7 @@ interface UseReviewSubmissionResult {
 }
 
 /**
- * Approve/reject mutation for a selected submission.
+ * Approve / reject / accept-for-follow-up mutation for a selected submission.
  */
 export function useReviewSubmission(): UseReviewSubmissionResult {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,13 +51,13 @@ export function useReviewSubmission(): UseReviewSubmissionResult {
         setLastResult(result)
         return result
       } catch (err) {
-        const message =
-          err instanceof ApiError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : 'Unable to submit review decision'
-        setError(message)
+        setError(
+          toUserFacingErrorMessage(err, {
+            fallback:
+              "We couldn't complete this review decision. Please try again.",
+            context: 'review-submission',
+          }),
+        )
         return null
       } finally {
         setIsSubmitting(false)

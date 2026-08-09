@@ -56,6 +56,7 @@ export function NewResourceIdentityFields({
   tagsLoading,
   categoriesError,
   tagsError,
+  onCategoriesRetry,
 }: SharedEditorProps & {
   categories: Category[]
   tags: Tag[]
@@ -63,6 +64,7 @@ export function NewResourceIdentityFields({
   tagsLoading: boolean
   categoriesError: string | null
   tagsError: string | null
+  onCategoriesRetry?: () => void
 }) {
   const categoryOptions = categories.map((category) => ({
     id: category.category_id,
@@ -100,17 +102,18 @@ export function NewResourceIdentityFields({
         onChange={(categoryIds) => patch({ categoryIds })}
         isLoading={categoriesLoading}
         error={categoriesError}
+        onRetry={onCategoriesRetry}
         fieldError={errors.categories}
       />
 
       <LookupMultiSelect
-        label="Help people find this resource"
+        label="Filters"
         options={filterOptions}
         value={data.filterIds}
         onChange={(filterIds) => patch({ filterIds })}
         isLoading={tagsLoading}
         error={tagsError}
-        emptyMessage="No additional filters are available yet."
+        emptyMessage="No filters are available yet."
       />
     </div>
   )
@@ -141,7 +144,7 @@ export function NewResourceAboutFields({
 
       <Field
         id="review-general-notes"
-        label="Anything else RRCRC staff should know? (optional)"
+        label="Anything else we should know? (optional)"
       >
         <Textarea
           id="review-general-notes"
@@ -225,11 +228,28 @@ export function NewResourceLocationFields({
   )
 }
 
-export function NewResourceServiceFields({
+export function NewResourceContactFields({
   data,
   patch,
   errors,
   showErrors,
+}: SharedEditorProps) {
+  return (
+    <ContactMethodList
+      contacts={data.contacts}
+      onChange={(contacts) => patch({ contacts })}
+      error={errors.contacts}
+      valueErrors={errors.contactValues}
+      showErrors={showErrors}
+    />
+  )
+}
+
+export function NewResourceServiceFields({
+  data,
+  patch,
+  errors,
+  showErrors: _showErrors,
 }: SharedEditorProps) {
   const needsCostDetails =
     data.costOption === 'other' ||
@@ -255,14 +275,6 @@ export function NewResourceServiceFields({
           />
         ) : null}
       </div>
-
-      <ContactMethodList
-        contacts={data.contacts}
-        onChange={(contacts) => patch({ contacts })}
-        error={errors.contacts}
-        valueErrors={errors.contactValues}
-        showErrors={showErrors}
-      />
 
       <div className="space-y-3">
         <OptionCardGroup<CostOption>

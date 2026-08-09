@@ -5,16 +5,12 @@ import { SearchBar } from '@/components/shared/SearchBar'
 import { useToast } from '@/components/shared/toast'
 import { Button } from '@/components/ui'
 import { cn } from '@/utils/cn'
+import { toUserFacingErrorMessage } from '@/utils/userFacingError'
 import { ManageListAddForm } from './ManageListAddForm'
 import { ManageListRow } from './ManageListRow'
 import { ManageListUnsavedDialog } from './ManageListUnsavedDialog'
 import type { ManageListPanelProps } from './types'
 
-function toErrorMessage(error: unknown, fallback: string): string {
-  if (typeof error === 'string' && error.trim()) return error
-  if (error instanceof Error && error.message.trim()) return error.message
-  return fallback
-}
 
 /**
  * Right-side slide-over for managing simple name-based lists.
@@ -213,10 +209,10 @@ export function ManageListPanel({
       toast.success(`${itemName} created.`)
       clearAddState()
     } catch (error) {
-      const message = toErrorMessage(
-        error,
-        `Unable to create ${itemName.toLowerCase()}.`,
-      )
+      const message = toUserFacingErrorMessage(error, {
+        fallback: `Unable to create ${itemName.toLowerCase()}. Please try again.`,
+        context: 'manage-list-create',
+      })
       setAddError(message)
       toast.error(message)
     } finally {
@@ -256,10 +252,10 @@ export function ManageListPanel({
       toast.success(`${itemName} updated.`)
       clearEditState()
     } catch (error) {
-      const message = toErrorMessage(
-        error,
-        `Unable to update ${itemName.toLowerCase()}.`,
-      )
+      const message = toUserFacingErrorMessage(error, {
+        fallback: `Unable to update ${itemName.toLowerCase()}. Please try again.`,
+        context: 'manage-list-update',
+      })
       setEditError(message)
       toast.error(message)
     } finally {

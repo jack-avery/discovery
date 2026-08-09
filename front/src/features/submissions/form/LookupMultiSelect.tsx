@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Check, Search } from 'lucide-react'
-import { Input } from '@/components/ui'
+import { Button, Input } from '@/components/ui'
 import { cn } from '@/utils/cn'
 
 export interface LookupOption {
@@ -16,6 +16,8 @@ interface LookupMultiSelectProps {
   onChange: (ids: number[]) => void
   isLoading?: boolean
   error?: string | null
+  /** When set with `error`, shows a Retry action to reload options. */
+  onRetry?: () => void
   fieldError?: string
   required?: boolean
   searchable?: boolean
@@ -29,6 +31,7 @@ export function LookupMultiSelect({
   onChange,
   isLoading = false,
   error = null,
+  onRetry,
   fieldError,
   required,
   searchable = true,
@@ -90,9 +93,16 @@ export function LookupMultiSelect({
       {isLoading ? (
         <p className="text-sm text-muted-foreground">Loading…</p>
       ) : error ? (
-        <p className="text-sm text-danger" role="alert">
-          {error}
-        </p>
+        <div className="space-y-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-3">
+          <p className="text-sm text-danger" role="alert">
+            {error}
+          </p>
+          {onRetry ? (
+            <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+              Retry
+            </Button>
+          ) : null}
+        </div>
       ) : options.length === 0 ? (
         <p className="text-sm text-muted-foreground">{emptyMessage}</p>
       ) : (

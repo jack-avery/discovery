@@ -111,7 +111,6 @@ export function createEmptySubmissionDraft(): SubmissionDraft {
     id: createSubmissionId(),
     contributions: [],
     contributor: createEmptyContributorInfo(),
-    consent: false,
     ui: {
       editor: null,
       showTypePicker: false,

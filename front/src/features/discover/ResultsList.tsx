@@ -30,7 +30,7 @@ const emptyStateContent: Record<
   filter: {
     title: 'No matching resources',
     description:
-      'No resources match the selected category or tags. Try adjusting your filters.',
+      'No resources match the selected category or filters. Try adjusting your filters.',
   },
 }
 

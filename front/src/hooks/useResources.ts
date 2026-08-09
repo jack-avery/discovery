@@ -58,7 +58,7 @@ export function useResources(filters: ResourceFilters = {}): UseResourcesResult 
     (signal) => fetchResources(query, { signal }),
     {
       initialData: EMPTY_RESOURCE_LIST,
-      fallbackErrorMessage: 'Failed to load resources',
+      fallbackErrorMessage: "We couldn't load resources. Please try again.",
       deps: [key, reloadKey],
     },
   )

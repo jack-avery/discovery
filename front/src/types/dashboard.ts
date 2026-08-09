@@ -2,6 +2,12 @@
  * Dashboard DTOs matching GET /dashboard/stats (Frontend Integration Contract).
  */
 
+export interface DashboardCategoryDistributionItem {
+  category_id: number
+  name: string
+  resource_count: number
+}
+
 export interface DashboardStats {
   total_resources: number
   published_resources: number
@@ -16,4 +22,6 @@ export interface DashboardStats {
   pending_resource_updates?: number
   open_issues: number
   total_users: number
+  /** Published-resource counts per active category (includes zero-count rows). */
+  category_distribution: DashboardCategoryDistributionItem[]
 }

@@ -1,10 +1,12 @@
 import { SearchBar } from '@/components/shared'
 import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
 import { FloatingControlBubble } from '@/features/discover/FloatingControlBubble'
+import { cn } from '@/utils/cn'
 
 interface FloatingSearchBarProps {
   search: string
   onSearchChange: (value: string) => void
+  className?: string
 }
 
 const WORKSPACE_SEARCH_INPUT_ID = 'resource-search-workspace'
@@ -13,7 +15,11 @@ const WORKSPACE_SEARCH_INPUT_ID = 'resource-search-workspace'
  * Map overlay search. Focusing/clicking expands the Discover workspace and
  * moves focus into the workspace search input so typing continues uninterrupted.
  */
-export function FloatingSearchBar({ search, onSearchChange }: FloatingSearchBarProps) {
+export function FloatingSearchBar({
+  search,
+  onSearchChange,
+  className,
+}: FloatingSearchBarProps) {
   const { expand, isExpanded } = useWorkspace()
 
   const openWorkspaceForSearch = () => {
@@ -28,7 +34,7 @@ export function FloatingSearchBar({ search, onSearchChange }: FloatingSearchBarP
   }
 
   return (
-    <FloatingControlBubble className="w-full">
+    <FloatingControlBubble className={cn('w-full', className)}>
       <SearchBar
         value={search}
         onChange={onSearchChange}

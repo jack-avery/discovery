@@ -1,6 +1,7 @@
 export { useAbortableQuery } from './useAbortableQuery'
 export { useCategories } from './useCategories'
 export { useDashboardStats } from './useDashboardStats'
+export { useDialogAccessibility } from './useDialogAccessibility'
 export { useMediaQuery } from './useMediaQuery'
 export { useResourceDetail } from './useResourceDetail'
 export { useResourceMap } from './useResourceMap'

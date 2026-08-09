@@ -129,7 +129,7 @@ export function ExistingResourceEditor({
   onUpdateStateChange,
 }: ExistingResourceEditorProps) {
   const isUpdate = mode === 'update'
-  const { categories, isLoading: categoriesLoading, error: categoriesError } =
+  const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } =
     useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
 
@@ -245,7 +245,8 @@ export function ExistingResourceEditor({
     isUpdate
       ? EXISTING_RESOURCE_SECTIONS.length
       : needsPhysical && !locationsVerified
-        ? Math.min(syncRevealed, 3)
+        ? // Hold unlock on Location (section 4) until MapTiler verifies physical addresses.
+          Math.min(syncRevealed, 4)
         : syncRevealed
 
   useEffect(() => {
@@ -363,7 +364,7 @@ export function ExistingResourceEditor({
       {isUpdate ? (
         <Field
           id="general-notes"
-          label="Anything else RRCRC staff should know? (optional)"
+          label="Anything else we should know? (optional)"
         >
           <Textarea
             id="general-notes"
@@ -385,17 +386,18 @@ export function ExistingResourceEditor({
         onChange={(categoryIds) => patch({ categoryIds })}
         isLoading={categoriesLoading}
         error={categoriesError}
+        onRetry={reloadCategories}
         fieldError={categoryErrors.categories}
       />
 
       <LookupMultiSelect
-        label="Help people find this resource"
+        label="Filters"
         options={filterOptions}
         value={data.filterIds}
         onChange={(filterIds) => patch({ filterIds })}
         isLoading={tagsLoading}
         error={tagsError}
-        emptyMessage="No additional filters are available yet."
+        emptyMessage="No filters are available yet."
       />
     </>
   )
@@ -579,7 +581,7 @@ export function ExistingResourceEditor({
 
           <Field
             id="general-notes"
-            label="Anything else RRCRC staff should know? (optional)"
+            label="Anything else we should know? (optional)"
           >
             <Textarea
               id="general-notes"
@@ -657,6 +659,12 @@ export function ExistingResourceEditor({
       ) : null}
 
       {revealed >= 3 ? (
+        <EditorSection id="contact" title="Public contact information">
+          {contactFields}
+        </EditorSection>
+      ) : null}
+
+      {revealed >= 4 ? (
         <EditorSection
           id="access"
           title="Location"
@@ -672,12 +680,6 @@ export function ExistingResourceEditor({
             </p>
             {hoursFields}
           </div>
-        </EditorSection>
-      ) : null}
-
-      {revealed >= 4 ? (
-        <EditorSection id="contact" title="Public contact information">
-          {contactFields}
         </EditorSection>
       ) : null}
 
@@ -711,7 +713,7 @@ export function ExistingResourceEditor({
           </Field>
           <Field
             id="general-notes"
-            label="Anything else RRCRC staff should know? (optional)"
+            label="Anything else we should know? (optional)"
           >
             <Textarea
               id="general-notes"

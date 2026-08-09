@@ -6,10 +6,10 @@ import { useAuth } from '@/app/providers/AuthProvider'
  * with the attempted location preserved for post-login return.
  */
 export function RequireAuth() {
-  const { isAuthenticated, isLoading } = useAuth()
+  const { isAuthenticated, isInitializing } = useAuth()
   const location = useLocation()
 
-  if (isLoading && !isAuthenticated) {
+  if (isInitializing && !isAuthenticated) {
     return (
       <div className="flex h-full items-center justify-center p-6">
         <p className="text-sm text-muted-foreground" role="status">

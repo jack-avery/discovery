@@ -54,7 +54,7 @@ export function useUsers(filters: UsersFilters = {}) {
     (signal) => fetchUsers(query, { signal }),
     {
       initialData: EMPTY_USER_LIST,
-      fallbackErrorMessage: 'Failed to load users',
+      fallbackErrorMessage: "We couldn't load users. Please try again.",
       deps: [key, reloadKey],
     },
   )

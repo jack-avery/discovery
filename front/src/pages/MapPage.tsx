@@ -17,7 +17,7 @@ import {
 export function MapPage() {
   const [category, setCategory] = useState<CategoryFilterValue>('all')
   const [mapQuery, setMapQuery] = useState<ResourceMapQuery>(() => getDefaultMapQuery())
-  const { categories, isLoading, error } = useCategories()
+  const { categories, isLoading, error, reload } = useCategories()
   const { items: mapItems, isLoading: mapLoading, error: mapError } = useResourceMap(mapQuery)
 
   const handleViewportQueryChange = useCallback((next: ResourceMapQuery) => {
@@ -33,6 +33,7 @@ export function MapPage() {
         categories={categories}
         isLoading={isLoading}
         error={error}
+        onRetry={reload}
         active={category}
         onChange={setCategory}
       />

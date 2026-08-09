@@ -3,14 +3,14 @@ import { SubmitResourceExperience } from '@/features/submissions/SubmitResourceE
 import { SubmissionDraftProvider } from '@/features/submissions/state/SubmissionDraftProvider'
 
 /**
- * Public Submit Resource page.
+ * Public Contribute Resource page.
  * Uses the shared PageShell header (Staff Portal / session) identical to Home.
  * Hero content remains full-bleed below the header.
  */
 export function SubmitResourcePage() {
   return (
     <SubmissionDraftProvider>
-      <PageShell title="Submit Resource" uncontained>
+      <PageShell title="Contribute Resource" uncontained>
         <SubmitResourceExperience />
       </PageShell>
     </SubmissionDraftProvider>

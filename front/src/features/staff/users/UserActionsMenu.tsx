@@ -138,14 +138,14 @@ export function UserActionsMenu({
             />
             {!isCurrentUser && user.is_active ? (
               <MenuItem
-                label="Disable User"
+                label="Set Inactive"
                 tone="danger"
                 onSelect={() => runAndClose(onDisable)}
               />
             ) : null}
             {!isCurrentUser && !user.is_active ? (
               <MenuItem
-                label="Enable User"
+                label="Set Active"
                 onSelect={() => runAndClose(onEnable)}
               />
             ) : null}

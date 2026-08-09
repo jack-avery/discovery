@@ -1,6 +1,7 @@
 import { FolderOpen, Loader2 } from 'lucide-react'
 import type { Category } from '@/types'
 import { EmptyState } from '@/components/shared'
+import { Button } from '@/components/ui'
 import { cn } from '@/utils/cn'
 
 export type CategoryFilterValue = 'all' | string
@@ -9,6 +10,7 @@ interface CategoryFilterProps {
   categories: Category[]
   isLoading?: boolean
   error?: string | null
+  onRetry?: () => void
   active?: CategoryFilterValue
   onChange?: (slug: CategoryFilterValue) => void
   disabled?: boolean
@@ -18,6 +20,7 @@ export function CategoryFilter({
   categories,
   isLoading = false,
   error = null,
+  onRetry,
   active = 'all',
   onChange,
   disabled = false,
@@ -34,10 +37,17 @@ export function CategoryFilter({
   if (error) {
     return (
       <EmptyState
-        title="Unable to load categories"
+        title="Couldn't load categories"
         description={error}
         icon={<FolderOpen className="h-6 w-6 text-danger" strokeWidth={1.5} />}
         className="py-8"
+        action={
+          onRetry ? (
+            <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+              Retry
+            </Button>
+          ) : undefined
+        }
       />
     )
   }

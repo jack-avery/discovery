@@ -2,6 +2,7 @@ import { DiscoverWorkspace } from '@/features/discover/DiscoverWorkspace'
 import { MapCanvas } from '@/features/discover/MapCanvas'
 import { StaffSessionControls } from '@/components/shared/StaffSessionControls'
 import { useDiscoverSideWorkspace } from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
+import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
 import type { Category, Resource, ResourceMapItem, Tag } from '@/types'
 import type { ResourceEmptyReason } from '@/features/resources'
 import type { ResourceMapQuery } from '@/services/mapService'
@@ -17,6 +18,7 @@ interface DiscoverLayoutProps {
   categories: Category[]
   categoriesLoading?: boolean
   categoriesError?: string | null
+  onCategoriesRetry?: () => void
   tags: Tag[]
   tagsLoading?: boolean
   tagsError?: string | null
@@ -45,6 +47,7 @@ export function DiscoverLayout({
   categories,
   categoriesLoading,
   categoriesError,
+  onCategoriesRetry,
   tags,
   tagsLoading,
   tagsError,
@@ -54,7 +57,12 @@ export function DiscoverLayout({
   resourcesError,
   resourcesEmptyReason,
 }: DiscoverLayoutProps) {
+  const { isExpanded } = useWorkspace()
   const { isOpen: editingWorkspaceOpen } = useDiscoverSideWorkspace()
+
+  // Floating map toolbar owns the staff chip when the map overlay is visible.
+  // When the Discover workspace is expanded, keep a top-right session chip.
+  const showExpandedWorkspaceStaffChip = isExpanded && !editingWorkspaceOpen
 
   const categoryProps = {
     categories,
@@ -62,6 +70,7 @@ export function DiscoverLayout({
     onCategoriesChange,
     categoriesLoading,
     categoriesError,
+    onCategoriesRetry,
   }
 
   const workspaceProps = {
@@ -74,6 +83,7 @@ export function DiscoverLayout({
     categories,
     categoriesLoading,
     categoriesError,
+    onCategoriesRetry,
     tags,
     tagsLoading,
     tagsError,
@@ -96,7 +106,7 @@ export function DiscoverLayout({
         onViewportQueryChange={onViewportQueryChange}
         {...categoryProps}
       />
-      {!editingWorkspaceOpen ? (
+      {showExpandedWorkspaceStaffChip ? (
         <div
           className={`pointer-events-none absolute top-3 right-3 sm:top-4 sm:right-4 ${FLOATING_FILTER_BAR_Z_CLASS}`}
         >

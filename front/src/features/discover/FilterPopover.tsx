@@ -19,6 +19,7 @@ interface FilterPopoverProps {
   emptySummary: string
   isLoading?: boolean
   error?: string | null
+  onRetry?: () => void
   disabled?: boolean
   /** When true, label is used for accessibility only (title provided by WorkspaceSection). */
   hideLabel?: boolean
@@ -33,6 +34,7 @@ export function FilterPopover({
   emptySummary,
   isLoading = false,
   error = null,
+  onRetry,
   disabled = false,
   hideLabel = false,
   className,
@@ -120,9 +122,16 @@ export function FilterPopover({
         />
 
         {error && (
-          <p className="mt-1 text-xs text-danger" role="alert">
-            {error}
-          </p>
+          <div className="mt-2 space-y-2">
+            <p className="text-xs text-danger" role="alert">
+              {error}
+            </p>
+            {onRetry ? (
+              <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+                Retry
+              </Button>
+            ) : null}
+          </div>
         )}
 
         {isOpen && !isDisabled && (

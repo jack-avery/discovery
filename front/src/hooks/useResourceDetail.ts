@@ -20,7 +20,7 @@ export function useResourceDetail(resourceId: string | null): UseResourceDetailR
     },
     {
       initialData: null,
-      fallbackErrorMessage: 'Failed to load resource details',
+      fallbackErrorMessage: "We couldn't load resource details. Please try again.",
       deps: [resourceId],
     },
   )

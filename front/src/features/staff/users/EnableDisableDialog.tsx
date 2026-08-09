@@ -12,7 +12,7 @@ interface EnableDisableDialogProps {
 }
 
 /**
- * Confirms enabling or disabling a staff account.
+ * Confirms setting a staff account active or inactive.
  */
 export function EnableDisableDialog({
   open,
@@ -28,14 +28,14 @@ export function EnableDisableDialog({
   return (
     <ConfirmDialog
       open={open}
-      title={isDisable ? 'Disable User?' : 'Enable User?'}
+      title={isDisable ? 'Set Inactive?' : 'Set Active?'}
       description={
         isDisable
-          ? 'This user will no longer be able to sign in until their account is re-enabled.'
+          ? 'This user will no longer be able to sign in until their account is set back to active.'
           : 'This user will be able to sign in again with their existing credentials.'
       }
       cancelLabel="Cancel"
-      confirmLabel={isDisable ? 'Disable User' : 'Enable User'}
+      confirmLabel={isDisable ? 'Set Inactive' : 'Set Active'}
       onCancel={onCancel}
       onConfirm={onConfirm}
     />

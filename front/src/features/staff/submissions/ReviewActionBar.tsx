@@ -41,15 +41,6 @@ export function ReviewActionBar({
         <div className="flex flex-wrap items-center justify-end gap-2">
           <Button
             type="button"
-            variant="outline"
-            onClick={onReject}
-            disabled={disabled || isSubmitting}
-            className="border-danger/40 text-danger hover:border-danger hover:text-danger"
-          >
-            Reject
-          </Button>
-          <Button
-            type="button"
             variant="interactive"
             onClick={onApprove}
             disabled={approveBlocked}
@@ -62,6 +53,15 @@ export function ReviewActionBar({
             ) : (
               approveLabel
             )}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onReject}
+            disabled={disabled || isSubmitting}
+            className="border-danger/40 text-danger hover:border-danger hover:text-danger"
+          >
+            Reject
           </Button>
         </div>
       </div>

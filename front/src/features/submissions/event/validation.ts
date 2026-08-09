@@ -269,10 +269,7 @@ export function validateSectionRegistration(
         contactValues[contact.id] = 'Enter a valid email address.'
       } else if (contact.type === 'phone' && !isValidPhone(value)) {
         contactValues[contact.id] = PHONE_VALIDATION_MESSAGE
-      } else if (
-        (contact.type === 'website' || contact.type === 'other') &&
-        !isValidUrl(value)
-      ) {
+      } else if (contact.type === 'website' && !isValidUrl(value)) {
         contactValues[contact.id] = 'Enter a valid link.'
       }
     }

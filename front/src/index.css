@@ -7,6 +7,8 @@
   --color-primary-muted: var(--ds-primary-muted);
   --color-primary-foreground: var(--ds-primary-foreground);
 
+  --color-map-pin: var(--ds-map-pin);
+
   --color-interactive: var(--ds-interactive);
   --color-interactive-hover: var(--ds-interactive-hover);
   --color-interactive-muted: var(--ds-interactive-muted);

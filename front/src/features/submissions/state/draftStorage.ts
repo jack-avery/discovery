@@ -90,7 +90,6 @@ function isValidDraftShape(value: unknown): value is SubmissionDraft {
       Array.isArray(draft.contributions) &&
       typeof draft.contributor === 'object' &&
       draft.contributor !== null &&
-      typeof draft.consent === 'boolean' &&
       typeof draft.ui === 'object' &&
       draft.ui !== null &&
       typeof draft.meta === 'object' &&

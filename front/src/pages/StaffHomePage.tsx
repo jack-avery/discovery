@@ -9,8 +9,8 @@ import {
   DashboardHeader,
   DashboardQuickActions,
   DashboardStatCard,
-  PLACEHOLDER_CATEGORY_SEGMENTS,
   PLACEHOLDER_QUICK_ACTIONS,
+  type CategoryChartSegment,
 } from '@/features/staff/dashboard'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import {
@@ -18,6 +18,9 @@ import {
   RESOURCE_UPDATE_FILTERS,
   reviewSubmissionsUrl,
 } from '@/features/staff/submissions/reviewQueueNavigation'
+
+/** Chart bars use theme colour; `color` is retained for the segment type. */
+const CATEGORY_BAR_COLOR = 'var(--primary)'
 
 /**
  * Staff Dashboard — KPI cards match the approved layout.
@@ -34,6 +37,15 @@ export function StaffHomePage() {
 
   const pendingReviewCount = stats?.pending_new_submissions ?? null
   const resourceUpdateCount = stats?.pending_resource_updates ?? null
+
+  const categorySegments = useMemo<CategoryChartSegment[]>(() => {
+    if (!stats?.category_distribution) return []
+    return stats.category_distribution.map((row) => ({
+      label: row.name,
+      value: row.resource_count,
+      color: CATEGORY_BAR_COLOR,
+    }))
+  }, [stats])
 
   const quickActions = useMemo(
     () =>
@@ -148,7 +160,11 @@ export function StaffHomePage() {
               Insights into your published resource directory.
             </p>
           </div>
-          <DashboardCategoryCard segments={PLACEHOLDER_CATEGORY_SEGMENTS} />
+          <DashboardCategoryCard
+            segments={categorySegments}
+            isLoading={isLoading}
+            unavailable={unavailable}
+          />
         </section>
       </div>
 

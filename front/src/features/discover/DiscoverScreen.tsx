@@ -16,6 +16,7 @@ export interface DiscoverScreenProps {
   categories: Category[]
   categoriesLoading?: boolean
   categoriesError?: string | null
+  onCategoriesRetry?: () => void
   tags: Tag[]
   tagsLoading?: boolean
   tagsError?: string | null
@@ -36,6 +37,7 @@ export function DiscoverScreen({
   categories,
   categoriesLoading,
   categoriesError,
+  onCategoriesRetry,
   tags,
   tagsLoading,
   tagsError,
@@ -54,6 +56,7 @@ export function DiscoverScreen({
         onCategoriesChange={onCategoriesChange}
         isLoading={categoriesLoading}
         error={categoriesError}
+        onRetry={onCategoriesRetry}
       />
       <AdvancedFiltersSection
         tags={tags}

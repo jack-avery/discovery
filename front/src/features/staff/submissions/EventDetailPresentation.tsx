@@ -241,7 +241,7 @@ export function EventDetailPresentation({
       {tags.length > 0 && (
         <DetailSectionCard
           icon={<Tag className="h-4 w-4" strokeWidth={2} />}
-          title="Tags"
+          title="Filters"
         >
           <div className="flex flex-wrap gap-1.5">
             {tags.map((tag) => (

@@ -204,7 +204,7 @@ export function SkillsServicesEditor({
             />
             <Field
               id="skills-availability-notes"
-              label="Anything else you'd like us to know? (optional)"
+              label="Anything else we should know? (optional)"
             >
               <Textarea
                 id="skills-availability-notes"

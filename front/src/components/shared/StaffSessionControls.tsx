@@ -10,7 +10,7 @@ interface StaffSessionControlsProps {
 
 /**
  * Top-right session controls for public and authenticated states.
- * Public: Staff Portal link. Authenticated: display name | Logout.
+ * Public: Staff Portal link. Authenticated: display name | Sign Out.
  */
 export function StaffSessionControls({ className }: StaffSessionControlsProps) {
   const { isAuthenticated, user, isLoading, logout } = useAuth()
@@ -37,7 +37,7 @@ export function StaffSessionControls({ className }: StaffSessionControlsProps) {
           }}
           className="min-h-0 px-2"
         >
-          Logout
+          Sign Out
         </Button>
       </div>
     )
