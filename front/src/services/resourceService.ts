@@ -260,3 +260,100 @@ export function toDeleteResourceErrorMessage(error: unknown): string {
     context: 'delete-resource',
   })
 }
+
+/** Card model for landing / marketing resource showcases. */
+export type FeaturedResourceCard = {
+  id: string
+  title: string
+  description: string
+  /** Category and tag labels for chip display (categories first, then tags). */
+  labels: string[]
+  imageUrl: string | null
+}
+
+const FEATURED_RESOURCE_COUNT = 9
+const FEATURED_DESCRIPTION_MAX = 140
+
+function truncateText(value: string, maxLength: number): string {
+  const normalized = value.trim().replace(/\s+/g, ' ')
+  if (normalized.length <= maxLength) return normalized
+  return `${normalized.slice(0, maxLength).trimEnd()}…`
+}
+
+/**
+ * Collect category then tag names for showcase chips.
+ * Primary category is listed first when present.
+ */
+function collectFeaturedLabels(version: ResourceVersionDto): string[] {
+  const categories = [...version.categories].sort((a, b) => {
+    if (a.is_primary === b.is_primary) return 0
+    return a.is_primary ? -1 : 1
+  })
+
+  const labels: string[] = []
+  const seen = new Set<string>()
+
+  for (const category of categories) {
+    const name = category.name?.trim()
+    if (!name) continue
+    const key = name.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    labels.push(name)
+  }
+
+  for (const tag of version.tags) {
+    const name = tag.name?.trim()
+    if (!name) continue
+    const key = name.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    labels.push(name)
+  }
+
+  return labels
+}
+
+/**
+ * Map a published resource detail into a landing carousel card.
+ */
+export function mapResourceDetailToFeaturedCard(
+  detail: ResourceDetail,
+): FeaturedResourceCard {
+  const { version } = detail
+  return {
+    id: String(detail.resource_id),
+    title: version.name.trim() || 'Untitled resource',
+    description: truncateText(version.description ?? '', FEATURED_DESCRIPTION_MAX),
+    labels: collectFeaturedLabels(version),
+    imageUrl: version.image_url,
+  }
+}
+
+/**
+ * Load published resources for the landing showcase.
+ * Prefers the first page of published resources (no featured flag in the API yet).
+ * Hydrates each item via detail so cards can show description, categories, and tags.
+ */
+export async function fetchFeaturedResources(
+  options: FetchResourcesOptions = {},
+): Promise<FeaturedResourceCard[]> {
+  const list = await fetchResources(
+    { page: 1, perPage: FEATURED_RESOURCE_COUNT },
+    options,
+  )
+
+  const details = await Promise.all(
+    list.resources.map(async (resource) => {
+      try {
+        return await fetchResourceById(resource.id, options)
+      } catch {
+        return null
+      }
+    }),
+  )
+
+  return details
+    .filter((detail): detail is ResourceDetail => detail != null)
+    .map(mapResourceDetailToFeaturedCard)
+}
