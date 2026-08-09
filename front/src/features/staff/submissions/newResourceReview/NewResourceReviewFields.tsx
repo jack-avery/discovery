@@ -144,7 +144,7 @@ export function NewResourceAboutFields({
 
       <Field
         id="review-general-notes"
-        label="Anything else RRCRC staff should know? (optional)"
+        label="Anything else we should know? (optional)"
       >
         <Textarea
           id="review-general-notes"

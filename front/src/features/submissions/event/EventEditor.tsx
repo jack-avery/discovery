@@ -466,7 +466,7 @@ export function EventEditor({
 
           <Field
             id="event-notes"
-            label="Anything else RRCRC staff should know? (optional)"
+            label="Anything else we should know? (optional)"
           >
             <Textarea
               id="event-notes"
