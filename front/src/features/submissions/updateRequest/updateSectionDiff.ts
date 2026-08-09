@@ -3,6 +3,7 @@ import {
   validateExistingResource,
   type FieldErrors,
 } from '../existingResource/validation'
+import { canonicalizeContacts } from '../contacts/contactEquality'
 import type { UpdateSectionId } from './updateSections'
 import { UPDATE_SECTION_IDS } from './updateSections'
 
@@ -75,7 +76,7 @@ function sectionSnapshot(
         })),
       }
     case 'contact':
-      return normalizeContacts(
+      return canonicalizeContacts(
         data.contacts.filter((contact) => contact.type !== 'website'),
       )
     case 'address':
@@ -108,7 +109,7 @@ function sectionSnapshot(
     case 'website':
       return {
         moreInfoUrl: data.moreInfoUrl.trim(),
-        websites: normalizeContacts(
+        websites: canonicalizeContacts(
           data.contacts.filter((contact) => contact.type === 'website'),
         ),
       }
@@ -121,23 +122,6 @@ function sectionSnapshot(
       return exhaustive
     }
   }
-}
-
-function normalizeContacts(
-  contacts: ExistingResourceData['contacts'],
-): Array<{ type: string; value: string; label: string }> {
-  return contacts
-    .map((contact) => ({
-      type: contact.type,
-      value: contact.value.trim(),
-      label: contact.label.trim(),
-    }))
-    .filter((contact) => contact.value)
-    .sort((a, b) =>
-      `${a.type}:${a.value}:${a.label}`.localeCompare(
-        `${b.type}:${b.value}:${b.label}`,
-      ),
-    )
 }
 
 function stableStringify(value: unknown): string {

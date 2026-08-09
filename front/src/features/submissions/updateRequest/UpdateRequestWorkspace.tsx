@@ -15,6 +15,7 @@ import { ContributorEditor } from '../contributor/ContributorEditor'
 import { createEmptyContributorInfo } from '../contributor/emptyState'
 import { isContributorComplete } from '../contributor/validation'
 import { ExistingResourceEditor } from '../existingResource/ExistingResourceEditor'
+import { isExistingResourceComplete } from '../existingResource/validation'
 import { Field } from '../form/Field'
 import { UnsavedChangesDialog } from '../form/UnsavedChangesDialog'
 import { mapUpdateResourceRequest } from '../mappers/mapExistingResource'
@@ -27,6 +28,7 @@ import {
   type UpdateSubmissionOutcome,
 } from './resolveUpdateSubmissionOutcome'
 import { hasResourceDataChanges } from './updateSectionDiff'
+import { deriveUpdateSubmitGate } from './deriveUpdateSubmitGate'
 import type { UpdateSectionId } from './updateSections'
 
 /**
@@ -80,7 +82,6 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     editedSections: UpdateSectionId[]
   }>({ hasChanges: false, isComplete: false, editedSections: [] })
   const [contributorComplete, setContributorComplete] = useState(false)
-  const [submitHint, setSubmitHint] = useState<string | undefined>()
   const [submitError, setSubmitError] = useState<string | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [pendingClose, setPendingClose] = useState(false)
@@ -101,6 +102,14 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
 
   const isDirty = resourceDirty || contributorDirty
 
+  const submitGate = deriveUpdateSubmitGate({
+    hasChanges: updateState.hasChanges,
+    resourceComplete: updateState.isComplete,
+    contributorComplete,
+    resourceValidationRevealed: showResourceErrors,
+    contributorValidationRevealed: showContributorErrors,
+  })
+
   const resetWorkflow = useCallback(() => {
     submitAbortRef.current?.abort()
     submitAbortRef.current = null
@@ -119,7 +128,6 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
       editedSections: [],
     })
     setContributorComplete(false)
-    setSubmitHint(undefined)
     setSubmitError(undefined)
     setSuccessOutcome('pending_review')
     setActiveSectionId(null)
@@ -212,11 +220,10 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     setContributorDirty(false)
     setUpdateState({
       hasChanges: false,
-      isComplete: false,
+      isComplete: isExistingResourceComplete(mapped),
       editedSections: [],
     })
     setContributorComplete(false)
-    setSubmitHint(undefined)
     setSubmitError(undefined)
     setStaffNotes('')
     setStep('editing')
@@ -249,31 +256,25 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     if (isSubmitting) return
     if (!baselineData || !proposedData || !hasResourceId) return
 
+    // Reveal field errors; ExistingResourceEditor scrolls to the first invalid section.
     setShowResourceErrors(true)
     setShowContributorErrors(true)
+    setSubmitError(undefined)
 
     const savedResource = resourceSaveRef.current?.() ?? null
     const savedContributor = contributorSaveRef.current?.() ?? null
 
-    const resourceOk = hasResourceDataChanges(baselineData, proposedData)
+    const resourceHasChanges = hasResourceDataChanges(baselineData, proposedData)
+    if (!resourceHasChanges) return
+
+    // Incomplete resource: keep submission blocked; footer + field UX update live.
+    if (!updateState.isComplete || !savedResource) return
+
     const contributorOk = isContributorComplete(
       savedContributor ?? createEmptyContributorInfo(),
       { requireResourceConnection: true },
     )
-
-    if (!resourceOk) {
-      setSubmitError(undefined)
-      setSubmitHint('Make at least one change before submitting.')
-      return
-    }
-    if (!savedResource || !updateState.isComplete) {
-      setSubmitError(undefined)
-      setSubmitHint('Fix the highlighted resource fields before submitting.')
-      return
-    }
     if (!savedContributor || !contributorOk || !contributorComplete) {
-      setSubmitError(undefined)
-      setSubmitHint('Complete your contact information before submitting.')
       document
         .getElementById('contributor-details')
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -292,8 +293,6 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
       proposedData.name.trim() || resourceName || 'this resource'
     const controller = new AbortController()
     submitAbortRef.current = controller
-    setSubmitHint(undefined)
-    setSubmitError(undefined)
     setIsSubmitting(true)
 
     try {
@@ -394,9 +393,9 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
             showContributorErrors={showContributorErrors}
             staffNotes={staffNotes}
             onStaffNotesChange={setStaffNotes}
-            submitHint={submitHint}
+            footerMessage={submitGate.footerMessage}
             submitError={submitError}
-            canSubmit={updateState.hasChanges}
+            canSubmit={submitGate.canSubmit}
             isSubmitting={isSubmitting}
             onShowResourceErrorsChange={setShowResourceErrors}
             onShowContributorErrorsChange={setShowContributorErrors}
@@ -519,7 +518,7 @@ function EditingStage({
   showContributorErrors,
   staffNotes,
   onStaffNotesChange,
-  submitHint,
+  footerMessage,
   submitError,
   canSubmit,
   isSubmitting,
@@ -541,7 +540,7 @@ function EditingStage({
   showContributorErrors: boolean
   staffNotes: string
   onStaffNotesChange: (value: string) => void
-  submitHint?: string
+  footerMessage: string | null
   submitError?: string
   canSubmit: boolean
   isSubmitting: boolean
@@ -612,13 +611,9 @@ function EditingStage({
           <p className="text-xs text-destructive sm:mr-auto" role="alert">
             {submitError}
           </p>
-        ) : submitHint ? (
+        ) : footerMessage ? (
           <p className="text-xs text-muted-foreground sm:mr-auto" role="status">
-            {submitHint}
-          </p>
-        ) : !canSubmit ? (
-          <p className="text-xs text-muted-foreground sm:mr-auto">
-            Make at least one change before submitting.
+            {footerMessage}
           </p>
         ) : null}
         <Button

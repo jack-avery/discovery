@@ -5,7 +5,7 @@ import type {
   HoursAvailability,
   ResourceContactMethod,
 } from '@/types/submission'
-import { normalizePhoneE164 } from '@/utils/phone'
+import { areContactsEquivalent } from '@/features/submissions/contacts/contactEquality'
 
 /** Comparison field ids that edit structured ExistingResourceData slices. */
 export const RESOURCE_UPDATE_STRUCTURED_FIELD_IDS = [
@@ -134,11 +134,12 @@ export function websiteContacts(
   return contacts.filter((contact) => contact.type === 'website')
 }
 
+/** Contact slice equality — delegates to shared {@link areContactsEquivalent}. */
 export function areContactSlicesEqual(
   a: ResourceContactMethod[],
   b: ResourceContactMethod[],
 ): boolean {
-  return stableStringify(normalizeContacts(a)) === stableStringify(normalizeContacts(b))
+  return areContactsEquivalent(a, b)
 }
 
 export function areLocationSlicesEqual(
@@ -179,29 +180,6 @@ export function getProposedStructuredSlice(
       return exhaustive
     }
   }
-}
-
-function normalizeContacts(
-  contacts: ResourceContactMethod[],
-): Array<{ type: string; value: string; label: string }> {
-  return contacts
-    .map((contact) => {
-      const raw = contact.value.trim()
-      // Same canonical phone form as mapPublicContacts / approved_version publish.
-      const value =
-        contact.type === 'phone' ? (normalizePhoneE164(raw) ?? raw) : raw
-      return {
-        type: contact.type,
-        value,
-        label: contact.label.trim(),
-      }
-    })
-    .filter((contact) => contact.value)
-    .sort((a, b) =>
-      `${a.type}:${a.value}:${a.label}`.localeCompare(
-        `${b.type}:${b.value}:${b.label}`,
-      ),
-    )
 }
 
 function normalizeLocations(locations: ExistingResourceLocation[]) {

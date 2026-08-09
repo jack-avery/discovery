@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:contact-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/contacts/contactEquality.test.ts",
+    "test:update-submit-gate": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/deriveUpdateSubmitGate.test.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
