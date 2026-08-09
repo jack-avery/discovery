@@ -2,10 +2,13 @@ import { Plus } from 'lucide-react'
 import { SearchBar } from '@/components/shared'
 import { Button } from '@/components/ui'
 import { cn } from '@/utils/cn'
-import { ROLE_LABELS } from '@/features/staff/users/userDisplay'
-import type { StaffManageRole, UserSortField } from '@/types/user'
+import {
+  MANAGED_USER_ROLE_ORDER,
+  ROLE_LABELS,
+} from '@/features/staff/users/userDisplay'
+import type { ManagedUserRole, UserSortField } from '@/types/user'
 
-export type UsersRoleFilter = StaffManageRole | 'all'
+export type UsersRoleFilter = ManagedUserRole | 'all'
 
 interface UsersToolbarProps {
   search: string
@@ -22,9 +25,10 @@ interface UsersToolbarProps {
 
 const ROLE_OPTIONS: { value: UsersRoleFilter; label: string }[] = [
   { value: 'all', label: 'All Roles' },
-  { value: 'administrator', label: ROLE_LABELS.administrator },
-  { value: 'staff_editor', label: ROLE_LABELS.staff_editor },
-  { value: 'moderator', label: ROLE_LABELS.moderator },
+  ...MANAGED_USER_ROLE_ORDER.map((value) => ({
+    value,
+    label: ROLE_LABELS[value],
+  })),
 ]
 
 const SORT_OPTIONS: { value: UserSortField; label: string }[] = [

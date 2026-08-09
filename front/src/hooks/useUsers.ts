@@ -7,13 +7,13 @@ import {
 } from '@/services/userService'
 import type {
   FetchUsersQuery,
-  StaffManageRole,
+  ManagedUserRole,
   UserSortField,
 } from '@/types/user'
 
 export interface UsersFilters {
   search?: string
-  role?: StaffManageRole | 'all'
+  role?: ManagedUserRole | 'all'
   includeInactive?: boolean
   sort?: UserSortField
   page?: number

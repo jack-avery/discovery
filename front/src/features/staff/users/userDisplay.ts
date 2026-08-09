@@ -1,10 +1,22 @@
-import type { ManagedUser, StaffManageRole } from '@/types/user'
+import type { ManagedUser, ManagedUserRole } from '@/types/user'
 
-/** Highest staff role wins: administrator → staff_editor → moderator. */
-const ROLE_PRIORITY: StaffManageRole[] = [
+/**
+ * Highest managed role wins when multiple are present
+ * (accounts are expected to have exactly one).
+ */
+const ROLE_PRIORITY: ManagedUserRole[] = [
   'administrator',
   'staff_editor',
   'moderator',
+  'trusted_contributor',
+]
+
+/** Ascending privilege — used by Create/Edit and filter selects. */
+export const MANAGED_USER_ROLE_ORDER: ManagedUserRole[] = [
+  'trusted_contributor',
+  'moderator',
+  'staff_editor',
+  'administrator',
 ]
 
 export type RoleBadgeVariant =
@@ -16,24 +28,25 @@ export type RoleBadgeVariant =
   | 'warning'
   | 'danger'
 
-export const ROLE_LABELS: Record<StaffManageRole, string> = {
-  administrator: 'Administrator',
-  staff_editor: 'Staff Editor',
+export const ROLE_LABELS: Record<ManagedUserRole, string> = {
+  trusted_contributor: 'Contributor',
   moderator: 'Moderator',
+  staff_editor: 'Staff Editor',
+  administrator: 'Administrator',
 }
 
-export function primaryStaffRole(
+export function primaryManagedRole(
   roles: readonly string[],
-): StaffManageRole | null {
+): ManagedUserRole | null {
   return ROLE_PRIORITY.find((role) => roles.includes(role)) ?? null
 }
 
-export function roleLabel(role: StaffManageRole | null): string {
+export function roleLabel(role: ManagedUserRole | null): string {
   if (!role) return '—'
   return ROLE_LABELS[role]
 }
 
-export function roleBadgeVariant(role: StaffManageRole | null): RoleBadgeVariant {
+export function roleBadgeVariant(role: ManagedUserRole | null): RoleBadgeVariant {
   switch (role) {
     case 'administrator':
       return 'primary'
@@ -41,6 +54,8 @@ export function roleBadgeVariant(role: StaffManageRole | null): RoleBadgeVariant
       return 'pending'
     case 'moderator':
       return 'outline'
+    case 'trusted_contributor':
+      return 'default'
     default:
       return 'default'
   }

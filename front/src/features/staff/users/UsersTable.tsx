@@ -3,7 +3,7 @@ import type { ManagedUser } from '@/types/user'
 import { UserActionsMenu } from '@/features/staff/users/UserActionsMenu'
 import {
   formatUserCreatedAt,
-  primaryStaffRole,
+  primaryManagedRole,
   roleBadgeVariant,
   roleLabel,
   userDisplayName,
@@ -65,7 +65,7 @@ export function UsersTable({
         </thead>
         <tbody>
           {users.map((user) => {
-            const role = primaryStaffRole(user.roles)
+            const role = primaryManagedRole(user.roles)
             const name = userDisplayName(user)
 
             return (

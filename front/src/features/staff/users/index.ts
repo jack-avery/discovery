@@ -12,8 +12,9 @@ export { EnableDisableDialog } from './EnableDisableDialog'
 export { SetupLinkDialog } from './SetupLinkDialog'
 export {
   formatUserCreatedAt,
-  primaryStaffRole,
+  primaryManagedRole,
   ROLE_LABELS,
+  MANAGED_USER_ROLE_ORDER,
   roleBadgeVariant,
   roleLabel,
   userDisplayName,

@@ -3,7 +3,12 @@
  * Frontend ManagedUser is mapped from backend `_user_to_dict` at the service boundary.
  */
 
-export type StaffManageRole = 'administrator' | 'staff_editor' | 'moderator'
+/** Roles assignable/filterable in User Management (matches Role.HIERARCHY). */
+export type ManagedUserRole =
+  | 'trusted_contributor'
+  | 'moderator'
+  | 'staff_editor'
+  | 'administrator'
 
 /** Client sort keys for the User Management table (current page only). */
 export type UserSortField = 'default' | 'name' | 'created_at'
@@ -17,7 +22,7 @@ export interface ManagedUser {
   created_at: string
   /**
    * Normalized from backend singular `role`.
-   * Staff UI displays the highest staff role when present.
+   * Presentation uses {@link ManagedUserRole} labels when recognized.
    */
   roles: string[]
 }
@@ -25,7 +30,7 @@ export interface ManagedUser {
 export interface FetchUsersQuery {
   search?: string
   /** `all` or omit = any role. */
-  role?: StaffManageRole | 'all'
+  role?: ManagedUserRole | 'all'
   /** When false (default), inactive users are excluded via `is_active=true`. */
   includeInactive?: boolean
   sort?: UserSortField

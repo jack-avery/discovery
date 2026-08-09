@@ -7,7 +7,7 @@ import type {
   BackendUserListDto,
   FetchUsersQuery,
   ManagedUser,
-  StaffManageRole,
+  ManagedUserRole,
   UserSortField,
 } from '@/types/user'
 import type { UserFormFieldErrors } from '@/features/staff/users/userFormModel'
@@ -52,25 +52,26 @@ export interface CreateUserInput {
   email: string
   first_name: string
   last_name: string
-  role: StaffManageRole
+  role: ManagedUserRole
 }
 
 export interface UpdateUserInput {
   email?: string
   first_name?: string
   last_name?: string
-  role?: StaffManageRole
+  role?: ManagedUserRole
   is_active?: boolean
 }
 
-const STAFF_MANAGE_ROLES = new Set<string>([
+const MANAGED_USER_ROLES = new Set<string>([
+  'trusted_contributor',
   'administrator',
   'staff_editor',
   'moderator',
 ])
 
-export function isStaffManageRole(role: string): role is StaffManageRole {
-  return STAFF_MANAGE_ROLES.has(role)
+export function isManagedUserRole(role: string): role is ManagedUserRole {
+  return MANAGED_USER_ROLES.has(role)
 }
 
 /**

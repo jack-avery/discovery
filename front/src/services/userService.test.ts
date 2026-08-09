@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { ApiError } from '@/services/api'
+import { hasStaffAccess } from '@/auth/permissions'
 import {
+  primaryManagedRole,
+  ROLE_LABELS,
+  roleLabel,
+} from '@/features/staff/users/userDisplay'
+import {
+  isManagedUserRole,
   mapBackendUser,
   mapSetupCredentials,
   sortManagedUsers,
@@ -35,6 +42,20 @@ describe('mapBackendUser', () => {
     })
   })
 
+  it('preserves trusted_contributor without renaming to contributor', () => {
+    const mapped = mapBackendUser({
+      user_id: 3,
+      email: 'contrib@rrcrc.ca',
+      first_name: 'Casey',
+      last_name: 'Lee',
+      is_active: true,
+      created_at: '2025-02-01T12:00:00Z',
+      role: 'trusted_contributor',
+    })
+    assert.deepEqual(mapped.roles, ['trusted_contributor'])
+    assert.equal(mapped.roles.includes('contributor'), false)
+  })
+
   it('maps null role to empty roles', () => {
     const mapped = mapBackendUser({
       user_id: 1,
@@ -48,6 +69,25 @@ describe('mapBackendUser', () => {
     assert.equal(mapped.created_at, '')
     assert.deepEqual(mapped.roles, [])
     assert.equal(mapped.is_active, false)
+  })
+})
+
+describe('managed role display', () => {
+  it('labels trusted_contributor as Contributor', () => {
+    assert.equal(ROLE_LABELS.trusted_contributor, 'Contributor')
+    assert.equal(
+      roleLabel(primaryManagedRole(['trusted_contributor'])),
+      'Contributor',
+    )
+  })
+
+  it('labels staff roles unchanged', () => {
+    assert.equal(roleLabel(primaryManagedRole(['moderator'])), 'Moderator')
+    assert.equal(roleLabel(primaryManagedRole(['staff_editor'])), 'Staff Editor')
+    assert.equal(
+      roleLabel(primaryManagedRole(['administrator'])),
+      'Administrator',
+    )
   })
 })
 
@@ -78,6 +118,18 @@ describe('toUsersApiParams', () => {
         limit: 10,
         search: 'Jordan',
         role: 'staff_editor',
+        is_active: true,
+      },
+    )
+  })
+
+  it('filters Contributor using trusted_contributor API value', () => {
+    assert.deepEqual(
+      toUsersApiParams({ role: 'trusted_contributor', page: 1, perPage: 10 }),
+      {
+        page: 1,
+        limit: 10,
+        role: 'trusted_contributor',
         is_active: true,
       },
     )
@@ -153,20 +205,44 @@ describe('userFormErrorsFromApi', () => {
 })
 
 describe('create/update request shapes', () => {
-  it('create input uses staff role fields only', () => {
+  it('create can send trusted_contributor for Contributor', () => {
     const input: CreateUserInput = {
       email: 'new@rrcrc.ca',
       first_name: 'New',
       last_name: 'User',
-      role: 'moderator',
+      role: 'trusted_contributor',
     }
+    assert.equal(input.role, 'trusted_contributor')
+    assert.equal(isManagedUserRole(input.role), true)
     assert.equal('password' in input, false)
   })
 
-  it('update input supports is_active for enable/disable', () => {
+  it('create still supports staff roles', () => {
+    const input: CreateUserInput = {
+      email: 'mod@rrcrc.ca',
+      first_name: 'Mod',
+      last_name: 'User',
+      role: 'moderator',
+    }
+    assert.equal(input.role, 'moderator')
+  })
+
+  it('update input supports is_active and Contributor role', () => {
     const disable: UpdateUserInput = { is_active: false }
-    const enable: UpdateUserInput = { is_active: true }
+    const toContributor: UpdateUserInput = { role: 'trusted_contributor' }
     assert.equal(disable.is_active, false)
-    assert.equal(enable.is_active, true)
+    assert.equal(toContributor.role, 'trusted_contributor')
+  })
+})
+
+describe('staff permissions unchanged', () => {
+  it('trusted_contributor does not satisfy staff access', () => {
+    assert.equal(hasStaffAccess(['trusted_contributor']), false)
+  })
+
+  it('staff roles still satisfy staff access', () => {
+    assert.equal(hasStaffAccess(['moderator']), true)
+    assert.equal(hasStaffAccess(['staff_editor']), true)
+    assert.equal(hasStaffAccess(['administrator']), true)
   })
 })

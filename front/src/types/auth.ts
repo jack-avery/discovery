@@ -3,7 +3,7 @@
  */
 
 export type BackendStaffRole =
-  | 'contributor'
+  | 'trusted_contributor'
   | 'moderator'
   | 'staff_editor'
   | 'administrator'

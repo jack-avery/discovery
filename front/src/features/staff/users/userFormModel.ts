@@ -1,5 +1,5 @@
-import type { ManagedUser, StaffManageRole } from '@/types/user'
-import { primaryStaffRole } from '@/features/staff/users/userDisplay'
+import type { ManagedUser, ManagedUserRole } from '@/types/user'
+import { primaryManagedRole } from '@/features/staff/users/userDisplay'
 
 export type UserModalMode = 'create' | 'edit'
 
@@ -8,7 +8,7 @@ export interface UserFormValues {
   first_name: string
   last_name: string
   email: string
-  role: StaffManageRole
+  role: ManagedUserRole
   /** Always true for create; editable in edit mode. */
   is_active: boolean
 }
@@ -24,7 +24,7 @@ export type UserFormDraft = {
   first_name: string
   last_name: string
   email: string
-  role: StaffManageRole | ''
+  role: ManagedUserRole | ''
   is_active: boolean
 }
 
@@ -43,7 +43,7 @@ export function userFormDraftFromManagedUser(user: ManagedUser): UserFormDraft {
     first_name: user.first_name,
     last_name: user.last_name,
     email: user.email,
-    role: primaryStaffRole(user.roles) ?? '',
+    role: primaryManagedRole(user.roles) ?? '',
     is_active: user.is_active,
   }
 }
