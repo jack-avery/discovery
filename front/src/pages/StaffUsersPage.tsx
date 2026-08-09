@@ -5,7 +5,7 @@ import { UserManagementWorkspace } from '@/features/staff/users'
 
 /**
  * Staff User Management — administrator only.
- * Phase 1: mock-backed list UI (no create/edit/actions yet).
+ * Wired to GET/POST/PATCH /users and password setup-token flows.
  */
 export function StaffUsersPage() {
   const { permissions } = useAuth()

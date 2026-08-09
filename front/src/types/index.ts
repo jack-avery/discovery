@@ -64,7 +64,7 @@ export { displayName } from './auth'
 export type {
   FetchUsersQuery,
   ManagedUser,
-  StaffManageRole,
+  ManagedUserRole,
   UserSortField,
 } from './user'
 export type { Category, CategoryTreeNode } from './category'

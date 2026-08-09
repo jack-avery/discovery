@@ -7,13 +7,13 @@ import {
 } from '@/services/userService'
 import type {
   FetchUsersQuery,
-  StaffManageRole,
+  ManagedUserRole,
   UserSortField,
 } from '@/types/user'
 
 export interface UsersFilters {
   search?: string
-  role?: StaffManageRole | 'all'
+  role?: ManagedUserRole | 'all'
   includeInactive?: boolean
   sort?: UserSortField
   page?: number
@@ -43,7 +43,7 @@ function filtersKey(filters: UsersFilters): string {
 }
 
 /**
- * Staff User Management list — Phase 1 uses mocked fetchUsers.
+ * Staff User Management list — GET /users via userService.
  */
 export function useUsers(filters: UsersFilters = {}) {
   const [reloadKey, setReloadKey] = useState(0)

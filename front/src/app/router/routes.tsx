@@ -12,6 +12,7 @@ import { StaffSignInPage } from '@/pages/StaffSignInPage'
 import { StaffHomePage } from '@/pages/StaffHomePage'
 import { StaffSubmissionsPage } from '@/pages/StaffSubmissionsPage'
 import { StaffUsersPage } from '@/pages/StaffUsersPage'
+import { SetupPasswordPage } from '@/pages/SetupPasswordPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
 
 export const routes: RouteObject[] = [
@@ -29,6 +30,7 @@ export const routes: RouteObject[] = [
         ),
       },
       { path: 'sign-in', element: <StaffSignInPage /> },
+      { path: 'setup-password', element: <SetupPasswordPage /> },
       { path: 'map', element: <MapPage /> },
       { path: 'resources', element: <ResourcesPage /> },
       { path: 'submissions', element: <SubmissionsPage /> },

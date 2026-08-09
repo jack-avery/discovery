@@ -9,28 +9,17 @@ export { UserForm } from './UserForm'
 export { UserActionsMenu } from './UserActionsMenu'
 export { ResetPasswordDialog } from './ResetPasswordDialog'
 export { EnableDisableDialog } from './EnableDisableDialog'
-export { useManagedUsers } from './useManagedUsers'
-export {
-  createManagedUser,
-  updateManagedUser,
-} from './userMutations'
-export type {
-  UserMutationFailure,
-  UserMutationResult,
-  UserMutationSuccess,
-} from './userMutations'
+export { SetupLinkDialog } from './SetupLinkDialog'
 export {
   formatUserCreatedAt,
-  primaryStaffRole,
+  primaryManagedRole,
   ROLE_LABELS,
+  MANAGED_USER_ROLE_ORDER,
   roleBadgeVariant,
   roleLabel,
   userDisplayName,
   userInitials,
 } from './userDisplay'
-export { MOCK_MANAGED_USERS } from './mockUsers'
-export { DEFAULT_ORG_PASSWORD } from './userFormConstants'
-export { MOCK_CURRENT_USER_ID, cloneManagedUsers } from './userSession'
 export type {
   UserFormDraft,
   UserFormFieldErrors,

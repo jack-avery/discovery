@@ -2,21 +2,24 @@ import { useId } from 'react'
 import { Field } from '@/features/submissions/form/Field'
 import { OptionCardGroup } from '@/features/submissions/form/OptionCardGroup'
 import { Input } from '@/components/ui'
-import { ROLE_LABELS } from '@/features/staff/users/userDisplay'
+import {
+  MANAGED_USER_ROLE_ORDER,
+  ROLE_LABELS,
+} from '@/features/staff/users/userDisplay'
 import type {
   UserFormDraft,
   UserFormFieldErrors,
   UserModalMode,
 } from '@/features/staff/users/userFormModel'
 import { usersSelectClassName } from '@/features/staff/users/usersSelectStyles'
-import type { StaffManageRole } from '@/types/user'
+import type { ManagedUserRole } from '@/types/user'
 import { cn } from '@/utils/cn'
 
-const ROLE_OPTIONS: { value: StaffManageRole; label: string }[] = [
-  { value: 'administrator', label: ROLE_LABELS.administrator },
-  { value: 'staff_editor', label: ROLE_LABELS.staff_editor },
-  { value: 'moderator', label: ROLE_LABELS.moderator },
-]
+const ROLE_OPTIONS: { value: ManagedUserRole; label: string }[] =
+  MANAGED_USER_ROLE_ORDER.map((value) => ({
+    value,
+    label: ROLE_LABELS[value],
+  }))
 
 interface UserFormProps {
   mode: UserModalMode
@@ -112,7 +115,7 @@ export function UserForm({
           aria-label="Role"
           className={usersSelectClassName}
           onChange={(event) =>
-            onChange({ role: event.target.value as StaffManageRole | '' })
+            onChange({ role: event.target.value as ManagedUserRole | '' })
           }
         >
           <option value="">Select a role</option>
