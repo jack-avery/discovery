@@ -27,12 +27,11 @@ export function GetStartedSection() {
           id="get-started-heading"
           className="mt-4 font-heading text-2xl font-bold leading-tight tracking-tight text-foreground sm:text-3xl lg:text-[1.875rem] lg:leading-[1.2]"
         >
-          Start exploring your community today.
+          See how easy it is to get started.
         </h2>
 
         <p className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground sm:text-base">
-          Take a quick guided tour to learn how to search, filter, and discover
-          local resources in under a minute.
+          Take a quick guided tour to learn how to use the map.
         </p>
 
         <div className="mt-5 flex justify-center sm:mt-6">
