@@ -23,7 +23,7 @@ export function TagsDropdown({
 }: TagsDropdownProps) {
   return (
     <MultiSelectDropdown
-      label="Tags"
+      label="Filters"
       items={tags}
       value={value}
       onChange={onChange}

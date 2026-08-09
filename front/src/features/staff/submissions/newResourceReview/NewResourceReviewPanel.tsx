@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Phone } from 'lucide-react'
 import { Badge } from '@/components/ui'
+import { DetailSectionCard } from '@/features/discover/DetailInfoCard'
 import {
   ResourceDetailAboutShell,
   ResourceDetailHero,
@@ -18,7 +20,7 @@ import {
 import { mapResourceVersionToExistingResourceData } from '@/features/submissions/updateRequest/mapResourceVersionToExistingResourceData'
 import type { PhysicalLocationGeocodingHandle } from '@/features/submissions/form/PhysicalLocationList'
 import {
-  EDITED_APPROVAL_BLOCKED_HELPER,
+  INCOMPLETE_EDITED_APPROVAL_HELPER,
   type SubmissionApprovalGate,
 } from '@/features/staff/submissions/submissionApprovalGate'
 import {
@@ -29,6 +31,7 @@ import {
 } from '@/features/staff/submissions/newResourceReview/newResourceReviewDiff'
 import {
   NewResourceAboutFields,
+  NewResourceContactFields,
   NewResourceIdentityFields,
   NewResourceLocationFields,
   NewResourceServiceFields,
@@ -43,8 +46,8 @@ export type { SubmissionApprovalGate }
 
 /**
  * Editable new-resource moderation view.
- * Matches resource-detail section hierarchy; keeps a local finalized version
- * for upcoming approved_version integration (not sent yet).
+ * Matches resource-detail section hierarchy; lifts edited drafts for
+ * approved_version on approve.
  */
 export function NewResourceReviewPanel({
   submission,
@@ -53,11 +56,11 @@ export function NewResourceReviewPanel({
 }: {
   submission: SubmissionDetailDto
   onApprovalGateChange?: (gate: SubmissionApprovalGate) => void
-  /** Local composed final version for future approved_version payload. */
+  /** Composed final version when the reviewer has edited the proposal. */
   onFinalVersionChange?: (data: ExistingResourceData | null) => void
 }) {
   const version = submission.proposed_version
-  const { categories, isLoading: categoriesLoading, error: categoriesError } =
+  const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } =
     useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
   const locationGeocodingRef = useRef<PhysicalLocationGeocodingHandle>(null)
@@ -114,12 +117,10 @@ export function NewResourceReviewPanel({
 
   useEffect(() => {
     if (!onApprovalGateChange) return
-    if (hasEdits) {
+    if (hasEdits && !isComplete) {
       onApprovalGateChange({
         approveDisabled: true,
-        approveHelper: isComplete
-          ? EDITED_APPROVAL_BLOCKED_HELPER
-          : `${EDITED_APPROVAL_BLOCKED_HELPER} Fix validation errors in the highlighted fields before a future edited approval can be submitted.`,
+        approveHelper: INCOMPLETE_EDITED_APPROVAL_HELPER,
       })
       return
     }
@@ -188,6 +189,7 @@ export function NewResourceReviewPanel({
             tagsLoading={tagsLoading}
             categoriesError={categoriesError}
             tagsError={tagsError}
+            onCategoriesRetry={reloadCategories}
           />
         </div>
       </WorkspaceSection>
@@ -209,6 +211,26 @@ export function NewResourceReviewPanel({
           showErrors={showErrors}
         />
       </ResourceDetailAboutShell>
+
+      <DetailSectionCard
+        icon={<Phone className="h-4 w-4" strokeWidth={2} />}
+        title="Contact"
+        headerAction={
+          editedSet.has('contact') ? (
+            <SectionEditChrome
+              edited
+              onReset={() => resetSection('contact')}
+            />
+          ) : undefined
+        }
+      >
+        <NewResourceContactFields
+          data={data}
+          patch={patch}
+          errors={errors}
+          showErrors={showErrors}
+        />
+      </DetailSectionCard>
 
       <ResourceDetailLocationShell
         title={locationTitle}

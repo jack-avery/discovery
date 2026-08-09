@@ -31,7 +31,7 @@ import {
 import { PhysicalLocationList } from '@/features/submissions/form/PhysicalLocationList'
 import type { PhysicalLocationGeocodingHandle } from '@/features/submissions/form/PhysicalLocationList'
 import {
-  EDITED_APPROVAL_BLOCKED_HELPER,
+  INCOMPLETE_EDITED_APPROVAL_HELPER,
   type SubmissionApprovalGate,
 } from '@/features/staff/submissions/submissionApprovalGate'
 import { SectionEditChrome } from '@/features/staff/submissions/SectionEditChrome'
@@ -101,7 +101,7 @@ export function EventReviewPanel({
   onFinalVersionChange?: (data: EventContributionData | null) => void
 }) {
   const version = submission.proposed_version
-  const { categories, isLoading: categoriesLoading, error: categoriesError } =
+  const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } =
     useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
   const locationGeocodingRef = useRef<PhysicalLocationGeocodingHandle>(null)
@@ -171,12 +171,10 @@ export function EventReviewPanel({
 
   useEffect(() => {
     if (!onApprovalGateChange) return
-    if (hasEdits) {
+    if (hasEdits && !isComplete) {
       onApprovalGateChange({
         approveDisabled: true,
-        approveHelper: isComplete
-          ? EDITED_APPROVAL_BLOCKED_HELPER
-          : `${EDITED_APPROVAL_BLOCKED_HELPER} Fix validation errors in the highlighted fields before a future edited approval can be submitted.`,
+        approveHelper: INCOMPLETE_EDITED_APPROVAL_HELPER,
       })
       return
     }
@@ -390,16 +388,17 @@ export function EventReviewPanel({
             onChange={(categoryIds) => patch({ categoryIds })}
             isLoading={categoriesLoading}
             error={categoriesError}
+            onRetry={reloadCategories}
             fieldError={categoryErrors.categories}
           />
           <LookupMultiSelect
-            label="Help people find this event"
+            label="Filters"
             options={filterOptions}
             value={data.filterIds}
             onChange={(filterIds) => patch({ filterIds })}
             isLoading={tagsLoading}
             error={tagsError}
-            emptyMessage="No additional filters are available yet."
+            emptyMessage="No filters are available yet."
           />
         </div>
       </DetailSectionCard>

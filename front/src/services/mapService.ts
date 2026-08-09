@@ -54,27 +54,12 @@ export interface ResourceMapResult {
   limitations: ResourceMapQueryLimitation[]
 }
 
-/**
- * Soft slug from a display name — used only as a fallback icon key.
- * Backend map pins expose `category_name`, not `slug`.
- */
-function softSlugify(value: string | null | undefined): string {
-  if (!value) return ''
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-}
-
 export function mapPinToItem(pin: MapPinDto): ResourceMapItem {
   return {
     id: String(pin.resource_id),
     slug: pin.slug,
     name: pin.name,
-    categorySlug: softSlugify(pin.category_name),
     categoryName: pin.category_name,
-    colorHex: pin.color_hex,
     iconIdentifier: pin.icon_identifier,
     resourceType: pin.resource_type,
     isVirtual: pin.is_virtual,

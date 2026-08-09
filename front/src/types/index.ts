@@ -100,6 +100,7 @@ export type {
   PublicSubmissionLocationDto,
 } from './submissionApi'
 export type {
+  ApprovedResourceVersionPayload,
   CurrentApprovedResourceDto,
   ListSubmissionsQuery,
   ModerationStatus,
@@ -111,4 +112,4 @@ export type {
   SubmissionReviewDto,
   SubmissionSummaryDto,
 } from './moderationSubmission'
-export type { DashboardStats } from './dashboard'
+export type { DashboardStats, DashboardCategoryDistributionItem } from './dashboard'

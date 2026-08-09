@@ -60,7 +60,10 @@ export async function fetchSubmissionById(
 }
 
 /**
- * POST /submissions/:id/review — approve or reject.
+ * POST /submissions/:id/review — approve, reject, or accept Skills for follow-up.
+ *
+ * Passes `payload` through unchanged (including optional `approved_version`).
+ * Does not validate or transform the body.
  */
 export async function reviewSubmission(
   submissionId: number,

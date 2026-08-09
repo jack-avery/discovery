@@ -1,14 +1,20 @@
 import type { ExistingResourceData } from '@/types/submission'
 import { normalizeExistingResourceData } from '@/features/submissions/existingResource/emptyState'
+import { canonicalizeContacts } from '@/features/submissions/contacts/contactEquality'
+import { canonicalizeCost } from '@/features/submissions/cost/costEquality'
+import { canonicalizeHours } from '@/features/submissions/hours/hoursEquality'
+import { canonicalizeLocations } from '@/features/submissions/locations/locationEquality'
+import { canonicalizeLookupIds } from '@/features/submissions/lookups/lookupIdEquality'
 
 export type NewResourceReviewSectionId =
   | 'identity'
   | 'about'
+  | 'contact'
   | 'location'
   | 'service'
 
 export const NEW_RESOURCE_REVIEW_SECTIONS: readonly NewResourceReviewSectionId[] =
-  ['identity', 'about', 'location', 'service']
+  ['identity', 'about', 'contact', 'location', 'service']
 
 /**
  * Stable snapshots for section-level dirty detection / reset in new-resource review.
@@ -48,6 +54,9 @@ export function resetNewResourceReviewSection(
       next.description = baseline.description
       next.generalNotes = baseline.generalNotes
       break
+    case 'contact':
+      next.contacts = structuredClone(baseline.contacts)
+      break
     case 'location':
       next.accessMode = baseline.accessMode
       next.locations = structuredClone(baseline.locations)
@@ -56,7 +65,6 @@ export function resetNewResourceReviewSection(
     case 'service':
       next.hoursAvailability = baseline.hoursAvailability
       next.hours = structuredClone(baseline.hours)
-      next.contacts = structuredClone(baseline.contacts)
       next.costOption = baseline.costOption
       next.costDetails = baseline.costDetails
       next.accessibilityNotes = baseline.accessibilityNotes
@@ -79,42 +87,32 @@ function sectionSnapshot(
     case 'identity':
       return {
         name: data.name.trim(),
-        categoryIds: [...data.categoryIds].sort((a, b) => a - b),
-        filterIds: [...data.filterIds].sort((a, b) => a - b),
+        categoryIds: canonicalizeLookupIds(data.categoryIds),
+        filterIds: canonicalizeLookupIds(data.filterIds),
       }
     case 'about':
       return {
         description: data.description.trim(),
         generalNotes: data.generalNotes.trim(),
       }
+    case 'contact':
+      return canonicalizeContacts(data.contacts)
     case 'location':
       return {
         accessMode: data.accessMode,
-        locations: data.locations.map((location) => ({
-          locationName: location.locationName.trim(),
-          streetAddress: location.streetAddress.trim(),
-          unit: location.unit.trim(),
-          city: location.city.trim(),
-          province: location.province.trim(),
-          postalCode: location.postalCode.trim(),
-          lat: location.lat,
-          lng: location.lng,
-        })),
+        locations: canonicalizeLocations(data.locations),
         onlineUrl: data.onlineUrl.trim(),
       }
     case 'service':
       return {
-        hoursAvailability: data.hoursAvailability,
-        hours: data.hours.map((day) => ({
-          dayOfWeek: day.dayOfWeek,
-          isClosed: day.isClosed,
-          opensAt: day.opensAt,
-          closesAt: day.closesAt,
-          byAppointment: day.byAppointment,
-        })),
-        contacts: normalizeContacts(data.contacts),
-        costOption: data.costOption,
-        costDetails: data.costDetails.trim(),
+        hours: canonicalizeHours({
+          hoursAvailability: data.hoursAvailability,
+          hours: data.hours,
+        }),
+        cost: canonicalizeCost({
+          costOption: data.costOption,
+          costDetails: data.costDetails,
+        }),
         accessibilityNotes: data.accessibilityNotes.trim(),
         eligibility: data.eligibility.trim(),
         moreInfoUrl: data.moreInfoUrl.trim(),
@@ -124,23 +122,6 @@ function sectionSnapshot(
       return exhaustive
     }
   }
-}
-
-function normalizeContacts(
-  contacts: ExistingResourceData['contacts'],
-): Array<{ type: string; value: string; label: string }> {
-  return contacts
-    .map((contact) => ({
-      type: contact.type,
-      value: contact.value.trim(),
-      label: contact.label.trim(),
-    }))
-    .filter((contact) => contact.value)
-    .sort((a, b) =>
-      `${a.type}:${a.value}:${a.label}`.localeCompare(
-        `${b.type}:${b.value}:${b.label}`,
-      ),
-    )
 }
 
 function stableStringify(value: unknown): string {

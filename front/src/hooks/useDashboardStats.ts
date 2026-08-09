@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react'
 import { ApiError } from '@/services/api'
 import { getDashboardStats } from '@/services/dashboardService'
 import type { DashboardStats } from '@/types/dashboard'
+import {
+  logTechnicalError,
+  toUserFacingErrorMessage,
+} from '@/utils/userFacingError'
 
 function isAbortError(error: unknown): boolean {
   return (
@@ -58,12 +62,17 @@ export function useDashboardStats(): DashboardStatsLoadState & {
         if (controller.signal.aborted || isAbortError(err)) return
 
         const isForbidden = err instanceof ApiError && err.status === 403
-        const message =
-          err instanceof ApiError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : 'Unable to load dashboard analytics.'
+        if (isForbidden) {
+          logTechnicalError('dashboard-stats', err)
+        }
+
+        const message = isForbidden
+          ? 'Your account can open the dashboard, but analytics are temporarily unavailable for this role.'
+          : toUserFacingErrorMessage(err, {
+              fallback:
+                "We couldn't load dashboard analytics. Please try again.",
+              context: 'dashboard-stats',
+            })
 
         setState({
           status: 'error',

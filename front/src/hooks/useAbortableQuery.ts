@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ApiError } from '@/services/api'
+import { toUserFacingErrorMessage } from '@/utils/userFacingError'
 
 function isAbortError(error: unknown): boolean {
   return (
@@ -23,6 +23,7 @@ interface UseAbortableQueryOptions<T> {
 /**
  * Abortable async load with loading/error state.
  * Shared by lookup hooks and filterable resource queries.
+ * Surfaces only the friendly fallback message; logs technical details.
  */
 export function useAbortableQuery<T>(
   fetcher: (signal: AbortSignal) => Promise<T>,
@@ -50,14 +51,13 @@ export function useAbortableQuery<T>(
       })
       .catch((err: unknown) => {
         if (controller.signal.aborted || isAbortError(err)) return
-        const message =
-          err instanceof ApiError
-            ? err.message
-            : err instanceof Error
-              ? err.message
-              : fallbackErrorMessage
         setData(initialData)
-        setError(message)
+        setError(
+          toUserFacingErrorMessage(err, {
+            fallback: fallbackErrorMessage,
+            context: 'abortable-query',
+          }),
+        )
       })
       .finally(() => {
         if (!controller.signal.aborted) {

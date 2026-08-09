@@ -144,13 +144,18 @@ export function normalizeExistingResourceData(
   }
 
   let locations: ExistingResourceLocation[] = []
-  if (Array.isArray(raw.locations) && raw.locations.length > 0) {
-    locations = raw.locations.map((loc) =>
-      createEmptyLocation({
-        ...loc,
-        id: typeof loc.id === 'string' && loc.id ? loc.id : undefined,
-      }),
-    )
+  if (Array.isArray(raw.locations)) {
+    // Preserve an intentional empty array (e.g. structured moderation clear).
+    // Only synthesize a placeholder when locations is missing/non-array.
+    locations =
+      raw.locations.length > 0
+        ? raw.locations.map((loc) =>
+            createEmptyLocation({
+              ...loc,
+              id: typeof loc.id === 'string' && loc.id ? loc.id : undefined,
+            }),
+          )
+        : []
   } else if (raw.location && typeof raw.location === 'object') {
     locations = [
       createEmptyLocation({
@@ -182,10 +187,9 @@ export function normalizeExistingResourceData(
     locations,
     categoryIds: Array.isArray(raw.categoryIds) ? raw.categoryIds : [],
     filterIds: Array.isArray(raw.filterIds) ? raw.filterIds : [],
-    contacts:
-      Array.isArray(raw.contacts) && raw.contacts.length > 0
-        ? raw.contacts
-        : [createContactMethod()],
+    contacts: Array.isArray(raw.contacts)
+      ? raw.contacts
+      : [createContactMethod()],
     hours:
       Array.isArray(raw.hours) && raw.hours.length > 0
         ? raw.hours

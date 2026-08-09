@@ -1,6 +1,4 @@
 export { AdvancedFiltersSection } from './AdvancedFiltersSection'
-export { CategoryChip } from './CategoryChip'
-export { CategoryChipGroup } from './CategoryChipGroup'
 export { CategorySection } from './CategorySection'
 export { DiscoverScreen, type DiscoverScreenProps } from './DiscoverScreen'
 export { DiscoverWorkspace, type DiscoverWorkspaceProps } from './DiscoverWorkspace'

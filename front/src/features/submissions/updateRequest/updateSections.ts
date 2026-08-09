@@ -5,10 +5,10 @@
 
 export const UPDATE_SECTION_IDS = [
   'about',
-  'hours',
+  'categories',
   'contact',
   'address',
-  'categories',
+  'hours',
   'accessibility',
   'cost',
   'website',
@@ -24,10 +24,10 @@ export interface UpdateSectionOption {
 
 export const UPDATE_SECTION_OPTIONS: readonly UpdateSectionOption[] = [
   { id: 'about', label: 'About' },
-  { id: 'hours', label: 'Hours' },
+  { id: 'categories', label: 'Categories' },
   { id: 'contact', label: 'Contact Information' },
   { id: 'address', label: 'Location' },
-  { id: 'categories', label: 'Categories' },
+  { id: 'hours', label: 'Hours' },
   { id: 'accessibility', label: 'Accessibility' },
   { id: 'cost', label: 'Cost' },
   { id: 'website', label: 'Website' },

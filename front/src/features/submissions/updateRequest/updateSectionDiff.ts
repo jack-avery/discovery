@@ -3,6 +3,11 @@ import {
   validateExistingResource,
   type FieldErrors,
 } from '../existingResource/validation'
+import { canonicalizeContacts } from '../contacts/contactEquality'
+import { canonicalizeCost } from '../cost/costEquality'
+import { canonicalizeHours } from '../hours/hoursEquality'
+import { canonicalizeLocations } from '../locations/locationEquality'
+import { canonicalizeLookupIds } from '../lookups/lookupIdEquality'
 import type { UpdateSectionId } from './updateSections'
 import { UPDATE_SECTION_IDS } from './updateSections'
 
@@ -43,12 +48,12 @@ function mapFieldErrorsToUpdateSection(
 ): UpdateSectionId | null {
   if (errors.name || errors.description) return 'about'
   if (errors.categories) return 'categories'
+  if (errors.contacts || errors.contactValues) return 'contact'
   if (errors.accessMode || errors.locations || errors.locationFields || errors.onlineUrl) {
     return 'address'
   }
   if (errors.hours) return 'hours'
   if (errors.moreInfoUrl) return 'website'
-  if (errors.contacts || errors.contactValues) return 'contact'
   if (errors.costDetails) return 'cost'
   return null
 }
@@ -62,54 +67,38 @@ function sectionSnapshot(
       return {
         name: data.name.trim(),
         description: data.description.trim(),
-        generalNotes: data.generalNotes.trim(),
       }
     case 'hours':
-      return {
+      return canonicalizeHours({
         hoursAvailability: data.hoursAvailability,
-        hours: data.hours.map((day) => ({
-          dayOfWeek: day.dayOfWeek,
-          isClosed: day.isClosed,
-          opensAt: day.opensAt,
-          closesAt: day.closesAt,
-          byAppointment: day.byAppointment,
-        })),
-      }
+        hours: data.hours,
+      })
     case 'contact':
-      return normalizeContacts(
+      return canonicalizeContacts(
         data.contacts.filter((contact) => contact.type !== 'website'),
       )
     case 'address':
       return {
         accessMode: data.accessMode,
-        locations: data.locations.map((location) => ({
-          locationName: location.locationName.trim(),
-          streetAddress: location.streetAddress.trim(),
-          unit: location.unit.trim(),
-          city: location.city.trim(),
-          province: location.province.trim(),
-          postalCode: location.postalCode.trim(),
-          lat: location.lat,
-          lng: location.lng,
-        })),
+        locations: canonicalizeLocations(data.locations),
         onlineUrl: data.onlineUrl.trim(),
       }
     case 'categories':
       return {
-        categoryIds: [...data.categoryIds].sort((a, b) => a - b),
-        filterIds: [...data.filterIds].sort((a, b) => a - b),
+        categoryIds: canonicalizeLookupIds(data.categoryIds),
+        filterIds: canonicalizeLookupIds(data.filterIds),
       }
     case 'accessibility':
       return { accessibilityNotes: data.accessibilityNotes.trim() }
     case 'cost':
-      return {
+      return canonicalizeCost({
         costOption: data.costOption,
-        costDetails: data.costDetails.trim(),
-      }
+        costDetails: data.costDetails,
+      })
     case 'website':
       return {
         moreInfoUrl: data.moreInfoUrl.trim(),
-        websites: normalizeContacts(
+        websites: canonicalizeContacts(
           data.contacts.filter((contact) => contact.type === 'website'),
         ),
       }
@@ -122,23 +111,6 @@ function sectionSnapshot(
       return exhaustive
     }
   }
-}
-
-function normalizeContacts(
-  contacts: ExistingResourceData['contacts'],
-): Array<{ type: string; value: string; label: string }> {
-  return contacts
-    .map((contact) => ({
-      type: contact.type,
-      value: contact.value.trim(),
-      label: contact.label.trim(),
-    }))
-    .filter((contact) => contact.value)
-    .sort((a, b) =>
-      `${a.type}:${a.value}:${a.label}`.localeCompare(
-        `${b.type}:${b.value}:${b.label}`,
-      ),
-    )
 }
 
 function stableStringify(value: unknown): string {

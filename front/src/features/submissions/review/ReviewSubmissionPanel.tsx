@@ -1,30 +1,14 @@
-import { useId } from 'react'
-import { cn } from '@/utils/cn'
 import type { HumanReadableSubmissionSummary } from '@/types/submission'
 
 interface ReviewSubmissionPanelProps {
   summary: HumanReadableSubmissionSummary
-  consent: boolean
-  showConsentError: boolean
-  onConsentChange: (consent: boolean) => void
-  consentDisabled?: boolean
 }
 
 /**
- * Read-only review content for Milestone 5.
+ * Read-only review content before submit.
  * Editing happens by closing review and using summary / contribution cards.
- * Final submit is intentionally not wired to the backend yet.
  */
-export function ReviewSubmissionPanel({
-  summary,
-  consent,
-  showConsentError,
-  onConsentChange,
-  consentDisabled = false,
-}: ReviewSubmissionPanelProps) {
-  const consentId = useId()
-  const consentErrorId = useId()
-
+export function ReviewSubmissionPanel({ summary }: ReviewSubmissionPanelProps) {
   return (
     <div className="space-y-8">
       <section aria-labelledby="review-contributor-heading" className="space-y-3">
@@ -96,55 +80,6 @@ export function ReviewSubmissionPanel({
             </li>
           ))}
         </ol>
-      </section>
-
-      <section
-        aria-labelledby="review-consent-heading"
-        className="space-y-3 border-t border-border pt-6"
-      >
-        <h3
-          id="review-consent-heading"
-          className="font-heading text-base font-semibold text-foreground"
-        >
-          Confirmation
-        </h3>
-        <label
-          htmlFor={consentId}
-          className={cn(
-            'flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 text-sm transition-colors',
-            consent
-              ? 'border-interactive bg-interactive-muted'
-              : 'border-border hover:border-interactive/50',
-            'focus-within:ring-2 focus-within:ring-interactive/40',
-            showConsentError && !consent ? 'border-destructive' : null,
-          )}
-        >
-          <input
-            id={consentId}
-            type="checkbox"
-            checked={consent}
-            disabled={consentDisabled}
-            onChange={(event) => onConsentChange(event.target.checked)}
-            aria-invalid={showConsentError && !consent ? true : undefined}
-            aria-describedby={
-              showConsentError && !consent ? consentErrorId : undefined
-            }
-            className="mt-0.5 rounded border-border"
-          />
-          <span className="leading-relaxed text-foreground">
-            I confirm that the information provided is accurate to the best of
-            my knowledge.
-          </span>
-        </label>
-        {showConsentError && !consent ? (
-          <p
-            id={consentErrorId}
-            role="alert"
-            className="text-sm text-destructive"
-          >
-            Confirm the information is accurate before submitting.
-          </p>
-        ) : null}
       </section>
     </div>
   )

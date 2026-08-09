@@ -1,11 +1,10 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { PanelHeader } from '@/components/shared/PanelHeader'
-import { Button } from '@/components/ui'
+import { Button, Textarea } from '@/components/ui'
 import { useResourceDetail } from '@/hooks/useResourceDetail'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { submitCreateSubmissionRequest, toHumanErrorMessage } from '@/services/submissionService'
-import { cn } from '@/utils/cn'
 import type { ResourceVersionDto } from '@/types/resource'
 import type {
   ContributorInfo,
@@ -16,6 +15,8 @@ import { ContributorEditor } from '../contributor/ContributorEditor'
 import { createEmptyContributorInfo } from '../contributor/emptyState'
 import { isContributorComplete } from '../contributor/validation'
 import { ExistingResourceEditor } from '../existingResource/ExistingResourceEditor'
+import { isExistingResourceComplete } from '../existingResource/validation'
+import { Field } from '../form/Field'
 import { UnsavedChangesDialog } from '../form/UnsavedChangesDialog'
 import { mapUpdateResourceRequest } from '../mappers/mapExistingResource'
 import { mapResourceVersionToExistingResourceData } from './mapResourceVersionToExistingResourceData'
@@ -27,6 +28,7 @@ import {
   type UpdateSubmissionOutcome,
 } from './resolveUpdateSubmissionOutcome'
 import { hasResourceDataChanges } from './updateSectionDiff'
+import { deriveUpdateSubmitGate } from './deriveUpdateSubmitGate'
 import type { UpdateSectionId } from './updateSections'
 
 /**
@@ -80,9 +82,6 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     editedSections: UpdateSectionId[]
   }>({ hasChanges: false, isComplete: false, editedSections: [] })
   const [contributorComplete, setContributorComplete] = useState(false)
-  const [consent, setConsent] = useState(false)
-  const [showConsentError, setShowConsentError] = useState(false)
-  const [submitHint, setSubmitHint] = useState<string | undefined>()
   const [submitError, setSubmitError] = useState<string | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [pendingClose, setPendingClose] = useState(false)
@@ -91,6 +90,8 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   const [activeSectionId, setActiveSectionId] = useState<UpdateSectionId | null>(
     null,
   )
+  /** Submission metadata only — never mapped into ResourceVersion content. */
+  const [staffNotes, setStaffNotes] = useState('')
 
   const resourceSaveRef = useRef<(() => SavedContributionPayload | null) | null>(
     null,
@@ -98,10 +99,16 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   const contributorSaveRef = useRef<(() => ContributorInfo | null) | null>(null)
   const submitAbortRef = useRef<AbortController | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
-  const consentId = useId()
-  const consentErrorId = useId()
 
   const isDirty = resourceDirty || contributorDirty
+
+  const submitGate = deriveUpdateSubmitGate({
+    hasChanges: updateState.hasChanges,
+    resourceComplete: updateState.isComplete,
+    contributorComplete,
+    resourceValidationRevealed: showResourceErrors,
+    contributorValidationRevealed: showContributorErrors,
+  })
 
   const resetWorkflow = useCallback(() => {
     submitAbortRef.current?.abort()
@@ -121,12 +128,10 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
       editedSections: [],
     })
     setContributorComplete(false)
-    setConsent(false)
-    setShowConsentError(false)
-    setSubmitHint(undefined)
     setSubmitError(undefined)
     setSuccessOutcome('pending_review')
     setActiveSectionId(null)
+    setStaffNotes('')
     setPendingClose(false)
   }, [])
 
@@ -215,14 +220,12 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     setContributorDirty(false)
     setUpdateState({
       hasChanges: false,
-      isComplete: false,
+      isComplete: isExistingResourceComplete(mapped),
       editedSections: [],
     })
     setContributorComplete(false)
-    setConsent(false)
-    setShowConsentError(false)
-    setSubmitHint(undefined)
     setSubmitError(undefined)
+    setStaffNotes('')
     setStep('editing')
   }, [version, selectedSections])
 
@@ -253,40 +256,28 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     if (isSubmitting) return
     if (!baselineData || !proposedData || !hasResourceId) return
 
+    // Reveal field errors; ExistingResourceEditor scrolls to the first invalid section.
     setShowResourceErrors(true)
     setShowContributorErrors(true)
+    setSubmitError(undefined)
 
     const savedResource = resourceSaveRef.current?.() ?? null
     const savedContributor = contributorSaveRef.current?.() ?? null
 
-    const resourceOk = hasResourceDataChanges(baselineData, proposedData)
+    const resourceHasChanges = hasResourceDataChanges(baselineData, proposedData)
+    if (!resourceHasChanges) return
+
+    // Incomplete resource: keep submission blocked; footer + field UX update live.
+    if (!updateState.isComplete || !savedResource) return
+
     const contributorOk = isContributorComplete(
       savedContributor ?? createEmptyContributorInfo(),
       { requireResourceConnection: true },
     )
-
-    if (!resourceOk) {
-      setSubmitError(undefined)
-      setSubmitHint('Make at least one change before submitting.')
-      return
-    }
-    if (!savedResource || !updateState.isComplete) {
-      setSubmitError(undefined)
-      setSubmitHint('Fix the highlighted resource fields before submitting.')
-      return
-    }
     if (!savedContributor || !contributorOk || !contributorComplete) {
-      setSubmitError(undefined)
-      setSubmitHint('Complete your contact information before submitting.')
       document
         .getElementById('contributor-details')
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      return
-    }
-    if (!consent) {
-      setShowConsentError(true)
-      setSubmitError(undefined)
-      setSubmitHint('Confirm the information is accurate before submitting.')
       return
     }
 
@@ -295,14 +286,13 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
       proposedData,
       savedContributor,
       proposedData.name || resourceName,
+      staffNotes,
     )
 
     const displayTitle =
       proposedData.name.trim() || resourceName || 'this resource'
     const controller = new AbortController()
     submitAbortRef.current = controller
-    setSubmitHint(undefined)
-    setSubmitError(undefined)
     setIsSubmitting(true)
 
     try {
@@ -336,7 +326,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     resourceName,
     updateState.isComplete,
     contributorComplete,
-    consent,
+    staffNotes,
   ])
 
   return (
@@ -401,13 +391,11 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
             initialExpandedSections={selectedSections}
             showResourceErrors={showResourceErrors}
             showContributorErrors={showContributorErrors}
-            consent={consent}
-            showConsentError={showConsentError}
-            consentId={consentId}
-            consentErrorId={consentErrorId}
-            submitHint={submitHint}
+            staffNotes={staffNotes}
+            onStaffNotesChange={setStaffNotes}
+            footerMessage={submitGate.footerMessage}
             submitError={submitError}
-            canSubmit={updateState.hasChanges}
+            canSubmit={submitGate.canSubmit}
             isSubmitting={isSubmitting}
             onShowResourceErrorsChange={setShowResourceErrors}
             onShowContributorErrorsChange={setShowContributorErrors}
@@ -421,10 +409,6 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
               contributorSaveRef.current = save
             }}
             onUpdateStateChange={handleUpdateStateChange}
-            onConsentChange={(value) => {
-              setConsent(value)
-              if (value) setShowConsentError(false)
-            }}
             onSubmit={() => {
               void handleSubmit()
             }}
@@ -532,11 +516,9 @@ function EditingStage({
   initialExpandedSections,
   showResourceErrors,
   showContributorErrors,
-  consent,
-  showConsentError,
-  consentId,
-  consentErrorId,
-  submitHint,
+  staffNotes,
+  onStaffNotesChange,
+  footerMessage,
   submitError,
   canSubmit,
   isSubmitting,
@@ -548,7 +530,6 @@ function EditingStage({
   onRegisterResourceSave,
   onRegisterContributorSave,
   onUpdateStateChange,
-  onConsentChange,
   onSubmit,
 }: {
   editorKey: number
@@ -557,11 +538,9 @@ function EditingStage({
   initialExpandedSections: UpdateSectionId[]
   showResourceErrors: boolean
   showContributorErrors: boolean
-  consent: boolean
-  showConsentError: boolean
-  consentId: string
-  consentErrorId: string
-  submitHint?: string
+  staffNotes: string
+  onStaffNotesChange: (value: string) => void
+  footerMessage: string | null
   submitError?: string
   canSubmit: boolean
   isSubmitting: boolean
@@ -580,7 +559,6 @@ function EditingStage({
     editedSections: UpdateSectionId[]
     isComplete: boolean
   }) => void
-  onConsentChange: (value: boolean) => void
   onSubmit: () => void
 }) {
   // Freeze mount snapshot so live proposedData updates do not re-feed initialData.
@@ -613,56 +591,18 @@ function EditingStage({
         requireResourceConnection
       />
 
-      <section
-        aria-labelledby="update-consent-heading"
-        className="space-y-3 border-t border-border pt-6"
+      <Field
+        id="update-staff-notes"
+        label="Anything else RRCRC staff should know? (optional)"
       >
-        <h3
-          id="update-consent-heading"
-          className="font-heading text-base font-semibold text-foreground"
-        >
-          Confirmation
-        </h3>
-        <label
-          htmlFor={consentId}
-          className={cn(
-            'flex cursor-pointer items-start gap-3 rounded-xl border px-4 py-3 text-sm transition-colors',
-            consent
-              ? 'border-interactive bg-interactive-muted'
-              : 'border-border hover:border-interactive/50',
-            'focus-within:ring-2 focus-within:ring-interactive/40',
-            showConsentError && !consent ? 'border-destructive' : null,
-          )}
-        >
-          <input
-            id={consentId}
-            type="checkbox"
-            checked={consent}
-            disabled={isSubmitting}
-            onChange={(event) => onConsentChange(event.target.checked)}
-            aria-invalid={showConsentError && !consent ? true : undefined}
-            aria-describedby={
-              showConsentError && !consent ? consentErrorId : undefined
-            }
-            className="mt-0.5 rounded border-border"
-          />
-          <span className="leading-relaxed text-foreground">
-            I confirm that the information provided is accurate to the best of
-            my knowledge.
-          </span>
-        </label>
-        {showConsentError && !consent ? (
-          <p
-            id={consentErrorId}
-            role="alert"
-            className="text-sm text-destructive"
-          >
-            Confirm the information is accurate before submitting.
-          </p>
-        ) : null}
-      </section>
+        <Textarea
+          id="update-staff-notes"
+          value={staffNotes}
+          onChange={(event) => onStaffNotesChange(event.target.value)}
+        />
+      </Field>
 
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+      <div className="flex flex-col gap-2 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-end">
         {isSubmitting ? (
           <p className="text-xs text-muted-foreground sm:mr-auto" role="status">
             Submitting…
@@ -671,13 +611,9 @@ function EditingStage({
           <p className="text-xs text-destructive sm:mr-auto" role="alert">
             {submitError}
           </p>
-        ) : submitHint ? (
+        ) : footerMessage ? (
           <p className="text-xs text-muted-foreground sm:mr-auto" role="status">
-            {submitHint}
-          </p>
-        ) : !canSubmit ? (
-          <p className="text-xs text-muted-foreground sm:mr-auto">
-            Make at least one change before submitting.
+            {footerMessage}
           </p>
         ) : null}
         <Button

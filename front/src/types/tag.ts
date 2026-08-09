@@ -10,7 +10,7 @@ export interface TagDto {
 }
 
 /**
- * UI-facing tag used by Advanced Filters and tag dropdowns.
+ * UI-facing filter option used by Discover Filters and filter dropdowns.
  *
  * Mapping from TagDto (see tagService):
  * - `id` = String(tag_id) for MultiSelectItem / React key contracts

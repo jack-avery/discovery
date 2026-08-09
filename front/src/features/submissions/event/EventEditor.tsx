@@ -103,7 +103,7 @@ export function EventEditor({
   onRegisterSave,
   onProgressChange,
 }: EventEditorProps) {
-  const { categories, isLoading: categoriesLoading, error: categoriesError } =
+  const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } =
     useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
 
@@ -371,16 +371,17 @@ export function EventEditor({
             onChange={(categoryIds) => patch({ categoryIds })}
             isLoading={categoriesLoading}
             error={categoriesError}
+            onRetry={reloadCategories}
             fieldError={categoryErrors.categories}
           />
           <LookupMultiSelect
-            label="Help people find this event"
+            label="Filters"
             options={filterOptions}
             value={data.filterIds}
             onChange={(filterIds) => patch({ filterIds })}
             isLoading={tagsLoading}
             error={tagsError}
-            emptyMessage="No additional filters are available yet."
+            emptyMessage="No filters are available yet."
           />
         </EditorSection>
       ) : null}
@@ -465,7 +466,7 @@ export function EventEditor({
 
           <Field
             id="event-notes"
-            label="Anything else RRCRC staff should know? (optional)"
+            label="Anything else we should know? (optional)"
           >
             <Textarea
               id="event-notes"

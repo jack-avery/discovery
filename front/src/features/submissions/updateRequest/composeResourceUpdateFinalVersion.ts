@@ -4,6 +4,18 @@ import type {
   ResourceUpdateComparison,
   ResourceUpdateComparisonField,
 } from './buildResourceUpdateComparison'
+import {
+  areAccessModeSlicesEqual,
+  areContactSlicesEqual,
+  areCostSlicesEqual,
+  areHoursSlicesEqual,
+  areLocationSlicesEqual,
+  areLookupIdSlicesEqual,
+  isResourceUpdateStructuredFieldId,
+  nonWebsiteContacts,
+  websiteContacts,
+  type ResourceUpdateStructuredEdits,
+} from './resourceUpdateStructuredFields'
 
 export type ComposedFieldSource = 'proposed' | 'current' | 'edited'
 
@@ -16,15 +28,15 @@ export interface ComposedUpdateFieldValue {
 
 /**
  * Local final-version composition for resource update moderation.
- * Not sent to the backend until review supports an approved_version payload.
+ * Builds structured {@link ExistingResourceData} for approved_version.
  */
 export interface ComposedResourceUpdateVersion {
   /** Field-level final display values. */
   fields: Record<string, ComposedUpdateFieldValue>
   /**
-   * Best-effort structured model: starts from proposed, applies rejected
-   * fields from baseline, and simple string edits. Complex collection edits
-   * remain in {@link fields} only.
+   * Structured model: proposed, then rejected fields from baseline, simple
+   * string edits, and structured overrides (contacts / accessMode / locations /
+   * categories / filters / cost / hours / websites).
    */
   data: ExistingResourceData
   /** True when outcome differs from approving the original proposal as-is. */
@@ -36,7 +48,6 @@ const EMPTY_DISPLAY = 'Not provided'
 const SIMPLE_STRING_FIELDS = new Set([
   'about:name',
   'about:description',
-  'about:generalNotes',
   'address:onlineUrl',
   'accessibility:accessibilityNotes',
   'website:moreInfoUrl',
@@ -47,10 +58,9 @@ export function resolveFieldOutcome(
   field: ResourceUpdateComparisonField,
   accepted: Record<string, boolean>,
   edits: Record<string, string>,
+  structuredEdits: ResourceUpdateStructuredEdits = {},
+  proposed: ExistingResourceData | null = null,
 ): ComposedUpdateFieldValue {
-  const editedRaw = edits[field.id]
-  const isEdited =
-    editedRaw != null && normalizeDisplay(editedRaw) !== field.proposed
   const useProposed = accepted[field.id] !== false
 
   if (!useProposed && field.currentAvailable && field.current != null) {
@@ -61,6 +71,22 @@ export function resolveFieldOutcome(
       source: 'current',
     }
   }
+
+  if (
+    proposed &&
+    isStructuredFieldEdited(field.id, structuredEdits, proposed)
+  ) {
+    return {
+      fieldId: field.id,
+      label: field.label,
+      value: field.proposed,
+      source: 'edited',
+    }
+  }
+
+  const editedRaw = edits[field.id]
+  const isEdited =
+    editedRaw != null && normalizeDisplay(editedRaw) !== field.proposed
 
   if (isEdited) {
     return {
@@ -85,6 +111,7 @@ export function composeResourceUpdateFinalVersion(
   comparison: ResourceUpdateComparison,
   accepted: Record<string, boolean>,
   edits: Record<string, string>,
+  structuredEdits: ResourceUpdateStructuredEdits = {},
 ): ComposedResourceUpdateVersion {
   const data = structuredClone(proposed)
   const fields: Record<string, ComposedUpdateFieldValue> = {}
@@ -92,7 +119,13 @@ export function composeResourceUpdateFinalVersion(
 
   for (const section of comparison.sections) {
     for (const field of section.fields) {
-      const outcome = resolveFieldOutcome(field, accepted, edits)
+      const outcome = resolveFieldOutcome(
+        field,
+        accepted,
+        edits,
+        structuredEdits,
+        proposed,
+      )
       fields[field.id] = outcome
 
       if (outcome.source === 'current') {
@@ -105,6 +138,9 @@ export function composeResourceUpdateFinalVersion(
 
       if (outcome.source === 'edited') {
         differsFromProposed = true
+        if (applyStructuredEdit(data, field.id, structuredEdits)) {
+          continue
+        }
         if (SIMPLE_STRING_FIELDS.has(field.id)) {
           applySimpleStringEdit(data, field.id, outcome.value)
         }
@@ -116,6 +152,141 @@ export function composeResourceUpdateFinalVersion(
     fields,
     data: normalizeExistingResourceData(data),
     differsFromProposed,
+  }
+}
+
+function isStructuredFieldEdited(
+  fieldId: string,
+  structuredEdits: ResourceUpdateStructuredEdits,
+  proposed: ExistingResourceData,
+): boolean {
+  if (!isResourceUpdateStructuredFieldId(fieldId)) return false
+  // Presence is key membership — [] / null are intentional overrides.
+  if (!(fieldId in structuredEdits)) return false
+
+  switch (fieldId) {
+    case 'contact:contacts': {
+      const edited = structuredEdits['contact:contacts']
+      if (edited === undefined) return false
+      return !areContactSlicesEqual(
+        nonWebsiteContacts(edited),
+        nonWebsiteContacts(proposed.contacts),
+      )
+    }
+    case 'website:websites': {
+      const edited = structuredEdits['website:websites']
+      if (edited === undefined) return false
+      return !areContactSlicesEqual(
+        websiteContacts(edited),
+        websiteContacts(proposed.contacts),
+      )
+    }
+    case 'address:accessMode': {
+      return !areAccessModeSlicesEqual(
+        structuredEdits['address:accessMode'] ?? null,
+        proposed.accessMode,
+      )
+    }
+    case 'address:locations': {
+      const edited = structuredEdits['address:locations']
+      if (edited === undefined) return false
+      return !areLocationSlicesEqual(edited, proposed.locations)
+    }
+    case 'categories:categories': {
+      const edited = structuredEdits['categories:categories']
+      if (edited === undefined) return false
+      return !areLookupIdSlicesEqual(edited, proposed.categoryIds)
+    }
+    case 'categories:filters': {
+      const edited = structuredEdits['categories:filters']
+      if (edited === undefined) return false
+      return !areLookupIdSlicesEqual(edited, proposed.filterIds)
+    }
+    case 'cost:cost': {
+      const edited = structuredEdits['cost:cost']
+      if (edited === undefined) return false
+      return !areCostSlicesEqual(edited, {
+        costOption: proposed.costOption,
+        costDetails: proposed.costDetails,
+      })
+    }
+    case 'hours:hours': {
+      const edited = structuredEdits['hours:hours']
+      if (edited === undefined) return false
+      return !areHoursSlicesEqual(edited, {
+        hoursAvailability: proposed.hoursAvailability,
+        hours: proposed.hours,
+      })
+    }
+    default:
+      return false
+  }
+}
+
+function applyStructuredEdit(
+  target: ExistingResourceData,
+  fieldId: string,
+  structuredEdits: ResourceUpdateStructuredEdits,
+): boolean {
+  if (!isResourceUpdateStructuredFieldId(fieldId)) return false
+  // Presence is key membership — [] / null are intentional overrides.
+  if (!(fieldId in structuredEdits)) return false
+
+  switch (fieldId) {
+    case 'contact:contacts': {
+      const edited = structuredEdits['contact:contacts']
+      if (edited === undefined) return false
+      const websites = websiteContacts(target.contacts)
+      const fromEdit = nonWebsiteContacts(edited)
+      target.contacts = [...structuredClone(fromEdit), ...websites]
+      return true
+    }
+    case 'website:websites': {
+      const edited = structuredEdits['website:websites']
+      if (edited === undefined) return false
+      const nonWebsites = nonWebsiteContacts(target.contacts)
+      const fromEdit = websiteContacts(edited)
+      target.contacts = [...nonWebsites, ...structuredClone(fromEdit)]
+      return true
+    }
+    case 'address:accessMode': {
+      target.accessMode = structuredEdits['address:accessMode'] ?? null
+      return true
+    }
+    case 'address:locations': {
+      const edited = structuredEdits['address:locations']
+      if (edited === undefined) return false
+      target.locations = structuredClone(edited)
+      return true
+    }
+    case 'categories:categories': {
+      const edited = structuredEdits['categories:categories']
+      if (edited === undefined) return false
+      target.categoryIds = [...edited]
+      return true
+    }
+    case 'categories:filters': {
+      const edited = structuredEdits['categories:filters']
+      if (edited === undefined) return false
+      target.filterIds = [...edited]
+      return true
+    }
+    case 'cost:cost': {
+      const edited = structuredEdits['cost:cost']
+      if (edited === undefined) return false
+      target.costOption = edited.costOption
+      target.costDetails = edited.costDetails
+      return true
+    }
+    case 'hours:hours': {
+      const edited = structuredEdits['hours:hours']
+      if (edited === undefined) return false
+      target.hoursAvailability = edited.hoursAvailability
+      target.hours = structuredClone(edited.hours)
+      return true
+    }
+    default:
+      return false
   }
 }
 
@@ -142,9 +313,6 @@ function applySimpleStringEdit(
       break
     case 'about:description':
       target.description = stored
-      break
-    case 'about:generalNotes':
-      target.generalNotes = stored
       break
     case 'address:onlineUrl':
       target.onlineUrl = stored
@@ -174,9 +342,6 @@ function applyFieldFromSource(
       break
     case 'about:description':
       target.description = source.description
-      break
-    case 'about:generalNotes':
-      target.generalNotes = source.generalNotes
       break
     case 'hours:hours':
       target.hoursAvailability = source.hoursAvailability

@@ -3,7 +3,10 @@ import type {
   ContributorInfo,
   SkillsServicesData,
 } from '@/types/submission'
+import type { ApprovedResourceVersionPayload } from '@/types/moderationSubmission'
 import type { CreateSubmissionRequestDto } from '@/types/submissionApi'
+import type { ApprovedVersionSourceFields } from './approvedVersionSource'
+import { finalizeApprovedVersionPayload } from './finalizeApprovedVersionPayload'
 import { AVAILABILITY_LABELS } from './labels'
 import { compactPayload, formatNoteSections, trimText } from './notes'
 import {
@@ -26,29 +29,47 @@ export function mapSkillsServicesContribution(
     throw new Error('Expected community_asset contribution data.')
   }
 
-  const data = contribution.data
-  const name = trimText(data.title) || trimText(contribution.title)
-  if (!name) {
+  const content = mapSkillsVersionContent(contribution.data, {
+    name: contribution.title,
+    resource_type: TEMP_RESOURCE_TYPE,
+  })
+
+  if (!trimText(content.name)) {
     throw new Error('Skills contribution is missing a title.')
   }
 
-  const whoBenefits = trimText(data.whoBenefits)
-
   const payload: CreateSubmissionRequestDto = {
     submission_type: 'community_asset',
-    resource_type: TEMP_RESOURCE_TYPE,
-    name,
-    description: trimText(data.description) || undefined,
-    eligibility: whoBenefits || undefined,
-    general_notes: buildSkillsNotes(data, whoBenefits),
+    ...content,
     ...mapSubmitterFields(contributor),
     submission_message: joinMessageParts([
       preferredContactMessageLine(contributor),
-      onBehalfMessage(data),
+      onBehalfMessage(contribution.data),
     ]),
   }
 
   return compactPayload(payload)
+}
+
+/**
+ * Publishable resource/version content for a skills/services form model.
+ * Does not include submission, contributor, or moderation fields.
+ */
+export function mapSkillsVersionContent(
+  data: SkillsServicesData,
+  source: ApprovedVersionSourceFields = {},
+): ApprovedResourceVersionPayload {
+  const name = trimText(data.title) || trimText(source.name)
+  const whoBenefits = trimText(data.whoBenefits)
+
+  return finalizeApprovedVersionPayload({
+    name,
+    resource_type: trimText(source.resource_type) || undefined,
+    description: trimText(data.description) || undefined,
+    eligibility: whoBenefits || undefined,
+    general_notes: buildSkillsNotes(data, whoBenefits),
+    image_url: trimText(source.image_url) || undefined,
+  })
 }
 
 function onBehalfMessage(data: SkillsServicesData): string | null {

@@ -122,6 +122,7 @@ export function ContributorEditor({
   }, [requireResourceConnection, showErrors, allErrors.relationship, allErrors.relationshipOther])
 
   const phoneRequired = data.preferredContactMethod === 'phone'
+  const emailRequired = data.preferredContactMethod === 'email'
 
   return (
     <div className="space-y-5">
@@ -138,7 +139,7 @@ export function ContributorEditor({
       <EditorSection
         id="contributor-details"
         title="How can we reach you?"
-        description="We only use this if we need to clarify something about your submission."
+        description="We only use this if we need to clarify something about your submission. Provide at least an email address or a phone number."
       >
         <Field
           id="contributor-name"
@@ -159,7 +160,12 @@ export function ContributorEditor({
         <Field
           id="contributor-email"
           label="Email address"
-          required
+          required={emailRequired}
+          hint={
+            emailRequired
+              ? 'Required because you prefer to be contacted by email.'
+              : 'Optional if you provide a phone number.'
+          }
           error={errors.email}
         >
           <Input
@@ -169,6 +175,7 @@ export function ContributorEditor({
             onChange={(e) => patch({ email: e.target.value })}
             autoComplete="email"
             placeholder="you@example.org"
+            aria-required={emailRequired}
           />
         </Field>
 
@@ -179,7 +186,7 @@ export function ContributorEditor({
           hint={
             phoneRequired
               ? 'Required because you prefer to be contacted by phone. Canada and US numbers only.'
-              : 'Optional. Canada and US numbers only.'
+              : 'Optional if you provide an email address. Canada and US numbers only.'
           }
           error={errors.phone}
         >

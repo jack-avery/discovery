@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react'
+import { useId } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { useDialogAccessibility } from '@/hooks/useDialogAccessibility'
 import { cn } from '@/utils/cn'
 
 interface ConfirmDialogProps {
@@ -27,10 +29,19 @@ export function ConfirmDialog({
   onCancel,
   onConfirm,
 }: ConfirmDialogProps) {
+  const titleId = useId()
+  const descriptionId = useId()
+  const containerRef = useDialogAccessibility({
+    open,
+    onDismiss: onCancel,
+    dismissDisabled: isSubmitting,
+  })
+
   if (!open) return null
 
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 z-[60] flex items-center justify-center p-4"
       role="presentation"
     >
@@ -38,26 +49,27 @@ export function ConfirmDialog({
         type="button"
         className="absolute inset-0 bg-surface-overlay"
         aria-label="Dismiss"
+        tabIndex={-1}
         disabled={isSubmitting}
         onClick={onCancel}
       />
       <div
         role="alertdialog"
         aria-modal="true"
-        aria-labelledby="confirm-dialog-title"
-        aria-describedby="confirm-dialog-desc"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
         className={cn(
           'relative z-10 w-full max-w-md rounded-2xl border border-border bg-surface p-5 shadow-lg',
         )}
       >
         <h2
-          id="confirm-dialog-title"
+          id={titleId}
           className="font-heading text-lg font-semibold text-foreground"
         >
           {title}
         </h2>
         <div
-          id="confirm-dialog-desc"
+          id={descriptionId}
           className="mt-2 space-y-2 text-sm text-muted-foreground"
         >
           {typeof description === 'string' ? <p>{description}</p> : description}

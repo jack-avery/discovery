@@ -8,6 +8,7 @@ interface CategorySectionProps {
   onCategoriesChange: (slugs: string[]) => void
   isLoading?: boolean
   error?: string | null
+  onRetry?: () => void
 }
 
 export function CategorySection({
@@ -16,6 +17,7 @@ export function CategorySection({
   onCategoriesChange,
   isLoading,
   error,
+  onRetry,
 }: CategorySectionProps) {
   return (
     <WorkspaceSection title="Browse by Category">
@@ -28,6 +30,7 @@ export function CategorySection({
         emptySummary="No categories selected"
         isLoading={isLoading}
         error={error}
+        onRetry={onRetry}
       />
     </WorkspaceSection>
   )

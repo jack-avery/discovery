@@ -21,7 +21,7 @@ export function useSubmissionDetail(
     },
     {
       initialData: null,
-      fallbackErrorMessage: 'Failed to load submission details',
+      fallbackErrorMessage: "We couldn't load submission details. Please try again.",
       deps: [submissionId],
     },
   )

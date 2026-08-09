@@ -16,7 +16,8 @@ export function ResourcesPage() {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
 
-  const { categories, isLoading: categoriesLoading, error: categoriesError } = useCategories()
+  const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } =
+    useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
 
   const filters = useMemo(
@@ -46,6 +47,7 @@ export function ResourcesPage() {
           onChange={setSelectedCategories}
           isLoading={categoriesLoading}
           error={categoriesError}
+          onRetry={reloadCategories}
         />
         <TagsDropdown
           tags={tags}

@@ -11,7 +11,7 @@ interface TagManagePanelProps {
 }
 
 /**
- * Dashboard-hosted Tag management using the shared ManageListPanel.
+ * Dashboard-hosted filter management using the shared ManageListPanel.
  * Exposes name only; slug is generated client-side for the API.
  */
 export function TagManagePanel({ open, onClose }: TagManagePanelProps) {
@@ -59,7 +59,7 @@ export function TagManagePanel({ open, onClose }: TagManagePanelProps) {
   const updateAndRefresh = async (id: string, name: string) => {
     const tagId = Number(id)
     if (!Number.isFinite(tagId)) {
-      throw new Error('Invalid tag id.')
+      throw new Error('Invalid filter id.')
     }
     await updateTag(tagId, { name })
     const tags = await fetchTags()
@@ -75,9 +75,9 @@ export function TagManagePanel({ open, onClose }: TagManagePanelProps) {
     <ManageListPanel
       open={open}
       onClose={onClose}
-      title="Manage Tags"
-      itemName="Tag"
-      searchPlaceholder="Search tags…"
+      title="Manage Filters"
+      itemName="Filter"
+      searchPlaceholder="Search filters…"
       items={items}
       isLoading={isLoading}
       onCreate={createAndRefresh}

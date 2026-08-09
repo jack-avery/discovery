@@ -274,7 +274,6 @@ export interface SubmissionDraft {
   id: string
   contributions: Contribution[]
   contributor: ContributorInfo
-  consent: boolean
   ui: SubmissionDraftUi
   meta: SubmissionDraftMeta
 }

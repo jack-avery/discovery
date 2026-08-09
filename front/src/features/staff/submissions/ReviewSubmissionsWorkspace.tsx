@@ -23,7 +23,11 @@ import {
 } from '@/features/staff/submissions/fetchReviewQueue'
 import { parseReviewQueueFiltersFromSearchParams } from '@/features/staff/submissions/reviewQueueNavigation'
 import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
-import { useReviewSubmission } from '@/hooks/useReviewSubmission'
+import { toApprovedVersionPayload } from '@/features/submissions/mappers/toApprovedVersionPayload'
+import {
+  useReviewSubmission,
+  type SubmitReviewDecisionOptions,
+} from '@/hooks/useReviewSubmission'
 import { useSubmissionDetail } from '@/hooks/useSubmissionDetail'
 import { useSubmissionQueue } from '@/hooks/useSubmissionQueue'
 import { cn } from '@/utils/cn'
@@ -46,7 +50,7 @@ export function ReviewSubmissionsWorkspace() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
   const [updateApprovalGate, setUpdateApprovalGate] =
     useState<SubmissionApprovalGate>({ approveDisabled: false })
-  /** Retained at workspace boundary for future approved_version integration. */
+  /** Composed final version when the reviewer edited the proposal (for approved_version). */
   const [moderationFinalVersion, setModerationFinalVersion] =
     useState<ModerationFinalVersion | null>(null)
 
@@ -108,23 +112,46 @@ export function ReviewSubmissionsWorkspace() {
       ?.proposed_resource_name?.trim() ||
     'this submission'
 
+  const isSkillSubmission =
+    items.find((item) => item.submission_id === selectedId)
+      ?.contributionKind === 'skill' ||
+    submission?.submission_type === 'community_asset'
+
   async function handleApprove() {
     if (selectedId == null) return
-    // Local edits must not be approved until approved_version is supported.
-    if (
-      updateApprovalGate.approveDisabled ||
-      moderationFinalVersion != null
-    ) {
-      return
-    }
+    if (updateApprovalGate.approveDisabled) return
     clearError()
     setStatusMessage(null)
 
+    const decision = isSkillSubmission
+      ? 'accepted_for_follow_up'
+      : 'approved'
+
+    let options: SubmitReviewDecisionOptions | undefined
+    if (
+      decision === 'approved' &&
+      moderationFinalVersion != null &&
+      moderationFinalVersion.kind !== 'community_asset'
+    ) {
+      const proposed = submission?.proposed_version
+      options = {
+        approvedVersion: toApprovedVersionPayload(moderationFinalVersion, {
+          name: proposed?.name,
+          resource_type: proposed?.resource_type,
+          image_url: proposed?.image_url,
+        }),
+      }
+    }
+
     const nextId = nextQueueSelection(items, selectedId)
-    const result = await submitDecision(selectedId, 'approved')
+    const result = await submitDecision(selectedId, decision, options)
     if (!result) return
 
-    setStatusMessage(`“${resourceName}” was approved and published.`)
+    setStatusMessage(
+      isSkillSubmission
+        ? 'Skills submission added to the follow-up list.'
+        : `“${resourceName}” was approved and published.`,
+    )
     setRejectOpen(false)
     removeItem(selectedId)
     setSelectedId(nextId === selectedId ? null : nextId)
@@ -330,6 +357,9 @@ export function ReviewSubmissionsWorkspace() {
                 isSubmitting={isSubmitting}
                 approveDisabled={updateApprovalGate.approveDisabled}
                 approveHelper={updateApprovalGate.approveHelper}
+                approveLabel={
+                  isSkillSubmission ? 'Accept for Follow-up' : 'Approve'
+                }
                 onReject={() => {
                   clearError()
                   setRejectOpen(true)
