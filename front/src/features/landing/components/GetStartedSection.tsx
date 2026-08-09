@@ -14,9 +14,9 @@ export function GetStartedSection() {
   return (
     <section
       aria-labelledby="get-started-heading"
-      className="bg-background px-5 py-8 sm:px-8 sm:py-9 lg:px-10 lg:py-10 xl:px-14"
+      className="px-5 sm:px-8 lg:px-10 xl:px-14"
     >
-      <div className="mx-auto max-w-2xl text-center">
+      <div className="mx-auto max-w-2xl rounded-3xl border border-border/60 bg-surface/90 px-6 py-8 text-center shadow-lg sm:px-10 sm:py-9">
         <p className={eyebrowClassName}>Ready to explore?</p>
         <span
           className="mx-auto mt-2 block h-1 w-10 rounded-full bg-interactive"

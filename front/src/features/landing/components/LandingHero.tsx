@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { PlusCircle, Search } from 'lucide-react'
-import heroPlaceholder from '@/assets/hero-placeholder.png'
 import { Button } from '@/components/ui'
 import { cn } from '@/utils/cn'
 
@@ -32,7 +31,7 @@ const ROTATION_MS = 7000
 const CROSSFADE_MS = 700
 
 /**
- * Public landing hero: full-bleed background image with rotating copy and dual CTAs.
+ * Public landing hero: gradient readability overlay over the shared page background.
  */
 export function LandingHero() {
   const [activeIndex, setActiveIndex] = useState(0)
@@ -65,22 +64,15 @@ export function LandingHero() {
   return (
     <section
       aria-labelledby="landing-hero-heading"
-      className="relative h-[60vh] max-h-[700px] min-h-[400px] shrink-0 overflow-hidden"
+      className="relative h-[60vh] max-h-[700px] min-h-[400px] shrink-0"
     >
-      {/* Background image */}
-      <img
-        src={heroPlaceholder}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-0 h-full w-full object-cover object-center"
-        width={1536}
-        height={1024}
-        decoding="async"
-      />
-
-      {/* Left-to-right readability overlay — stronger on mobile */}
+      {/* Left-to-right readability overlay — fades out at the bottom into the shared scene */}
       <div
-        className="absolute inset-0 bg-gradient-to-r from-surface via-surface/90 to-surface/40 sm:from-surface/95 sm:via-surface/80 sm:to-transparent"
+        className={cn(
+          'absolute inset-0 bg-gradient-to-r from-surface via-surface/90 to-surface/40',
+          'sm:from-surface/95 sm:via-surface/80 sm:to-transparent',
+          '[mask-image:linear-gradient(to_bottom,black_calc(100%-9rem),transparent)]',
+        )}
         aria-hidden="true"
       />
 

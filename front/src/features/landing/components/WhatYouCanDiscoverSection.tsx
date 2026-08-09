@@ -241,9 +241,9 @@ export function WhatYouCanDiscoverSection() {
   return (
     <section
       aria-labelledby="what-you-can-discover-heading"
-      className="bg-background px-5 py-8 sm:px-8 sm:py-9 lg:px-10 lg:py-10 xl:px-14"
+      className="px-5 sm:px-8 lg:px-10 xl:px-14"
     >
-      <div className="mx-auto max-w-6xl">
+      <div className="mx-auto max-w-6xl rounded-3xl border border-border/60 bg-surface/90 px-5 py-8 shadow-lg sm:px-8 sm:py-9 lg:px-10 lg:py-10">
         <div className="mx-auto max-w-3xl text-center">
           <p className={eyebrowClassName}>Discover resources across the community</p>
           <span
