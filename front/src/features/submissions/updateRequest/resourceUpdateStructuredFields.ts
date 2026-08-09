@@ -1,4 +1,5 @@
 import type {
+  AccessMode,
   DayHours,
   ExistingResourceData,
   ExistingResourceLocation,
@@ -6,11 +7,17 @@ import type {
   ResourceContactMethod,
 } from '@/types/submission'
 import { areContactsEquivalent } from '@/features/submissions/contacts/contactEquality'
+import { areHoursEquivalent } from '@/features/submissions/hours/hoursEquality'
+import { areLocationsEquivalent } from '@/features/submissions/locations/locationEquality'
+import { areLookupIdSetsEquivalent } from '@/features/submissions/lookups/lookupIdEquality'
 
 /** Comparison field ids that edit structured ExistingResourceData slices. */
 export const RESOURCE_UPDATE_STRUCTURED_FIELD_IDS = [
   'contact:contacts',
+  'address:accessMode',
   'address:locations',
+  'categories:categories',
+  'categories:filters',
   'hours:hours',
 ] as const
 
@@ -26,14 +33,17 @@ export function isResourceUpdateStructuredFieldId(
 }
 
 /**
- * Reviewer working values for collection fields (always held while reviewing).
+ * Reviewer working values for structured fields (always held while reviewing).
  * Edited vs proposed is derived via structural slice equality — not edit history.
  * Contacts store non-website methods only; websites stay on the resource model
  * via the separate website field / proposed contacts.
  */
 export type ResourceUpdateStructuredEdits = {
   'contact:contacts'?: ResourceContactMethod[]
+  'address:accessMode'?: AccessMode | null
   'address:locations'?: ExistingResourceLocation[]
+  'categories:categories'?: number[]
+  'categories:filters'?: number[]
   'hours:hours'?: {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
@@ -43,7 +53,10 @@ export type ResourceUpdateStructuredEdits = {
 /** Live editor drafts for structured Update-review fields. */
 export interface ResourceUpdateStructuredWorkingValues {
   contacts: ResourceContactMethod[]
+  accessMode: AccessMode | null
   locations: ExistingResourceLocation[]
+  categoryIds: number[]
+  filterIds: number[]
   hours: {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
@@ -55,7 +68,10 @@ export function createStructuredWorkingValues(
 ): ResourceUpdateStructuredWorkingValues {
   return {
     contacts: structuredClone(nonWebsiteContacts(proposed.contacts)),
+    accessMode: proposed.accessMode,
     locations: structuredClone(proposed.locations),
+    categoryIds: [...proposed.categoryIds],
+    filterIds: [...proposed.filterIds],
     hours: {
       hoursAvailability: proposed.hoursAvailability,
       hours: structuredClone(proposed.hours),
@@ -81,8 +97,20 @@ export function structuredEditsFromWorking(
     edits['contact:contacts'] = working.contacts
   }
 
+  if (!areAccessModeSlicesEqual(working.accessMode, proposed.accessMode)) {
+    edits['address:accessMode'] = working.accessMode
+  }
+
   if (!areLocationSlicesEqual(working.locations, proposed.locations)) {
     edits['address:locations'] = working.locations
+  }
+
+  if (!areLookupIdSetsEquivalent(working.categoryIds, proposed.categoryIds)) {
+    edits['categories:categories'] = [...working.categoryIds]
+  }
+
+  if (!areLookupIdSetsEquivalent(working.filterIds, proposed.filterIds)) {
+    edits['categories:filters'] = [...working.filterIds]
   }
 
   if (
@@ -108,8 +136,17 @@ export function isStructuredWorkingFieldEdited(
         working.contacts,
         nonWebsiteContacts(proposed.contacts),
       )
+    case 'address:accessMode':
+      return !areAccessModeSlicesEqual(working.accessMode, proposed.accessMode)
     case 'address:locations':
       return !areLocationSlicesEqual(working.locations, proposed.locations)
+    case 'categories:categories':
+      return !areLookupIdSetsEquivalent(
+        working.categoryIds,
+        proposed.categoryIds,
+      )
+    case 'categories:filters':
+      return !areLookupIdSetsEquivalent(working.filterIds, proposed.filterIds)
     case 'hours:hours':
       return !areHoursSlicesEqual(working.hours, {
         hoursAvailability: proposed.hoursAvailability,
@@ -142,23 +179,33 @@ export function areContactSlicesEqual(
   return areContactsEquivalent(a, b)
 }
 
+/** Access Mode equality — raw enum / null identity. */
+export function areAccessModeSlicesEqual(
+  a: AccessMode | null,
+  b: AccessMode | null,
+): boolean {
+  return a === b
+}
+
+/** Location slice equality — delegates to shared {@link areLocationsEquivalent}. */
 export function areLocationSlicesEqual(
   a: ExistingResourceLocation[],
   b: ExistingResourceLocation[],
 ): boolean {
-  return (
-    stableStringify(normalizeLocations(a)) ===
-    stableStringify(normalizeLocations(b))
-  )
+  return areLocationsEquivalent(a, b)
 }
 
+/** Hours slice equality — delegates to shared {@link areHoursEquivalent}. */
 export function areHoursSlicesEqual(
   a: { hoursAvailability: HoursAvailability; hours: DayHours[] },
   b: { hoursAvailability: HoursAvailability; hours: DayHours[] },
 ): boolean {
-  return (
-    stableStringify(normalizeHours(a)) === stableStringify(normalizeHours(b))
-  )
+  return areHoursEquivalent(a, b)
+}
+
+/** Category / filter ID bag equality — delegates to shared lookup-ID helper. */
+export function areLookupIdSlicesEqual(a: number[], b: number[]): boolean {
+  return areLookupIdSetsEquivalent(a, b)
 }
 
 export function getProposedStructuredSlice(
@@ -168,8 +215,14 @@ export function getProposedStructuredSlice(
   switch (fieldId) {
     case 'contact:contacts':
       return structuredClone(nonWebsiteContacts(proposed.contacts))
+    case 'address:accessMode':
+      return proposed.accessMode
     case 'address:locations':
       return structuredClone(proposed.locations)
+    case 'categories:categories':
+      return [...proposed.categoryIds]
+    case 'categories:filters':
+      return [...proposed.filterIds]
     case 'hours:hours':
       return {
         hoursAvailability: proposed.hoursAvailability,
@@ -180,37 +233,4 @@ export function getProposedStructuredSlice(
       return exhaustive
     }
   }
-}
-
-function normalizeLocations(locations: ExistingResourceLocation[]) {
-  return locations.map((location) => ({
-    locationName: location.locationName.trim(),
-    streetAddress: location.streetAddress.trim(),
-    unit: location.unit.trim(),
-    city: location.city.trim(),
-    province: location.province.trim(),
-    postalCode: location.postalCode.trim(),
-    lat: location.lat,
-    lng: location.lng,
-  }))
-}
-
-function normalizeHours(slice: {
-  hoursAvailability: HoursAvailability
-  hours: DayHours[]
-}) {
-  return {
-    hoursAvailability: slice.hoursAvailability,
-    hours: slice.hours.map((day) => ({
-      dayOfWeek: day.dayOfWeek,
-      isClosed: day.isClosed,
-      opensAt: day.opensAt,
-      closesAt: day.closesAt,
-      byAppointment: day.byAppointment,
-    })),
-  }
-}
-
-function stableStringify(value: unknown): string {
-  return JSON.stringify(value)
 }

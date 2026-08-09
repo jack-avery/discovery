@@ -4,6 +4,9 @@ import {
   type FieldErrors,
 } from '../existingResource/validation'
 import { canonicalizeContacts } from '../contacts/contactEquality'
+import { canonicalizeHours } from '../hours/hoursEquality'
+import { canonicalizeLocations } from '../locations/locationEquality'
+import { canonicalizeLookupIds } from '../lookups/lookupIdEquality'
 import type { UpdateSectionId } from './updateSections'
 import { UPDATE_SECTION_IDS } from './updateSections'
 
@@ -65,16 +68,10 @@ function sectionSnapshot(
         description: data.description.trim(),
       }
     case 'hours':
-      return {
+      return canonicalizeHours({
         hoursAvailability: data.hoursAvailability,
-        hours: data.hours.map((day) => ({
-          dayOfWeek: day.dayOfWeek,
-          isClosed: day.isClosed,
-          opensAt: day.opensAt,
-          closesAt: day.closesAt,
-          byAppointment: day.byAppointment,
-        })),
-      }
+        hours: data.hours,
+      })
     case 'contact':
       return canonicalizeContacts(
         data.contacts.filter((contact) => contact.type !== 'website'),
@@ -82,22 +79,13 @@ function sectionSnapshot(
     case 'address':
       return {
         accessMode: data.accessMode,
-        locations: data.locations.map((location) => ({
-          locationName: location.locationName.trim(),
-          streetAddress: location.streetAddress.trim(),
-          unit: location.unit.trim(),
-          city: location.city.trim(),
-          province: location.province.trim(),
-          postalCode: location.postalCode.trim(),
-          lat: location.lat,
-          lng: location.lng,
-        })),
+        locations: canonicalizeLocations(data.locations),
         onlineUrl: data.onlineUrl.trim(),
       }
     case 'categories':
       return {
-        categoryIds: [...data.categoryIds].sort((a, b) => a - b),
-        filterIds: [...data.filterIds].sort((a, b) => a - b),
+        categoryIds: canonicalizeLookupIds(data.categoryIds),
+        filterIds: canonicalizeLookupIds(data.filterIds),
       }
     case 'accessibility':
       return { accessibilityNotes: data.accessibilityNotes.trim() }

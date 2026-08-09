@@ -5,9 +5,11 @@ import type {
   ResourceUpdateComparisonField,
 } from './buildResourceUpdateComparison'
 import {
+  areAccessModeSlicesEqual,
   areContactSlicesEqual,
   areHoursSlicesEqual,
   areLocationSlicesEqual,
+  areLookupIdSlicesEqual,
   isResourceUpdateStructuredFieldId,
   nonWebsiteContacts,
   websiteContacts,
@@ -32,8 +34,8 @@ export interface ComposedResourceUpdateVersion {
   fields: Record<string, ComposedUpdateFieldValue>
   /**
    * Structured model: proposed, then rejected fields from baseline, simple
-   * string edits, and structured collection overrides (contacts / locations /
-   * hours).
+   * string edits, and structured overrides (contacts / accessMode / locations /
+   * categories / filters / hours).
    */
   data: ExistingResourceData
   /** True when outcome differs from approving the original proposal as-is. */
@@ -169,10 +171,31 @@ function isStructuredFieldEdited(
         nonWebsiteContacts(proposed.contacts),
       )
     }
+    case 'address:accessMode': {
+      if (!('address:accessMode' in structuredEdits)) return false
+      return !areAccessModeSlicesEqual(
+        structuredEdits['address:accessMode'] ?? null,
+        proposed.accessMode,
+      )
+    }
     case 'address:locations': {
       const edited = structuredEdits['address:locations']
       if (!edited) return false
       return !areLocationSlicesEqual(edited, proposed.locations)
+    }
+    case 'categories:categories': {
+      if (!('categories:categories' in structuredEdits)) return false
+      return !areLookupIdSlicesEqual(
+        structuredEdits['categories:categories'] ?? [],
+        proposed.categoryIds,
+      )
+    }
+    case 'categories:filters': {
+      if (!('categories:filters' in structuredEdits)) return false
+      return !areLookupIdSlicesEqual(
+        structuredEdits['categories:filters'] ?? [],
+        proposed.filterIds,
+      )
     }
     case 'hours:hours': {
       const edited = structuredEdits['hours:hours']
@@ -204,10 +227,27 @@ function applyStructuredEdit(
       target.contacts = [...structuredClone(fromEdit), ...websites]
       return true
     }
+    case 'address:accessMode': {
+      if (!('address:accessMode' in structuredEdits)) return false
+      target.accessMode = structuredEdits['address:accessMode'] ?? null
+      return true
+    }
     case 'address:locations': {
       const edited = structuredEdits['address:locations']
       if (!edited) return false
       target.locations = structuredClone(edited)
+      return true
+    }
+    case 'categories:categories': {
+      if (!('categories:categories' in structuredEdits)) return false
+      target.categoryIds = [
+        ...(structuredEdits['categories:categories'] ?? []),
+      ]
+      return true
+    }
+    case 'categories:filters': {
+      if (!('categories:filters' in structuredEdits)) return false
+      target.filterIds = [...(structuredEdits['categories:filters'] ?? [])]
       return true
     }
     case 'hours:hours': {

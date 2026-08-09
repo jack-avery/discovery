@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type {
+  AccessMode,
   DayHours,
   ExistingResourceData,
   ExistingResourceLocation,
@@ -36,7 +37,10 @@ export interface ResourceUpdateAcceptanceState {
   setFieldAccepted: (fieldId: string, accepted: boolean) => void
   setFieldEdit: (fieldId: string, value: string) => void
   setContactsEdit: (contacts: ResourceContactMethod[]) => void
+  setAccessModeEdit: (accessMode: AccessMode) => void
   setLocationsEdit: (locations: ExistingResourceLocation[]) => void
+  setCategoryIdsEdit: (categoryIds: number[]) => void
+  setFilterIdsEdit: (filterIds: number[]) => void
   setHoursEdit: (slice: {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
@@ -45,7 +49,10 @@ export interface ResourceUpdateAcceptanceState {
   isFieldEdited: (fieldId: string) => boolean
   getProposedValue: (fieldId: string, originalProposed: string) => string
   getContactsEditorValue: () => ResourceContactMethod[]
+  getAccessModeEditorValue: () => AccessMode | null
   getLocationsEditorValue: () => ExistingResourceLocation[]
+  getCategoryIdsEditorValue: () => number[]
+  getFilterIdsEditorValue: () => number[]
   getHoursEditorValue: () => {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
@@ -62,8 +69,8 @@ export interface ResourceUpdateAcceptanceState {
  * Moderator field acceptance + local edits for a Resource Update comparison.
  * Defaults every field to accepted; resets when the comparison identity changes.
  *
- * Structured collection fields keep a live working draft; “edited” is derived
- * from structural equality to the proposal (not from interaction history).
+ * Structured fields keep a live working draft; “edited” is derived from
+ * structural equality to the proposal (not from interaction history).
  */
 export function useResourceUpdateAcceptance(
   comparison: ResourceUpdateComparison | null,
@@ -150,6 +157,12 @@ export function useResourceUpdateAcceptance(
     )
   }, [])
 
+  const setAccessModeEdit = useCallback((accessMode: AccessMode) => {
+    setStructuredWorking((current) =>
+      current ? { ...current, accessMode } : current,
+    )
+  }, [])
+
   const setLocationsEdit = useCallback(
     (locations: ExistingResourceLocation[]) => {
       setStructuredWorking((current) =>
@@ -158,6 +171,18 @@ export function useResourceUpdateAcceptance(
     },
     [],
   )
+
+  const setCategoryIdsEdit = useCallback((categoryIds: number[]) => {
+    setStructuredWorking((current) =>
+      current ? { ...current, categoryIds: [...categoryIds] } : current,
+    )
+  }, [])
+
+  const setFilterIdsEdit = useCallback((filterIds: number[]) => {
+    setStructuredWorking((current) =>
+      current ? { ...current, filterIds: [...filterIds] } : current,
+    )
+  }, [])
 
   const setHoursEdit = useCallback(
     (slice: { hoursAvailability: HoursAvailability; hours: DayHours[] }) => {
@@ -186,8 +211,14 @@ export function useResourceUpdateAcceptance(
           switch (fieldId) {
             case 'contact:contacts':
               return { ...current, contacts: fromProposed.contacts }
+            case 'address:accessMode':
+              return { ...current, accessMode: fromProposed.accessMode }
             case 'address:locations':
               return { ...current, locations: fromProposed.locations }
+            case 'categories:categories':
+              return { ...current, categoryIds: fromProposed.categoryIds }
+            case 'categories:filters':
+              return { ...current, filterIds: fromProposed.filterIds }
             case 'hours:hours':
               return { ...current, hours: fromProposed.hours }
             default: {
@@ -243,8 +274,20 @@ export function useResourceUpdateAcceptance(
     return structuredWorking?.contacts ?? []
   }, [structuredWorking])
 
+  const getAccessModeEditorValue = useCallback((): AccessMode | null => {
+    return structuredWorking?.accessMode ?? null
+  }, [structuredWorking])
+
   const getLocationsEditorValue = useCallback((): ExistingResourceLocation[] => {
     return structuredWorking?.locations ?? []
+  }, [structuredWorking])
+
+  const getCategoryIdsEditorValue = useCallback((): number[] => {
+    return structuredWorking?.categoryIds ?? []
+  }, [structuredWorking])
+
+  const getFilterIdsEditorValue = useCallback((): number[] => {
+    return structuredWorking?.filterIds ?? []
   }, [structuredWorking])
 
   const getHoursEditorValue = useCallback(() => {
@@ -314,13 +357,19 @@ export function useResourceUpdateAcceptance(
     setFieldAccepted,
     setFieldEdit,
     setContactsEdit,
+    setAccessModeEdit,
     setLocationsEdit,
+    setCategoryIdsEdit,
+    setFilterIdsEdit,
     setHoursEdit,
     resetFieldEdit,
     isFieldEdited,
     getProposedValue,
     getContactsEditorValue,
+    getAccessModeEditorValue,
     getLocationsEditorValue,
+    getCategoryIdsEditorValue,
+    getFilterIdsEditorValue,
     getHoursEditorValue,
     selectedCountInSection,
     hasOutcomeChanges,

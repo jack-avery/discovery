@@ -13,6 +13,7 @@ import {
 } from '@/features/staff/submissions/submissionApprovalGate'
 import { useResourceUpdateAcceptance } from '@/features/staff/submissions/updateReview/useResourceUpdateAcceptance'
 import { fieldErrorForUpdateComparisonField } from '@/features/staff/submissions/updateReview/updateReviewFieldErrors'
+import { mergeLookupOptionsWithSelectedIds } from '@/features/staff/submissions/updateReview/mergeLookupOptionsWithSelectedIds'
 import { renderUpdateReviewStructuredEditor } from '@/features/staff/submissions/updateReview/UpdateReviewStructuredEditors'
 import { useCategories } from '@/hooks/useCategories'
 import { useTags } from '@/hooks/useTags'
@@ -39,8 +40,17 @@ export function ResourceUpdateReviewPanel({
   const baselineDto = submission.current_approved_resource ?? null
   const missingBaseline = baselineDto == null
 
-  const { categories } = useCategories()
-  const { tags } = useTags()
+  const {
+    categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    reload: reloadCategories,
+  } = useCategories()
+  const {
+    tags,
+    isLoading: tagsLoading,
+    error: tagsError,
+  } = useTags()
   const [showUnchanged, setShowUnchanged] = useState(false)
 
   const proposed = useMemo(
@@ -66,6 +76,25 @@ export function ResourceUpdateReviewPanel({
       ),
     }),
     [categories, tags],
+  )
+
+  const catalogCategoryOptions = useMemo(
+    () =>
+      categories.map((category) => ({
+        id: category.category_id,
+        name: category.name,
+        description: category.description,
+      })),
+    [categories],
+  )
+
+  const catalogFilterOptions = useMemo(
+    () =>
+      tags.map((tag) => ({
+        id: tag.tag_id,
+        name: tag.name,
+      })),
+    [tags],
   )
 
   const comparison = useMemo(() => {
@@ -218,11 +247,32 @@ export function ResourceUpdateReviewPanel({
             renderUpdateReviewStructuredEditor(field.id, disabled, {
               getContacts: acceptance.getContactsEditorValue,
               onContactsChange: acceptance.setContactsEdit,
+              getAccessMode: acceptance.getAccessModeEditorValue,
+              onAccessModeChange: acceptance.setAccessModeEdit,
               getLocations: acceptance.getLocationsEditorValue,
               onLocationsChange: acceptance.setLocationsEdit,
+              getCategoryIds: acceptance.getCategoryIdsEditorValue,
+              onCategoryIdsChange: acceptance.setCategoryIdsEdit,
+              getFilterIds: acceptance.getFilterIdsEditorValue,
+              onFilterIdsChange: acceptance.setFilterIdsEdit,
               getHours: acceptance.getHoursEditorValue,
               onHoursChange: acceptance.setHoursEdit,
-              accessMode: proposed.accessMode,
+              accessMode: acceptance.getAccessModeEditorValue(),
+              categoryOptions: mergeLookupOptionsWithSelectedIds(
+                catalogCategoryOptions,
+                acceptance.getCategoryIdsEditorValue(),
+                lookups.categoryNames,
+              ),
+              filterOptions: mergeLookupOptionsWithSelectedIds(
+                catalogFilterOptions,
+                acceptance.getFilterIdsEditorValue(),
+                lookups.tagNames,
+              ),
+              categoriesLoading,
+              categoriesError,
+              onCategoriesRetry: reloadCategories,
+              filtersLoading: tagsLoading,
+              filtersError: tagsError,
               errors: validationErrors,
               showErrors: showValidationErrors,
             }),

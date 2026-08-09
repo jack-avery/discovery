@@ -1,13 +1,21 @@
 import type { ReactNode } from 'react'
 import type {
+  AccessMode,
   DayHours,
-  ExistingResourceData,
   ExistingResourceLocation,
   HoursAvailability,
   ResourceContactMethod,
 } from '@/types/submission'
 import type { FieldErrors } from '@/features/submissions/existingResource/validation'
+import {
+  AccessModeBothCallout,
+  AccessModeSelector,
+} from '@/features/submissions/form/AccessModeSelector'
 import { ContactMethodList } from '@/features/submissions/form/ContactMethodList'
+import {
+  LookupMultiSelect,
+  type LookupOption,
+} from '@/features/submissions/form/LookupMultiSelect'
 import { OptionCardGroup } from '@/features/submissions/form/OptionCardGroup'
 import { PhysicalLocationList } from '@/features/submissions/form/PhysicalLocationList'
 import { WeeklyHoursEditor } from '@/features/submissions/form/WeeklyHoursEditor'
@@ -23,8 +31,14 @@ const HOURS_MODE_OPTIONS: { value: HoursAvailability; label: string }[] = [
 export interface UpdateReviewStructuredEditorHandlers {
   getContacts: () => ResourceContactMethod[]
   onContactsChange: (contacts: ResourceContactMethod[]) => void
+  getAccessMode: () => AccessMode | null
+  onAccessModeChange: (accessMode: AccessMode) => void
   getLocations: () => ExistingResourceLocation[]
   onLocationsChange: (locations: ExistingResourceLocation[]) => void
+  getCategoryIds: () => number[]
+  onCategoryIdsChange: (categoryIds: number[]) => void
+  getFilterIds: () => number[]
+  onFilterIdsChange: (filterIds: number[]) => void
   getHours: () => {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
@@ -33,15 +47,26 @@ export interface UpdateReviewStructuredEditorHandlers {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
   }) => void
-  /** Used only to decide requireAtLeastOne for locations. */
-  accessMode: ExistingResourceData['accessMode']
+  /**
+   * Working Access Mode — drives Locations requireAtLeastOne so reviewer mode
+   * changes immediately affect location requirements.
+   */
+  accessMode: AccessMode | null
+  /** Catalog options already merged with any selected historical/unknown IDs. */
+  categoryOptions: LookupOption[]
+  filterOptions: LookupOption[]
+  categoriesLoading?: boolean
+  categoriesError?: string | null
+  onCategoriesRetry?: () => void
+  filtersLoading?: boolean
+  filtersError?: string | null
   /** Shared validateExistingResource errors for the composed resource. */
   errors?: FieldErrors
   showErrors?: boolean
 }
 
 /**
- * Structured proposed-control for contacts / locations / hours in Update review.
+ * Structured proposed-control for Update-review fields.
  * Returns null for non-structured fields so the host falls back to text inputs.
  */
 export function renderUpdateReviewStructuredEditor(
@@ -73,6 +98,20 @@ export function renderUpdateReviewStructuredEditor(
         />
       ) : null}
 
+      {fieldId === 'address:accessMode' ? (
+        <div className="space-y-3">
+          <AccessModeSelector
+            name="update-review-access-mode"
+            value={handlers.getAccessMode()}
+            onChange={handlers.onAccessModeChange}
+            error={showErrors ? errors.accessMode : undefined}
+          />
+          {handlers.getAccessMode() === 'both' ? (
+            <AccessModeBothCallout />
+          ) : null}
+        </div>
+      ) : null}
+
       {fieldId === 'address:locations' ? (
         <PhysicalLocationList
           locations={handlers.getLocations()}
@@ -84,6 +123,32 @@ export function renderUpdateReviewStructuredEditor(
           showErrors={showErrors}
           locationFields={showErrors ? errors.locationFields : undefined}
           listError={showErrors ? errors.locations : undefined}
+        />
+      ) : null}
+
+      {fieldId === 'categories:categories' ? (
+        <LookupMultiSelect
+          label="Categories"
+          required
+          options={handlers.categoryOptions}
+          value={handlers.getCategoryIds()}
+          onChange={handlers.onCategoryIdsChange}
+          isLoading={handlers.categoriesLoading}
+          error={handlers.categoriesError}
+          onRetry={handlers.onCategoriesRetry}
+          fieldError={showErrors ? errors.categories : undefined}
+        />
+      ) : null}
+
+      {fieldId === 'categories:filters' ? (
+        <LookupMultiSelect
+          label="Filters"
+          options={handlers.filterOptions}
+          value={handlers.getFilterIds()}
+          onChange={handlers.onFilterIdsChange}
+          isLoading={handlers.filtersLoading}
+          error={handlers.filtersError}
+          emptyMessage="No filters are available yet."
         />
       ) : null}
 
