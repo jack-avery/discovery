@@ -161,19 +161,19 @@ function isStructuredFieldEdited(
   proposed: ExistingResourceData,
 ): boolean {
   if (!isResourceUpdateStructuredFieldId(fieldId)) return false
+  // Presence is key membership — [] / null are intentional overrides.
   if (!(fieldId in structuredEdits)) return false
 
   switch (fieldId) {
     case 'contact:contacts': {
       const edited = structuredEdits['contact:contacts']
-      if (!edited) return false
+      if (edited === undefined) return false
       return !areContactSlicesEqual(
         nonWebsiteContacts(edited),
         nonWebsiteContacts(proposed.contacts),
       )
     }
     case 'website:websites': {
-      if (!('website:websites' in structuredEdits)) return false
       const edited = structuredEdits['website:websites']
       if (edited === undefined) return false
       return !areContactSlicesEqual(
@@ -182,7 +182,6 @@ function isStructuredFieldEdited(
       )
     }
     case 'address:accessMode': {
-      if (!('address:accessMode' in structuredEdits)) return false
       return !areAccessModeSlicesEqual(
         structuredEdits['address:accessMode'] ?? null,
         proposed.accessMode,
@@ -190,25 +189,20 @@ function isStructuredFieldEdited(
     }
     case 'address:locations': {
       const edited = structuredEdits['address:locations']
-      if (!edited) return false
+      if (edited === undefined) return false
       return !areLocationSlicesEqual(edited, proposed.locations)
     }
     case 'categories:categories': {
-      if (!('categories:categories' in structuredEdits)) return false
-      return !areLookupIdSlicesEqual(
-        structuredEdits['categories:categories'] ?? [],
-        proposed.categoryIds,
-      )
+      const edited = structuredEdits['categories:categories']
+      if (edited === undefined) return false
+      return !areLookupIdSlicesEqual(edited, proposed.categoryIds)
     }
     case 'categories:filters': {
-      if (!('categories:filters' in structuredEdits)) return false
-      return !areLookupIdSlicesEqual(
-        structuredEdits['categories:filters'] ?? [],
-        proposed.filterIds,
-      )
+      const edited = structuredEdits['categories:filters']
+      if (edited === undefined) return false
+      return !areLookupIdSlicesEqual(edited, proposed.filterIds)
     }
     case 'cost:cost': {
-      if (!('cost:cost' in structuredEdits)) return false
       const edited = structuredEdits['cost:cost']
       if (edited === undefined) return false
       return !areCostSlicesEqual(edited, {
@@ -218,7 +212,7 @@ function isStructuredFieldEdited(
     }
     case 'hours:hours': {
       const edited = structuredEdits['hours:hours']
-      if (!edited) return false
+      if (edited === undefined) return false
       return !areHoursSlicesEqual(edited, {
         hoursAvailability: proposed.hoursAvailability,
         hours: proposed.hours,
@@ -235,19 +229,19 @@ function applyStructuredEdit(
   structuredEdits: ResourceUpdateStructuredEdits,
 ): boolean {
   if (!isResourceUpdateStructuredFieldId(fieldId)) return false
+  // Presence is key membership — [] / null are intentional overrides.
   if (!(fieldId in structuredEdits)) return false
 
   switch (fieldId) {
     case 'contact:contacts': {
       const edited = structuredEdits['contact:contacts']
-      if (!edited) return false
+      if (edited === undefined) return false
       const websites = websiteContacts(target.contacts)
       const fromEdit = nonWebsiteContacts(edited)
       target.contacts = [...structuredClone(fromEdit), ...websites]
       return true
     }
     case 'website:websites': {
-      if (!('website:websites' in structuredEdits)) return false
       const edited = structuredEdits['website:websites']
       if (edited === undefined) return false
       const nonWebsites = nonWebsiteContacts(target.contacts)
@@ -256,30 +250,28 @@ function applyStructuredEdit(
       return true
     }
     case 'address:accessMode': {
-      if (!('address:accessMode' in structuredEdits)) return false
       target.accessMode = structuredEdits['address:accessMode'] ?? null
       return true
     }
     case 'address:locations': {
       const edited = structuredEdits['address:locations']
-      if (!edited) return false
+      if (edited === undefined) return false
       target.locations = structuredClone(edited)
       return true
     }
     case 'categories:categories': {
-      if (!('categories:categories' in structuredEdits)) return false
-      target.categoryIds = [
-        ...(structuredEdits['categories:categories'] ?? []),
-      ]
+      const edited = structuredEdits['categories:categories']
+      if (edited === undefined) return false
+      target.categoryIds = [...edited]
       return true
     }
     case 'categories:filters': {
-      if (!('categories:filters' in structuredEdits)) return false
-      target.filterIds = [...(structuredEdits['categories:filters'] ?? [])]
+      const edited = structuredEdits['categories:filters']
+      if (edited === undefined) return false
+      target.filterIds = [...edited]
       return true
     }
     case 'cost:cost': {
-      if (!('cost:cost' in structuredEdits)) return false
       const edited = structuredEdits['cost:cost']
       if (edited === undefined) return false
       target.costOption = edited.costOption
@@ -288,7 +280,7 @@ function applyStructuredEdit(
     }
     case 'hours:hours': {
       const edited = structuredEdits['hours:hours']
-      if (!edited) return false
+      if (edited === undefined) return false
       target.hoursAvailability = edited.hoursAvailability
       target.hours = structuredClone(edited.hours)
       return true

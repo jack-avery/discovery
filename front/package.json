@@ -17,6 +17,7 @@
     "test:cost-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/cost/costEquality.test.ts",
     "test:cost-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/costStructuredModeration.test.ts",
     "test:website-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/websiteStructuredModeration.test.ts",
+    "test:empty-structured-edit": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/emptyStructuredEditComposition.test.ts",
     "test:update-submit-gate": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/deriveUpdateSubmitGate.test.ts"
   },
   "dependencies": {
