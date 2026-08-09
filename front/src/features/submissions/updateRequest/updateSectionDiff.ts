@@ -4,6 +4,7 @@ import {
   type FieldErrors,
 } from '../existingResource/validation'
 import { canonicalizeContacts } from '../contacts/contactEquality'
+import { canonicalizeCost } from '../cost/costEquality'
 import { canonicalizeHours } from '../hours/hoursEquality'
 import { canonicalizeLocations } from '../locations/locationEquality'
 import { canonicalizeLookupIds } from '../lookups/lookupIdEquality'
@@ -90,10 +91,10 @@ function sectionSnapshot(
     case 'accessibility':
       return { accessibilityNotes: data.accessibilityNotes.trim() }
     case 'cost':
-      return {
+      return canonicalizeCost({
         costOption: data.costOption,
-        costDetails: data.costDetails.trim(),
-      }
+        costDetails: data.costDetails,
+      })
     case 'website':
       return {
         moreInfoUrl: data.moreInfoUrl.trim(),

@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type {
   AccessMode,
+  CostOption,
   DayHours,
   ExistingResourceData,
   ExistingResourceLocation,
   HoursAvailability,
   ResourceContactMethod,
 } from '@/types/submission'
+import type { CostSlice } from '@/features/submissions/cost/costEquality'
 import type { ResourceUpdateComparison } from '@/features/submissions/updateRequest/buildResourceUpdateComparison'
 import {
   composeResourceUpdateFinalVersion,
@@ -19,6 +21,7 @@ import {
   nonWebsiteContacts,
   RESOURCE_UPDATE_STRUCTURED_FIELD_IDS,
   structuredEditsFromWorking,
+  websiteContacts,
   type ResourceUpdateStructuredEdits,
   type ResourceUpdateStructuredFieldId,
   type ResourceUpdateStructuredWorkingValues,
@@ -37,10 +40,12 @@ export interface ResourceUpdateAcceptanceState {
   setFieldAccepted: (fieldId: string, accepted: boolean) => void
   setFieldEdit: (fieldId: string, value: string) => void
   setContactsEdit: (contacts: ResourceContactMethod[]) => void
+  setWebsitesEdit: (websites: ResourceContactMethod[]) => void
   setAccessModeEdit: (accessMode: AccessMode) => void
   setLocationsEdit: (locations: ExistingResourceLocation[]) => void
   setCategoryIdsEdit: (categoryIds: number[]) => void
   setFilterIdsEdit: (filterIds: number[]) => void
+  setCostEdit: (slice: CostSlice) => void
   setHoursEdit: (slice: {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
@@ -49,10 +54,12 @@ export interface ResourceUpdateAcceptanceState {
   isFieldEdited: (fieldId: string) => boolean
   getProposedValue: (fieldId: string, originalProposed: string) => string
   getContactsEditorValue: () => ResourceContactMethod[]
+  getWebsitesEditorValue: () => ResourceContactMethod[]
   getAccessModeEditorValue: () => AccessMode | null
   getLocationsEditorValue: () => ExistingResourceLocation[]
   getCategoryIdsEditorValue: () => number[]
   getFilterIdsEditorValue: () => number[]
+  getCostEditorValue: () => CostSlice
   getHoursEditorValue: () => {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
@@ -157,6 +164,16 @@ export function useResourceUpdateAcceptance(
     )
   }, [])
 
+  const setWebsitesEdit = useCallback((websites: ResourceContactMethod[]) => {
+    const cleaned = websiteContacts(websites).map((contact) => ({
+      ...contact,
+      type: 'website' as const,
+    }))
+    setStructuredWorking((current) =>
+      current ? { ...current, websites: cleaned } : current,
+    )
+  }, [])
+
   const setAccessModeEdit = useCallback((accessMode: AccessMode) => {
     setStructuredWorking((current) =>
       current ? { ...current, accessMode } : current,
@@ -181,6 +198,20 @@ export function useResourceUpdateAcceptance(
   const setFilterIdsEdit = useCallback((filterIds: number[]) => {
     setStructuredWorking((current) =>
       current ? { ...current, filterIds: [...filterIds] } : current,
+    )
+  }, [])
+
+  const setCostEdit = useCallback((slice: CostSlice) => {
+    setStructuredWorking((current) =>
+      current
+        ? {
+            ...current,
+            cost: {
+              costOption: slice.costOption,
+              costDetails: slice.costDetails,
+            },
+          }
+        : current,
     )
   }, [])
 
@@ -211,6 +242,8 @@ export function useResourceUpdateAcceptance(
           switch (fieldId) {
             case 'contact:contacts':
               return { ...current, contacts: fromProposed.contacts }
+            case 'website:websites':
+              return { ...current, websites: fromProposed.websites }
             case 'address:accessMode':
               return { ...current, accessMode: fromProposed.accessMode }
             case 'address:locations':
@@ -219,6 +252,8 @@ export function useResourceUpdateAcceptance(
               return { ...current, categoryIds: fromProposed.categoryIds }
             case 'categories:filters':
               return { ...current, filterIds: fromProposed.filterIds }
+            case 'cost:cost':
+              return { ...current, cost: fromProposed.cost }
             case 'hours:hours':
               return { ...current, hours: fromProposed.hours }
             default: {
@@ -274,6 +309,10 @@ export function useResourceUpdateAcceptance(
     return structuredWorking?.contacts ?? []
   }, [structuredWorking])
 
+  const getWebsitesEditorValue = useCallback((): ResourceContactMethod[] => {
+    return structuredWorking?.websites ?? []
+  }, [structuredWorking])
+
   const getAccessModeEditorValue = useCallback((): AccessMode | null => {
     return structuredWorking?.accessMode ?? null
   }, [structuredWorking])
@@ -288,6 +327,15 @@ export function useResourceUpdateAcceptance(
 
   const getFilterIdsEditorValue = useCallback((): number[] => {
     return structuredWorking?.filterIds ?? []
+  }, [structuredWorking])
+
+  const getCostEditorValue = useCallback((): CostSlice => {
+    return (
+      structuredWorking?.cost ?? {
+        costOption: null as CostOption | null,
+        costDetails: '',
+      }
+    )
   }, [structuredWorking])
 
   const getHoursEditorValue = useCallback(() => {
@@ -357,19 +405,23 @@ export function useResourceUpdateAcceptance(
     setFieldAccepted,
     setFieldEdit,
     setContactsEdit,
+    setWebsitesEdit,
     setAccessModeEdit,
     setLocationsEdit,
     setCategoryIdsEdit,
     setFilterIdsEdit,
+    setCostEdit,
     setHoursEdit,
     resetFieldEdit,
     isFieldEdited,
     getProposedValue,
     getContactsEditorValue,
+    getWebsitesEditorValue,
     getAccessModeEditorValue,
     getLocationsEditorValue,
     getCategoryIdsEditorValue,
     getFilterIdsEditorValue,
+    getCostEditorValue,
     getHoursEditorValue,
     selectedCountInSection,
     hasOutcomeChanges,

@@ -1,17 +1,21 @@
 import type { ReactNode } from 'react'
 import type {
   AccessMode,
+  CostOption,
   DayHours,
   ExistingResourceLocation,
   HoursAvailability,
   ResourceContactMethod,
 } from '@/types/submission'
+import { Input } from '@/components/ui'
+import type { CostSlice } from '@/features/submissions/cost/costEquality'
 import type { FieldErrors } from '@/features/submissions/existingResource/validation'
 import {
   AccessModeBothCallout,
   AccessModeSelector,
 } from '@/features/submissions/form/AccessModeSelector'
 import { ContactMethodList } from '@/features/submissions/form/ContactMethodList'
+import { Field } from '@/features/submissions/form/Field'
 import {
   LookupMultiSelect,
   type LookupOption,
@@ -28,9 +32,20 @@ const HOURS_MODE_OPTIONS: { value: HoursAvailability; label: string }[] = [
   { value: 'contact_for_hours', label: 'Contact the resource for hours' },
 ]
 
+const COST_OPTIONS: { value: CostOption; label: string }[] = [
+  { value: 'free', label: 'Free' },
+  { value: 'paid', label: 'Paid' },
+  { value: 'sliding_scale', label: 'Sliding scale' },
+  { value: 'donation', label: 'Donation requested' },
+  { value: 'not_sure', label: 'Not sure' },
+  { value: 'other', label: 'Other' },
+]
+
 export interface UpdateReviewStructuredEditorHandlers {
   getContacts: () => ResourceContactMethod[]
   onContactsChange: (contacts: ResourceContactMethod[]) => void
+  getWebsites: () => ResourceContactMethod[]
+  onWebsitesChange: (websites: ResourceContactMethod[]) => void
   getAccessMode: () => AccessMode | null
   onAccessModeChange: (accessMode: AccessMode) => void
   getLocations: () => ExistingResourceLocation[]
@@ -39,6 +54,8 @@ export interface UpdateReviewStructuredEditorHandlers {
   onCategoryIdsChange: (categoryIds: number[]) => void
   getFilterIds: () => number[]
   onFilterIdsChange: (filterIds: number[]) => void
+  getCost: () => CostSlice
+  onCostChange: (slice: CostSlice) => void
   getHours: () => {
     hoursAvailability: HoursAvailability
     hours: DayHours[]
@@ -91,7 +108,20 @@ export function renderUpdateReviewStructuredEditor(
         <ContactMethodList
           contacts={handlers.getContacts()}
           onChange={handlers.onContactsChange}
+          allowedTypes={['phone', 'email', 'other']}
           description="Edit the contact methods that will be published for this resource."
+          error={showErrors ? errors.contacts : undefined}
+          valueErrors={showErrors ? errors.contactValues : undefined}
+          showErrors={showErrors}
+        />
+      ) : null}
+
+      {fieldId === 'website:websites' ? (
+        <ContactMethodList
+          contacts={handlers.getWebsites()}
+          onChange={handlers.onWebsitesChange}
+          allowedTypes={['website']}
+          description="Edit the website contacts that will be published for this resource."
           error={showErrors ? errors.contacts : undefined}
           valueErrors={showErrors ? errors.contactValues : undefined}
           showErrors={showErrors}
@@ -152,12 +182,65 @@ export function renderUpdateReviewStructuredEditor(
         />
       ) : null}
 
+      {fieldId === 'cost:cost' ? (
+        <CostStructuredEditor
+          value={handlers.getCost()}
+          onChange={handlers.onCostChange}
+          costDetailsError={showErrors ? errors.costDetails : undefined}
+        />
+      ) : null}
+
       {fieldId === 'hours:hours' ? (
         <HoursStructuredEditor
           value={handlers.getHours()}
           onChange={handlers.onHoursChange}
           hoursError={showErrors ? errors.hours : undefined}
         />
+      ) : null}
+    </div>
+  )
+}
+
+function CostStructuredEditor({
+  value,
+  onChange,
+  costDetailsError,
+}: {
+  value: CostSlice
+  onChange: (slice: CostSlice) => void
+  costDetailsError?: string
+}) {
+  const needsCostDetails =
+    value.costOption === 'other' ||
+    value.costOption === 'paid' ||
+    value.costOption === 'sliding_scale' ||
+    value.costOption === 'donation'
+
+  return (
+    <div className="space-y-3">
+      <OptionCardGroup<CostOption>
+        name="update-review-cost-option"
+        legend="What does it cost to use this resource?"
+        options={COST_OPTIONS}
+        value={value.costOption}
+        onChange={(costOption) => onChange({ ...value, costOption })}
+      />
+      {needsCostDetails ? (
+        <Field
+          id="update-review-cost-details"
+          label="Cost details"
+          required={value.costOption === 'other'}
+          error={costDetailsError}
+        >
+          <Input
+            id="update-review-cost-details"
+            value={value.costDetails}
+            onChange={(event) =>
+              onChange({ ...value, costDetails: event.target.value })
+            }
+            placeholder="e.g. $5 per session, or by donation"
+          />
+        </Field>
       ) : null}
     </div>
   )

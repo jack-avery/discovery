@@ -14,6 +14,8 @@ import {
 } from '../mappers/labels'
 import { mapResourceCostDescription } from '../mappers/cost'
 import { buildQuarterHourOptions } from '../form/TimeSelect'
+import { areContactsEquivalent } from '../contacts/contactEquality'
+import { areCostsEquivalent } from '../cost/costEquality'
 import { areHoursEquivalent } from '../hours/hoursEquality'
 import { areLocationsEquivalent } from '../locations/locationEquality'
 import { areLookupIdSetsEquivalent } from '../lookups/lookupIdEquality'
@@ -184,6 +186,12 @@ function buildSectionFields(
             proposed.contacts.filter((contact) => contact.type !== 'website'),
           ),
           currentAvailable,
+          {
+            semanticallyChanged: !areContactsEquivalent(
+              baseline.contacts.filter((contact) => contact.type !== 'website'),
+              proposed.contacts.filter((contact) => contact.type !== 'website'),
+            ),
+          },
         ),
       ]
     case 'address':
@@ -278,6 +286,18 @@ function buildSectionFields(
           formatCost(baseline.costOption, baseline.costDetails),
           formatCost(proposed.costOption, proposed.costDetails),
           currentAvailable,
+          {
+            semanticallyChanged: !areCostsEquivalent(
+              {
+                costOption: baseline.costOption,
+                costDetails: baseline.costDetails,
+              },
+              {
+                costOption: proposed.costOption,
+                costDetails: proposed.costDetails,
+              },
+            ),
+          },
         ),
       ]
     case 'website':
@@ -301,6 +321,12 @@ function buildSectionFields(
             proposed.contacts.filter((contact) => contact.type === 'website'),
           ),
           currentAvailable,
+          {
+            semanticallyChanged: !areContactsEquivalent(
+              baseline.contacts.filter((contact) => contact.type === 'website'),
+              proposed.contacts.filter((contact) => contact.type === 'website'),
+            ),
+          },
         ),
       ]
     case 'other':

@@ -38,6 +38,11 @@ interface ContactMethodListProps {
   valueErrors?: Record<string, string>
   showErrors?: boolean
   description?: string
+  /**
+   * When set, only these contact types are available. New rows default to the
+   * first listed type; type changes outside the set are ignored.
+   */
+  allowedTypes?: ResourceContactType[]
 }
 
 const DEFAULT_DESCRIPTION =
@@ -50,8 +55,22 @@ export function ContactMethodList({
   valueErrors = {},
   showErrors,
   description = DEFAULT_DESCRIPTION,
+  allowedTypes,
 }: ContactMethodListProps) {
+  const typeOptions = allowedTypes?.length
+    ? CONTACT_TYPES.filter((option) => allowedTypes.includes(option.value))
+    : CONTACT_TYPES
+  const defaultType = typeOptions[0]?.value ?? 'phone'
+  const typeLocked = typeOptions.length <= 1
+
   const update = (id: string, patch: Partial<ResourceContactMethod>) => {
+    if (
+      patch.type != null &&
+      allowedTypes?.length &&
+      !allowedTypes.includes(patch.type)
+    ) {
+      return
+    }
     onChange(contacts.map((c) => (c.id === id ? { ...c, ...patch } : c)))
   }
 
@@ -90,24 +109,26 @@ export function ContactMethodList({
                 </Button>
               </div>
 
-              <Field id={`contact-type-${contact.id}`} label="Type">
-                <select
-                  id={`contact-type-${contact.id}`}
-                  value={contact.type}
-                  onChange={(e) =>
-                    update(contact.id, {
-                      type: e.target.value as ResourceContactType,
-                    })
-                  }
-                  className="flex h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground focus-visible:border-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive/40"
-                >
-                  {CONTACT_TYPES.map((t) => (
-                    <option key={t.value} value={t.value}>
-                      {t.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
+              {typeLocked ? null : (
+                <Field id={`contact-type-${contact.id}`} label="Type">
+                  <select
+                    id={`contact-type-${contact.id}`}
+                    value={contact.type}
+                    onChange={(e) =>
+                      update(contact.id, {
+                        type: e.target.value as ResourceContactType,
+                      })
+                    }
+                    className="flex h-10 w-full rounded-lg border border-border bg-surface px-3 text-sm text-foreground focus-visible:border-interactive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-interactive/40"
+                  >
+                    {typeOptions.map((t) => (
+                      <option key={t.value} value={t.value}>
+                        {t.label}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
 
               <ContactValueField
                 contact={contact}
@@ -140,7 +161,7 @@ export function ContactMethodList({
         disabled={contacts.some((c) => !c.value.trim())}
         onClick={() => {
           if (contacts.some((c) => !c.value.trim())) return
-          onChange([...contacts, createContactMethod()])
+          onChange([...contacts, createContactMethod({ type: defaultType })])
         }}
       >
         <Plus className="h-4 w-4" aria-hidden="true" />

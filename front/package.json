@@ -14,6 +14,9 @@
     "test:access-mode-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/accessModeStructuredModeration.test.ts",
     "test:lookup-id-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/lookups/lookupIdEquality.test.ts",
     "test:categories-filters-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/categoriesFiltersStructuredModeration.test.ts",
+    "test:cost-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/cost/costEquality.test.ts",
+    "test:cost-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/costStructuredModeration.test.ts",
+    "test:website-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/websiteStructuredModeration.test.ts",
     "test:update-submit-gate": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/deriveUpdateSubmitGate.test.ts"
   },
   "dependencies": {

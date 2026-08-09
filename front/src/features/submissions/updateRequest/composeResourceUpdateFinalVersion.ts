@@ -7,6 +7,7 @@ import type {
 import {
   areAccessModeSlicesEqual,
   areContactSlicesEqual,
+  areCostSlicesEqual,
   areHoursSlicesEqual,
   areLocationSlicesEqual,
   areLookupIdSlicesEqual,
@@ -35,7 +36,7 @@ export interface ComposedResourceUpdateVersion {
   /**
    * Structured model: proposed, then rejected fields from baseline, simple
    * string edits, and structured overrides (contacts / accessMode / locations /
-   * categories / filters / hours).
+   * categories / filters / cost / hours / websites).
    */
   data: ExistingResourceData
   /** True when outcome differs from approving the original proposal as-is. */
@@ -171,6 +172,15 @@ function isStructuredFieldEdited(
         nonWebsiteContacts(proposed.contacts),
       )
     }
+    case 'website:websites': {
+      if (!('website:websites' in structuredEdits)) return false
+      const edited = structuredEdits['website:websites']
+      if (edited === undefined) return false
+      return !areContactSlicesEqual(
+        websiteContacts(edited),
+        websiteContacts(proposed.contacts),
+      )
+    }
     case 'address:accessMode': {
       if (!('address:accessMode' in structuredEdits)) return false
       return !areAccessModeSlicesEqual(
@@ -196,6 +206,15 @@ function isStructuredFieldEdited(
         structuredEdits['categories:filters'] ?? [],
         proposed.filterIds,
       )
+    }
+    case 'cost:cost': {
+      if (!('cost:cost' in structuredEdits)) return false
+      const edited = structuredEdits['cost:cost']
+      if (edited === undefined) return false
+      return !areCostSlicesEqual(edited, {
+        costOption: proposed.costOption,
+        costDetails: proposed.costDetails,
+      })
     }
     case 'hours:hours': {
       const edited = structuredEdits['hours:hours']
@@ -227,6 +246,15 @@ function applyStructuredEdit(
       target.contacts = [...structuredClone(fromEdit), ...websites]
       return true
     }
+    case 'website:websites': {
+      if (!('website:websites' in structuredEdits)) return false
+      const edited = structuredEdits['website:websites']
+      if (edited === undefined) return false
+      const nonWebsites = nonWebsiteContacts(target.contacts)
+      const fromEdit = websiteContacts(edited)
+      target.contacts = [...nonWebsites, ...structuredClone(fromEdit)]
+      return true
+    }
     case 'address:accessMode': {
       if (!('address:accessMode' in structuredEdits)) return false
       target.accessMode = structuredEdits['address:accessMode'] ?? null
@@ -248,6 +276,14 @@ function applyStructuredEdit(
     case 'categories:filters': {
       if (!('categories:filters' in structuredEdits)) return false
       target.filterIds = [...(structuredEdits['categories:filters'] ?? [])]
+      return true
+    }
+    case 'cost:cost': {
+      if (!('cost:cost' in structuredEdits)) return false
+      const edited = structuredEdits['cost:cost']
+      if (edited === undefined) return false
+      target.costOption = edited.costOption
+      target.costDetails = edited.costDetails
       return true
     }
     case 'hours:hours': {

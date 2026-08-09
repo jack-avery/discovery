@@ -114,6 +114,112 @@ describe('canonicalizeContacts / areContactsEquivalent', () => {
   })
 })
 
+describe('canonicalizeContacts / areContactsEquivalent — website slices', () => {
+  function website(
+    value: string,
+    label = '',
+    id = 'w1',
+  ): ResourceContactMethod {
+    return createContactMethod({ id, type: 'website', value, label })
+  }
+
+  it('treats exact same website as equal', () => {
+    assert.equal(
+      areContactsEquivalent(
+        [website('https://example.com', 'Main')],
+        [website('https://example.com', 'Main')],
+      ),
+      true,
+    )
+  })
+
+  it('ignores whitespace-only differences', () => {
+    assert.equal(
+      areContactsEquivalent(
+        [website('  https://example.com  ', ' Main ')],
+        [website('https://example.com', 'Main')],
+      ),
+      true,
+    )
+  })
+
+  it('detects label differences', () => {
+    assert.equal(
+      areContactsEquivalent(
+        [website('https://example.com', 'Main')],
+        [website('https://example.com', 'Alt')],
+      ),
+      false,
+    )
+  })
+
+  it('detects URL/value differences without inventing URL normalization', () => {
+    assert.equal(
+      areContactsEquivalent(
+        [website('https://example.com')],
+        [website('https://example.com/')],
+      ),
+      false,
+    )
+    assert.equal(
+      areContactsEquivalent(
+        [website('https://example.com')],
+        [website('HTTPS://EXAMPLE.COM')],
+      ),
+      false,
+    )
+    assert.equal(
+      areContactsEquivalent(
+        [website('example.com')],
+        [website('https://example.com')],
+      ),
+      false,
+    )
+  })
+
+  it('ignores reorder and UI ids', () => {
+    assert.equal(
+      areContactsEquivalent(
+        [
+          website('https://a.example', 'A', '1'),
+          website('https://b.example', 'B', '2'),
+        ],
+        [
+          website('https://b.example', 'B', 'x'),
+          website('https://a.example', 'A', 'y'),
+        ],
+      ),
+      true,
+    )
+  })
+
+  it('detects add and remove', () => {
+    assert.equal(
+      areContactsEquivalent(
+        [website('https://a.example')],
+        [website('https://a.example'), website('https://b.example')],
+      ),
+      false,
+    )
+    assert.equal(
+      areContactsEquivalent(
+        [website('https://a.example'), website('https://b.example')],
+        [website('https://a.example')],
+      ),
+      false,
+    )
+  })
+
+  it('treats restore to proposed-equivalent slice as equal', () => {
+    const proposed = [website('https://example.com', 'Main', 'p1')]
+    const restored = [website('https://example.com', 'Main', 'restored')]
+    assert.equal(areContactsEquivalent(proposed, restored), true)
+    assert.deepEqual(canonicalizeContacts(restored), [
+      { type: 'website', value: 'https://example.com', label: 'Main' },
+    ])
+  })
+})
+
 describe('hasResourceDataChanges contact regression', () => {
   it('does not treat remove-then-restore equivalent phone as a change', () => {
     const baseline = createEmptyExistingResourceData()

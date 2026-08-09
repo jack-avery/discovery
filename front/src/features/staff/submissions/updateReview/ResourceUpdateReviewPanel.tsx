@@ -241,12 +241,18 @@ export function ResourceUpdateReviewPanel({
           onResetField: acceptance.resetFieldEdit,
           getFieldError: (fieldId) =>
             showValidationErrors
-              ? fieldErrorForUpdateComparisonField(validationErrors, fieldId)
+              ? fieldErrorForUpdateComparisonField(
+                  validationErrors,
+                  fieldId,
+                  acceptance.composedFinal?.data ?? null,
+                )
               : undefined,
           renderProposedControl: ({ field, disabled }) =>
             renderUpdateReviewStructuredEditor(field.id, disabled, {
               getContacts: acceptance.getContactsEditorValue,
               onContactsChange: acceptance.setContactsEdit,
+              getWebsites: acceptance.getWebsitesEditorValue,
+              onWebsitesChange: acceptance.setWebsitesEdit,
               getAccessMode: acceptance.getAccessModeEditorValue,
               onAccessModeChange: acceptance.setAccessModeEdit,
               getLocations: acceptance.getLocationsEditorValue,
@@ -255,6 +261,8 @@ export function ResourceUpdateReviewPanel({
               onCategoryIdsChange: acceptance.setCategoryIdsEdit,
               getFilterIds: acceptance.getFilterIdsEditorValue,
               onFilterIdsChange: acceptance.setFilterIdsEdit,
+              getCost: acceptance.getCostEditorValue,
+              onCostChange: acceptance.setCostEdit,
               getHours: acceptance.getHoursEditorValue,
               onHoursChange: acceptance.setHoursEdit,
               accessMode: acceptance.getAccessModeEditorValue(),

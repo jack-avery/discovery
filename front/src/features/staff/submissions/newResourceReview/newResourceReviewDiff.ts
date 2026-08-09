@@ -1,5 +1,7 @@
 import type { ExistingResourceData } from '@/types/submission'
 import { normalizeExistingResourceData } from '@/features/submissions/existingResource/emptyState'
+import { canonicalizeContacts } from '@/features/submissions/contacts/contactEquality'
+import { canonicalizeCost } from '@/features/submissions/cost/costEquality'
 import { canonicalizeHours } from '@/features/submissions/hours/hoursEquality'
 import { canonicalizeLocations } from '@/features/submissions/locations/locationEquality'
 import { canonicalizeLookupIds } from '@/features/submissions/lookups/lookupIdEquality'
@@ -94,7 +96,7 @@ function sectionSnapshot(
         generalNotes: data.generalNotes.trim(),
       }
     case 'contact':
-      return normalizeContacts(data.contacts)
+      return canonicalizeContacts(data.contacts)
     case 'location':
       return {
         accessMode: data.accessMode,
@@ -107,8 +109,10 @@ function sectionSnapshot(
           hoursAvailability: data.hoursAvailability,
           hours: data.hours,
         }),
-        costOption: data.costOption,
-        costDetails: data.costDetails.trim(),
+        cost: canonicalizeCost({
+          costOption: data.costOption,
+          costDetails: data.costDetails,
+        }),
         accessibilityNotes: data.accessibilityNotes.trim(),
         eligibility: data.eligibility.trim(),
         moreInfoUrl: data.moreInfoUrl.trim(),
@@ -118,23 +122,6 @@ function sectionSnapshot(
       return exhaustive
     }
   }
-}
-
-function normalizeContacts(
-  contacts: ExistingResourceData['contacts'],
-): Array<{ type: string; value: string; label: string }> {
-  return contacts
-    .map((contact) => ({
-      type: contact.type,
-      value: contact.value.trim(),
-      label: contact.label.trim(),
-    }))
-    .filter((contact) => contact.value)
-    .sort((a, b) =>
-      `${a.type}:${a.value}:${a.label}`.localeCompare(
-        `${b.type}:${b.value}:${b.label}`,
-      ),
-    )
 }
 
 function stableStringify(value: unknown): string {
