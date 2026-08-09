@@ -14,6 +14,11 @@ import {
 } from '../mappers/labels'
 import { mapResourceCostDescription } from '../mappers/cost'
 import { buildQuarterHourOptions } from '../form/TimeSelect'
+import { areContactsEquivalent } from '../contacts/contactEquality'
+import { areCostsEquivalent } from '../cost/costEquality'
+import { areHoursEquivalent } from '../hours/hoursEquality'
+import { areLocationsEquivalent } from '../locations/locationEquality'
+import { areLookupIdSetsEquivalent } from '../lookups/lookupIdEquality'
 import {
   UPDATE_SECTION_OPTIONS,
   type UpdateSectionId,
@@ -37,7 +42,11 @@ export interface ResourceUpdateComparisonField {
   proposed: string
   /** False until the host can supply a baseline resource. */
   currentAvailable: boolean
-  /** True when current and proposed display values differ (or baseline is missing). */
+  /**
+   * True when the field differs for review purposes (or baseline is missing).
+   * Structured fields (locations, hours) use semantic equality; others compare
+   * display strings.
+   */
   changed: boolean
 }
 
@@ -140,14 +149,6 @@ function buildSectionFields(
           proposed.description,
           currentAvailable,
         ),
-        field(
-          sectionId,
-          'generalNotes',
-          'Notes for staff',
-          baseline.generalNotes,
-          proposed.generalNotes,
-          currentAvailable,
-        ),
       ]
     case 'hours':
       return [
@@ -158,6 +159,18 @@ function buildSectionFields(
           formatHours(baseline.hoursAvailability, baseline.hours),
           formatHours(proposed.hoursAvailability, proposed.hours),
           currentAvailable,
+          {
+            semanticallyChanged: !areHoursEquivalent(
+              {
+                hoursAvailability: baseline.hoursAvailability,
+                hours: baseline.hours,
+              },
+              {
+                hoursAvailability: proposed.hoursAvailability,
+                hours: proposed.hours,
+              },
+            ),
+          },
         ),
       ]
     case 'contact':
@@ -173,6 +186,12 @@ function buildSectionFields(
             proposed.contacts.filter((contact) => contact.type !== 'website'),
           ),
           currentAvailable,
+          {
+            semanticallyChanged: !areContactsEquivalent(
+              baseline.contacts.filter((contact) => contact.type !== 'website'),
+              proposed.contacts.filter((contact) => contact.type !== 'website'),
+            ),
+          },
         ),
       ]
     case 'address':
@@ -188,6 +207,10 @@ function buildSectionFields(
             ? ACCESS_MODE_LABELS[proposed.accessMode]
             : '',
           currentAvailable,
+          {
+            semanticallyChanged:
+              baseline.accessMode !== proposed.accessMode,
+          },
         ),
         field(
           sectionId,
@@ -196,6 +219,12 @@ function buildSectionFields(
           formatLocations(baseline.locations),
           formatLocations(proposed.locations),
           currentAvailable,
+          {
+            semanticallyChanged: !areLocationsEquivalent(
+              baseline.locations,
+              proposed.locations,
+            ),
+          },
         ),
         field(
           sectionId,
@@ -215,6 +244,12 @@ function buildSectionFields(
           formatIdList(baseline.categoryIds, lookups.categoryNames),
           formatIdList(proposed.categoryIds, lookups.categoryNames),
           currentAvailable,
+          {
+            semanticallyChanged: !areLookupIdSetsEquivalent(
+              baseline.categoryIds,
+              proposed.categoryIds,
+            ),
+          },
         ),
         field(
           sectionId,
@@ -223,6 +258,12 @@ function buildSectionFields(
           formatIdList(baseline.filterIds, lookups.tagNames),
           formatIdList(proposed.filterIds, lookups.tagNames),
           currentAvailable,
+          {
+            semanticallyChanged: !areLookupIdSetsEquivalent(
+              baseline.filterIds,
+              proposed.filterIds,
+            ),
+          },
         ),
       ]
     case 'accessibility':
@@ -245,6 +286,18 @@ function buildSectionFields(
           formatCost(baseline.costOption, baseline.costDetails),
           formatCost(proposed.costOption, proposed.costDetails),
           currentAvailable,
+          {
+            semanticallyChanged: !areCostsEquivalent(
+              {
+                costOption: baseline.costOption,
+                costDetails: baseline.costDetails,
+              },
+              {
+                costOption: proposed.costOption,
+                costDetails: proposed.costDetails,
+              },
+            ),
+          },
         ),
       ]
     case 'website':
@@ -268,6 +321,12 @@ function buildSectionFields(
             proposed.contacts.filter((contact) => contact.type === 'website'),
           ),
           currentAvailable,
+          {
+            semanticallyChanged: !areContactsEquivalent(
+              baseline.contacts.filter((contact) => contact.type === 'website'),
+              proposed.contacts.filter((contact) => contact.type === 'website'),
+            ),
+          },
         ),
       ]
     case 'other':
@@ -295,10 +354,21 @@ function field(
   currentRaw: string,
   proposedRaw: string,
   currentAvailable: boolean,
+  options?: {
+    /**
+     * When set, drives `changed` instead of comparing display strings.
+     * Use for structured fields where formatters omit semantic details
+     * (e.g. location coordinates) or normalize presentation.
+     */
+    semanticallyChanged?: boolean
+  },
 ): ResourceUpdateComparisonField {
   const proposed = displayValue(proposedRaw)
   const current = currentAvailable ? displayValue(currentRaw) : null
-  const changed = !currentAvailable || current !== proposed
+  const changed =
+    options?.semanticallyChanged !== undefined
+      ? !currentAvailable || options.semanticallyChanged
+      : !currentAvailable || current !== proposed
   return {
     id: `${sectionId}:${fieldKey}`,
     label,

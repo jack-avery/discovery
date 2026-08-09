@@ -1,21 +1,27 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ResourceDetailHero } from '@/features/discover/resourceDetailSections'
+import {
+  isExistingResourceComplete,
+  validateExistingResource,
+} from '@/features/submissions/existingResource/validation'
 import { ResourceUpdateComparisonView } from '@/features/submissions/updateRequest/ResourceUpdateComparisonView'
 import { buildResourceUpdateComparison } from '@/features/submissions/updateRequest/buildResourceUpdateComparison'
 import { mapResourceVersionToExistingResourceData } from '@/features/submissions/updateRequest/mapResourceVersionToExistingResourceData'
 import {
-  EDITED_APPROVAL_BLOCKED_HELPER,
+  INCOMPLETE_EDITED_APPROVAL_HELPER,
   type SubmissionApprovalGate,
 } from '@/features/staff/submissions/submissionApprovalGate'
 import { useResourceUpdateAcceptance } from '@/features/staff/submissions/updateReview/useResourceUpdateAcceptance'
+import { fieldErrorForUpdateComparisonField } from '@/features/staff/submissions/updateReview/updateReviewFieldErrors'
+import { mergeLookupOptionsWithSelectedIds } from '@/features/staff/submissions/updateReview/mergeLookupOptionsWithSelectedIds'
+import { renderUpdateReviewStructuredEditor } from '@/features/staff/submissions/updateReview/UpdateReviewStructuredEditors'
 import { useCategories } from '@/hooks/useCategories'
 import { useTags } from '@/hooks/useTags'
+import type { ExistingResourceData } from '@/types/submission'
 import type { SubmissionDetailDto } from '@/types/moderationSubmission'
 import { cn } from '@/utils/cn'
 
 export type ResourceUpdateApprovalGate = SubmissionApprovalGate
-
-const APPROVAL_BLOCKED_HELPER = EDITED_APPROVAL_BLOCKED_HELPER
 
 /**
  * Staff review for Resource Update submissions: stacked current → proposed
@@ -24,16 +30,27 @@ const APPROVAL_BLOCKED_HELPER = EDITED_APPROVAL_BLOCKED_HELPER
 export function ResourceUpdateReviewPanel({
   submission,
   onApprovalGateChange,
+  onFinalVersionChange,
 }: {
   submission: SubmissionDetailDto
   onApprovalGateChange?: (gate: ResourceUpdateApprovalGate) => void
+  onFinalVersionChange?: (data: ExistingResourceData | null) => void
 }) {
   const version = submission.proposed_version
   const baselineDto = submission.current_approved_resource ?? null
   const missingBaseline = baselineDto == null
 
-  const { categories } = useCategories()
-  const { tags } = useTags()
+  const {
+    categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    reload: reloadCategories,
+  } = useCategories()
+  const {
+    tags,
+    isLoading: tagsLoading,
+    error: tagsError,
+  } = useTags()
   const [showUnchanged, setShowUnchanged] = useState(false)
 
   const proposed = useMemo(
@@ -61,6 +78,25 @@ export function ResourceUpdateReviewPanel({
     [categories, tags],
   )
 
+  const catalogCategoryOptions = useMemo(
+    () =>
+      categories.map((category) => ({
+        id: category.category_id,
+        name: category.name,
+        description: category.description,
+      })),
+    [categories],
+  )
+
+  const catalogFilterOptions = useMemo(
+    () =>
+      tags.map((tag) => ({
+        id: tag.tag_id,
+        name: tag.name,
+      })),
+    [tags],
+  )
+
   const comparison = useMemo(() => {
     if (!proposed) return null
     return buildResourceUpdateComparison(baseline, proposed, lookups)
@@ -73,32 +109,62 @@ export function ResourceUpdateReviewPanel({
     proposed,
   )
 
-  // Keep approval gate in sync with local outcome changes.
+  const differsFromProposed =
+    acceptance.composedFinal?.differsFromProposed ??
+    acceptance.hasOutcomeChanges
+
+  const composedData = acceptance.composedFinal?.data ?? null
+
+  // Shared public-form publishability check against the composed resource.
+  const isComplete = useMemo(
+    () =>
+      composedData != null ? isExistingResourceComplete(composedData) : true,
+    [composedData],
+  )
+
+  const showValidationErrors = differsFromProposed
+  const validationErrors = useMemo(
+    () =>
+      showValidationErrors && composedData != null
+        ? validateExistingResource(composedData)
+        : {},
+    [composedData, showValidationErrors],
+  )
+
+  // Lift composed final into the shared workspace path when outcome ≠ proposal.
+  useEffect(() => {
+    if (!onFinalVersionChange) return
+    onFinalVersionChange(
+      differsFromProposed && acceptance.composedFinal
+        ? acceptance.composedFinal.data
+        : null,
+    )
+  }, [
+    acceptance.composedFinal,
+    differsFromProposed,
+    onFinalVersionChange,
+  ])
+
+  // Gate Approve when the composed (edited) resource would not be publishable.
   useEffect(() => {
     if (!onApprovalGateChange) return
-    const blocksApproval =
-      acceptance.composedFinal?.differsFromProposed ??
-      acceptance.hasOutcomeChanges
-    if (blocksApproval) {
+    if (differsFromProposed && !isComplete) {
       onApprovalGateChange({
         approveDisabled: true,
-        approveHelper: APPROVAL_BLOCKED_HELPER,
+        approveHelper: INCOMPLETE_EDITED_APPROVAL_HELPER,
       })
       return
     }
     onApprovalGateChange({ approveDisabled: false })
-  }, [
-    acceptance.composedFinal?.differsFromProposed,
-    acceptance.hasOutcomeChanges,
-    onApprovalGateChange,
-  ])
+  }, [differsFromProposed, isComplete, onApprovalGateChange])
 
-  // Clear gate when leaving this panel / switching submissions.
+  // Clear gate / final version when leaving this panel / switching submissions.
   useEffect(() => {
     return () => {
       onApprovalGateChange?.({ approveDisabled: false })
+      onFinalVersionChange?.(null)
     }
-  }, [onApprovalGateChange, submission.submission_id])
+  }, [onApprovalGateChange, onFinalVersionChange, submission.submission_id])
 
   if (!version || !proposed || !comparison) {
     return (
@@ -173,6 +239,51 @@ export function ResourceUpdateReviewPanel({
           onProposedChange: acceptance.setFieldEdit,
           isFieldEdited: acceptance.isFieldEdited,
           onResetField: acceptance.resetFieldEdit,
+          getFieldError: (fieldId) =>
+            showValidationErrors
+              ? fieldErrorForUpdateComparisonField(
+                  validationErrors,
+                  fieldId,
+                  acceptance.composedFinal?.data ?? null,
+                )
+              : undefined,
+          renderProposedControl: ({ field, disabled }) =>
+            renderUpdateReviewStructuredEditor(field.id, disabled, {
+              getContacts: acceptance.getContactsEditorValue,
+              onContactsChange: acceptance.setContactsEdit,
+              getWebsites: acceptance.getWebsitesEditorValue,
+              onWebsitesChange: acceptance.setWebsitesEdit,
+              getAccessMode: acceptance.getAccessModeEditorValue,
+              onAccessModeChange: acceptance.setAccessModeEdit,
+              getLocations: acceptance.getLocationsEditorValue,
+              onLocationsChange: acceptance.setLocationsEdit,
+              getCategoryIds: acceptance.getCategoryIdsEditorValue,
+              onCategoryIdsChange: acceptance.setCategoryIdsEdit,
+              getFilterIds: acceptance.getFilterIdsEditorValue,
+              onFilterIdsChange: acceptance.setFilterIdsEdit,
+              getCost: acceptance.getCostEditorValue,
+              onCostChange: acceptance.setCostEdit,
+              getHours: acceptance.getHoursEditorValue,
+              onHoursChange: acceptance.setHoursEdit,
+              accessMode: acceptance.getAccessModeEditorValue(),
+              categoryOptions: mergeLookupOptionsWithSelectedIds(
+                catalogCategoryOptions,
+                acceptance.getCategoryIdsEditorValue(),
+                lookups.categoryNames,
+              ),
+              filterOptions: mergeLookupOptionsWithSelectedIds(
+                catalogFilterOptions,
+                acceptance.getFilterIdsEditorValue(),
+                lookups.tagNames,
+              ),
+              categoriesLoading,
+              categoriesError,
+              onCategoriesRetry: reloadCategories,
+              filtersLoading: tagsLoading,
+              filtersError: tagsError,
+              errors: validationErrors,
+              showErrors: showValidationErrors,
+            }),
         }}
       />
     </div>
@@ -197,9 +308,9 @@ function MissingBaselineWarning() {
         Current published version could not be loaded
       </p>
       <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-        Proposed values are shown for review and can be edited locally. Approval
-        stays available only while you leave the proposal unchanged. Field-by-field
-        comparison will appear once the published baseline is available.
+        Proposed values are shown for review and can be edited locally.
+        Field-by-field comparison will appear once the published baseline is
+        available.
       </p>
     </div>
   )

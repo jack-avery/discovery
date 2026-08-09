@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { PanelHeader } from '@/components/shared/PanelHeader'
-import { Button } from '@/components/ui'
+import { Button, Textarea } from '@/components/ui'
 import { useResourceDetail } from '@/hooks/useResourceDetail'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { submitCreateSubmissionRequest, toHumanErrorMessage } from '@/services/submissionService'
@@ -15,6 +15,8 @@ import { ContributorEditor } from '../contributor/ContributorEditor'
 import { createEmptyContributorInfo } from '../contributor/emptyState'
 import { isContributorComplete } from '../contributor/validation'
 import { ExistingResourceEditor } from '../existingResource/ExistingResourceEditor'
+import { isExistingResourceComplete } from '../existingResource/validation'
+import { Field } from '../form/Field'
 import { UnsavedChangesDialog } from '../form/UnsavedChangesDialog'
 import { mapUpdateResourceRequest } from '../mappers/mapExistingResource'
 import { mapResourceVersionToExistingResourceData } from './mapResourceVersionToExistingResourceData'
@@ -26,6 +28,7 @@ import {
   type UpdateSubmissionOutcome,
 } from './resolveUpdateSubmissionOutcome'
 import { hasResourceDataChanges } from './updateSectionDiff'
+import { deriveUpdateSubmitGate } from './deriveUpdateSubmitGate'
 import type { UpdateSectionId } from './updateSections'
 
 /**
@@ -79,7 +82,6 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     editedSections: UpdateSectionId[]
   }>({ hasChanges: false, isComplete: false, editedSections: [] })
   const [contributorComplete, setContributorComplete] = useState(false)
-  const [submitHint, setSubmitHint] = useState<string | undefined>()
   const [submitError, setSubmitError] = useState<string | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [pendingClose, setPendingClose] = useState(false)
@@ -88,6 +90,8 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   const [activeSectionId, setActiveSectionId] = useState<UpdateSectionId | null>(
     null,
   )
+  /** Submission metadata only — never mapped into ResourceVersion content. */
+  const [staffNotes, setStaffNotes] = useState('')
 
   const resourceSaveRef = useRef<(() => SavedContributionPayload | null) | null>(
     null,
@@ -97,6 +101,14 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const isDirty = resourceDirty || contributorDirty
+
+  const submitGate = deriveUpdateSubmitGate({
+    hasChanges: updateState.hasChanges,
+    resourceComplete: updateState.isComplete,
+    contributorComplete,
+    resourceValidationRevealed: showResourceErrors,
+    contributorValidationRevealed: showContributorErrors,
+  })
 
   const resetWorkflow = useCallback(() => {
     submitAbortRef.current?.abort()
@@ -116,10 +128,10 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
       editedSections: [],
     })
     setContributorComplete(false)
-    setSubmitHint(undefined)
     setSubmitError(undefined)
     setSuccessOutcome('pending_review')
     setActiveSectionId(null)
+    setStaffNotes('')
     setPendingClose(false)
   }, [])
 
@@ -208,12 +220,12 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     setContributorDirty(false)
     setUpdateState({
       hasChanges: false,
-      isComplete: false,
+      isComplete: isExistingResourceComplete(mapped),
       editedSections: [],
     })
     setContributorComplete(false)
-    setSubmitHint(undefined)
     setSubmitError(undefined)
+    setStaffNotes('')
     setStep('editing')
   }, [version, selectedSections])
 
@@ -244,31 +256,25 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     if (isSubmitting) return
     if (!baselineData || !proposedData || !hasResourceId) return
 
+    // Reveal field errors; ExistingResourceEditor scrolls to the first invalid section.
     setShowResourceErrors(true)
     setShowContributorErrors(true)
+    setSubmitError(undefined)
 
     const savedResource = resourceSaveRef.current?.() ?? null
     const savedContributor = contributorSaveRef.current?.() ?? null
 
-    const resourceOk = hasResourceDataChanges(baselineData, proposedData)
+    const resourceHasChanges = hasResourceDataChanges(baselineData, proposedData)
+    if (!resourceHasChanges) return
+
+    // Incomplete resource: keep submission blocked; footer + field UX update live.
+    if (!updateState.isComplete || !savedResource) return
+
     const contributorOk = isContributorComplete(
       savedContributor ?? createEmptyContributorInfo(),
       { requireResourceConnection: true },
     )
-
-    if (!resourceOk) {
-      setSubmitError(undefined)
-      setSubmitHint('Make at least one change before submitting.')
-      return
-    }
-    if (!savedResource || !updateState.isComplete) {
-      setSubmitError(undefined)
-      setSubmitHint('Fix the highlighted resource fields before submitting.')
-      return
-    }
     if (!savedContributor || !contributorOk || !contributorComplete) {
-      setSubmitError(undefined)
-      setSubmitHint('Complete your contact information before submitting.')
       document
         .getElementById('contributor-details')
         ?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -280,14 +286,13 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
       proposedData,
       savedContributor,
       proposedData.name || resourceName,
+      staffNotes,
     )
 
     const displayTitle =
       proposedData.name.trim() || resourceName || 'this resource'
     const controller = new AbortController()
     submitAbortRef.current = controller
-    setSubmitHint(undefined)
-    setSubmitError(undefined)
     setIsSubmitting(true)
 
     try {
@@ -321,6 +326,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     resourceName,
     updateState.isComplete,
     contributorComplete,
+    staffNotes,
   ])
 
   return (
@@ -385,9 +391,11 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
             initialExpandedSections={selectedSections}
             showResourceErrors={showResourceErrors}
             showContributorErrors={showContributorErrors}
-            submitHint={submitHint}
+            staffNotes={staffNotes}
+            onStaffNotesChange={setStaffNotes}
+            footerMessage={submitGate.footerMessage}
             submitError={submitError}
-            canSubmit={updateState.hasChanges}
+            canSubmit={submitGate.canSubmit}
             isSubmitting={isSubmitting}
             onShowResourceErrorsChange={setShowResourceErrors}
             onShowContributorErrorsChange={setShowContributorErrors}
@@ -508,7 +516,9 @@ function EditingStage({
   initialExpandedSections,
   showResourceErrors,
   showContributorErrors,
-  submitHint,
+  staffNotes,
+  onStaffNotesChange,
+  footerMessage,
   submitError,
   canSubmit,
   isSubmitting,
@@ -528,7 +538,9 @@ function EditingStage({
   initialExpandedSections: UpdateSectionId[]
   showResourceErrors: boolean
   showContributorErrors: boolean
-  submitHint?: string
+  staffNotes: string
+  onStaffNotesChange: (value: string) => void
+  footerMessage: string | null
   submitError?: string
   canSubmit: boolean
   isSubmitting: boolean
@@ -579,6 +591,17 @@ function EditingStage({
         requireResourceConnection
       />
 
+      <Field
+        id="update-staff-notes"
+        label="Anything else RRCRC staff should know? (optional)"
+      >
+        <Textarea
+          id="update-staff-notes"
+          value={staffNotes}
+          onChange={(event) => onStaffNotesChange(event.target.value)}
+        />
+      </Field>
+
       <div className="flex flex-col gap-2 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-end">
         {isSubmitting ? (
           <p className="text-xs text-muted-foreground sm:mr-auto" role="status">
@@ -588,13 +611,9 @@ function EditingStage({
           <p className="text-xs text-destructive sm:mr-auto" role="alert">
             {submitError}
           </p>
-        ) : submitHint ? (
+        ) : footerMessage ? (
           <p className="text-xs text-muted-foreground sm:mr-auto" role="status">
-            {submitHint}
-          </p>
-        ) : !canSubmit ? (
-          <p className="text-xs text-muted-foreground sm:mr-auto">
-            Make at least one change before submitting.
+            {footerMessage}
           </p>
         ) : null}
         <Button

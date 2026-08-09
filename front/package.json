@@ -7,7 +7,18 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:contact-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/contacts/contactEquality.test.ts",
+    "test:location-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/locations/locationEquality.test.ts",
+    "test:hours-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/hours/hoursEquality.test.ts",
+    "test:access-mode-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/accessModeStructuredModeration.test.ts",
+    "test:lookup-id-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/lookups/lookupIdEquality.test.ts",
+    "test:categories-filters-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/categoriesFiltersStructuredModeration.test.ts",
+    "test:cost-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/cost/costEquality.test.ts",
+    "test:cost-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/costStructuredModeration.test.ts",
+    "test:website-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/websiteStructuredModeration.test.ts",
+    "test:empty-structured-edit": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/emptyStructuredEditComposition.test.ts",
+    "test:update-submit-gate": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/deriveUpdateSubmitGate.test.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -34,6 +45,7 @@
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
     "tailwindcss": "^4.1.8",
+    "tsx": "^4.23.11",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
     "vite": "^6.3.5"

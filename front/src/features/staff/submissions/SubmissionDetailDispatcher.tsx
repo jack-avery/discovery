@@ -39,6 +39,7 @@ export function SubmissionDetailDispatcher({
       <ResourceUpdateReviewPanel
         submission={submission}
         onApprovalGateChange={onApprovalGateChange}
+        onFinalVersionChange={onFinalVersionChange}
       />
     )
   }

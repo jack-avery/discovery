@@ -35,6 +35,12 @@ export const RESOURCE_RELATIONSHIP_OPTIONS: {
   { value: 'other', label: 'Other' },
 ]
 
+/**
+ * Contributor contact rules:
+ * - Full name required
+ * - At least one of email or phone required
+ * - Preferred contact method required and must match a populated field
+ */
 export function validateContributor(
   contributor: ContributorInfo,
   options: ContributorValidationOptions = {},
@@ -48,27 +54,41 @@ export function validateContributor(
   }
 
   const email = contributor.email.trim()
-  if (!email) errors.email = 'Enter your email address.'
-  else if (!isValidEmail(email)) {
+  const phone = contributor.phone.trim()
+  const hasEmail = Boolean(email)
+  const hasPhone = Boolean(phone)
+  const preferred = contributor.preferredContactMethod
+
+  if (hasEmail && !isValidEmail(email)) {
     errors.email = 'Enter a valid email address.'
   }
+  if (hasPhone && !isValidNorthAmericanPhone(phone)) {
+    errors.phone = PHONE_VALIDATION_MESSAGE
+  }
 
-  if (!contributor.preferredContactMethod) {
+  if (!preferred) {
     errors.preferredContactMethod = 'Choose a preferred contact method.'
   }
 
-  if (contributor.preferredContactMethod === 'phone') {
-    if (!contributor.phone.trim()) {
+  if (!hasEmail && !hasPhone) {
+    if (preferred === 'phone') {
       errors.phone =
-        'Enter a phone number so we can reach you that way.'
-    } else if (!isValidNorthAmericanPhone(contributor.phone)) {
-      errors.phone = PHONE_VALIDATION_MESSAGE
+        errors.phone ?? 'Enter a phone number so we can reach you that way.'
+    } else if (preferred === 'email') {
+      errors.email =
+        errors.email ?? 'Enter an email address so we can reach you that way.'
+    } else {
+      errors.email =
+        errors.email ?? 'Enter an email address or phone number.'
+      errors.phone =
+        errors.phone ?? 'Enter an email address or phone number.'
     }
-  } else if (
-    contributor.phone.trim() &&
-    !isValidNorthAmericanPhone(contributor.phone)
-  ) {
-    errors.phone = PHONE_VALIDATION_MESSAGE
+  } else if (preferred === 'email' && !hasEmail) {
+    errors.email =
+      errors.email ?? 'Enter an email address so we can reach you that way.'
+  } else if (preferred === 'phone' && !hasPhone) {
+    errors.phone =
+      errors.phone ?? 'Enter a phone number so we can reach you that way.'
   }
 
   if (requireResourceConnection) {

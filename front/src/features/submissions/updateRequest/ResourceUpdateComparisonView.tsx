@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { Button, Input, Textarea } from '@/components/ui'
 import type {
   ResourceUpdateComparison,
@@ -19,6 +20,17 @@ export interface ResourceUpdateComparisonReviewHandlers {
   onProposedChange: (fieldId: string, value: string) => void
   isFieldEdited: (fieldId: string) => boolean
   onResetField: (fieldId: string) => void
+  /**
+   * Optional structured proposed control (contacts / locations / hours).
+   * Return a node to replace the default input/textarea; return null to fall back.
+   */
+  renderProposedControl?: (args: {
+    field: ResourceUpdateComparisonField
+    disabled: boolean
+    controlId: string
+  }) => ReactNode | null
+  /** Shared validation message for this comparison field, when shown. */
+  getFieldError?: (fieldId: string) => string | undefined
 }
 
 interface ResourceUpdateComparisonViewProps {
@@ -168,6 +180,15 @@ function FieldComparison({
   const multiline = prefersMultiline(field)
   const proposedControlId = `proposed-${field.id}`
   const acceptControlId = `accept-${field.id}`
+  const structuredControl =
+    interactive && review
+      ? review.renderProposedControl?.({
+          field,
+          disabled: !proposedEditable,
+          controlId: proposedControlId,
+        })
+      : null
+  const fieldError = review?.getFieldError?.(field.id)
 
   return (
     <div className="space-y-2.5">
@@ -239,7 +260,9 @@ function FieldComparison({
                 ) : null}
               </div>
             </div>
-            {multiline ? (
+            {structuredControl != null ? (
+              structuredControl
+            ) : multiline ? (
               <Textarea
                 id={proposedControlId}
                 value={proposedValue === 'Not provided' ? '' : proposedValue}
@@ -252,6 +275,7 @@ function FieldComparison({
                   review.onProposedChange(field.id, event.target.value)
                 }
                 aria-label={`Proposed ${field.label}`}
+                aria-invalid={Boolean(fieldError)}
               />
             ) : (
               <Input
@@ -266,8 +290,14 @@ function FieldComparison({
                   review.onProposedChange(field.id, event.target.value)
                 }
                 aria-label={`Proposed ${field.label}`}
+                aria-invalid={Boolean(fieldError)}
               />
             )}
+            {fieldError && structuredControl == null ? (
+              <p className="text-sm text-danger" role="alert">
+                {fieldError}
+              </p>
+            ) : null}
           </div>
         ) : (
           <ComparisonValue
