@@ -12,10 +12,15 @@ export function DashboardQuickActions({ actions }: DashboardQuickActionsProps) {
 
   const visibleActions = useMemo(
     () =>
-      actions.filter(
-        (action) => !action.adminOnly || permissions.canManageUsers,
-      ),
-    [actions, permissions.canManageUsers],
+      actions.filter((action) => {
+        if (action.adminOnly && !permissions.canManageUsers) return false
+        // Categories + tags mutations both require staff_editor+ on the backend.
+        if (action.staffEditorOnly && !permissions.canManageCategories) {
+          return false
+        }
+        return true
+      }),
+    [actions, permissions.canManageUsers, permissions.canManageCategories],
   )
 
   return (

@@ -441,6 +441,34 @@ describe('401 recovery and single-flight refresh', () => {
     await assert.rejects(() => api.get('/auth/me'))
     assert.equal(refreshCalls, 0)
   })
+
+  it('attaches Bearer access token to POST /submissions when signed in', async () => {
+    setAccessToken('trusted-contributor-token')
+    let authorization: string | undefined
+
+    globalThis.fetch = mock.fn(async (_url: string | URL, init?: RequestInit) => {
+      const headers = new Headers(init?.headers)
+      authorization = headers.get('Authorization') ?? undefined
+      return {
+        ok: true,
+        status: 201,
+        statusText: 'Created',
+        text: async () =>
+          successEnvelope({
+            submission_id: 1,
+            resource_id: 1,
+            resource_version_id: 1,
+          }),
+      } as Response
+    }) as typeof fetch
+
+    await api.post('/submissions', {
+      submission_type: 'new_resource',
+      name: 'Trusted contribution',
+    })
+
+    assert.equal(authorization, 'Bearer trusted-contributor-token')
+  })
 })
 
 describe('single-flight refreshSessionAccessToken', () => {

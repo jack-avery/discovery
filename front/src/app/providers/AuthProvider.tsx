@@ -9,7 +9,6 @@ import {
 } from 'react'
 import {
   EMPTY_PERMISSIONS,
-  hasStaffAccess,
   permissionsFromRoles,
   type StaffPermissions,
 } from '@/auth/permissions'
@@ -18,9 +17,7 @@ import {
   onAccessTokenInvalidated,
   setAccessToken,
 } from '@/services/authToken'
-import { ApiError } from '@/services/api'
 import type { AuthUser, LoginRequest } from '@/types/auth'
-import { APP_BRANDING } from '@/config/appBranding'
 
 export type AuthStatus = 'anonymous' | 'authenticated'
 
@@ -38,7 +35,8 @@ interface AuthContextValue {
   isInitializing: boolean
   /** True during login, logout, refresh, and cold-start restore. */
   isLoading: boolean
-  login: (credentials: LoginRequest) => Promise<void>
+  /** Establishes session; returns the authenticated user (any canonical role). */
+  login: (credentials: LoginRequest) => Promise<AuthUser>
   logout: () => Promise<void>
   refresh: () => Promise<void>
 }
@@ -62,8 +60,9 @@ function clearSession(
 }
 
 /**
- * Establish staff session from an access token via GET /auth/me.
- * Clears auth state and throws when the account lacks staff roles.
+ * Establish an authenticated session from an access token via GET /auth/me.
+ * Accepts any active account (including trusted_contributor). Staff Workspace
+ * authorization is enforced at `/staff/*`, not here.
  */
 async function establishSessionFromAccessToken(
   accessToken: string,
@@ -71,20 +70,6 @@ async function establishSessionFromAccessToken(
 ): Promise<AuthUser> {
   setAccessToken(accessToken)
   const { user } = await authService.getCurrentUser({ signal })
-
-  if (!hasStaffAccess(user.roles)) {
-    try {
-      await authService.logout({ signal })
-    } catch {
-      // Best-effort cookie clear; local state is cleared by the caller.
-    }
-    setAccessToken(null)
-    throw new ApiError(
-      `This portal is for ${APP_BRANDING.communityName} staff only. Your account does not have staff access.`,
-      403,
-    )
-  }
-
   return user
 }
 
@@ -165,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           result.access_token,
         )
         applySession(nextUser, result.access_token)
+        return nextUser
       } catch (error) {
         try {
           await authService.logout()

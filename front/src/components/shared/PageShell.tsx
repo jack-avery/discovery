@@ -6,7 +6,7 @@ interface PageShellProps {
   title: string
   description?: string
   children: ReactNode
-  /** Optional header trailing content. Defaults to Staff Portal / session controls. */
+  /** Optional header trailing content. Defaults to Sign in / session controls. */
   actions?: ReactNode
   /**
    * When true, content fills the remaining viewport height without page-level

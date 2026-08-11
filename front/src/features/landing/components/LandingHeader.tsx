@@ -5,7 +5,7 @@ import { StaffSessionControls } from '@/components/shared/StaffSessionControls'
 import { APP_BRANDING } from '@/config/appBranding'
 
 /**
- * Minimal public landing header: brand + Staff Portal.
+ * Minimal public landing header: brand + Sign in / session controls.
  * Application navigation stays in the left rail — do not duplicate it here.
  */
 export function LandingHeader() {

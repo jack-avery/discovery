@@ -1,12 +1,14 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
+import { PUBLIC_POST_LOGIN_PATH } from '@/auth/postLoginNavigation'
 
 /**
- * Guards staff routes. Unauthenticated visitors are sent to /sign-in
- * with the attempted location preserved for post-login return.
+ * Guards Staff Workspace routes (`/staff/*`).
+ * - Unauthenticated → `/sign-in` (return path preserved)
+ * - Authenticated without staff workspace access (e.g. trusted_contributor) → Discover
  */
 export function RequireAuth() {
-  const { isAuthenticated, isInitializing } = useAuth()
+  const { isAuthenticated, isInitializing, permissions } = useAuth()
   const location = useLocation()
 
   if (isInitializing && !isAuthenticated) {
@@ -21,6 +23,10 @@ export function RequireAuth() {
 
   if (!isAuthenticated) {
     return <Navigate to="/sign-in" replace state={{ from: location }} />
+  }
+
+  if (!permissions.canAccessStaffWorkspace) {
+    return <Navigate to={PUBLIC_POST_LOGIN_PATH} replace />
   }
 
   return <Outlet />

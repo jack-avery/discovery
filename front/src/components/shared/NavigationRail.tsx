@@ -84,7 +84,8 @@ function navLinkClassName(isActive: boolean, isCollapsed: boolean, nested = fals
 
 export function NavigationRail() {
   const { isCollapsed, toggleCollapsed } = useNavigationRail()
-  const { isAuthenticated, permissions } = useAuth()
+  const { permissions } = useAuth()
+  const showStaffWorkspace = permissions.canAccessStaffWorkspace
 
   const visibleStaffNavItems = useMemo(
     () =>
@@ -144,7 +145,7 @@ export function NavigationRail() {
           </NavLink>
         ))}
 
-        {isAuthenticated ? (
+        {showStaffWorkspace ? (
           <div className={cn('pt-3', !isCollapsed && 'mt-1 border-t border-border')}>
             {!isCollapsed ? (
               <p className="px-3 pb-1.5 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
