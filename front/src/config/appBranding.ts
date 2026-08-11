@@ -1,5 +1,5 @@
 /**
- * Application-shell branding for the reusable Resource Discovery frontend.
+ * Application-shell branding for the reusable Resource Map frontend.
  *
  * These values are intentionally centralized so another community can customize
  * community name, mark, and application name without editing NavigationRail or
@@ -12,7 +12,7 @@ export const APP_BRANDING = {
   /** Short mark shown in the navigation logo badge. */
   communityMark: 'RR',
   /** Product / application subtitle in the shell. */
-  applicationName: 'Resource Discovery',
+  applicationName: 'Resource Map',
 } as const
 
 /** Browser tab title derived from shell branding. */

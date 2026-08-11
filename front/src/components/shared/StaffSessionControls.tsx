@@ -1,3 +1,4 @@
+import { LogOut } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { Button } from '@/components/ui'
@@ -10,7 +11,7 @@ interface StaffSessionControlsProps {
 
 /**
  * Top-right session controls for public and authenticated states.
- * Public: Staff Portal link. Authenticated: display name | Sign Out.
+ * Public: Staff Portal link. Authenticated: display name | Sign out action.
  */
 export function StaffSessionControls({ className }: StaffSessionControlsProps) {
   const { isAuthenticated, user, isLoading, logout } = useAuth()
@@ -26,7 +27,10 @@ export function StaffSessionControls({ className }: StaffSessionControlsProps) {
         <span className="max-w-[10rem] truncate font-medium text-foreground sm:max-w-[14rem]">
           {displayName(user)}
         </span>
-        <span aria-hidden="true">|</span>
+        <span
+          aria-hidden="true"
+          className="h-4 w-px shrink-0 bg-border"
+        />
         <Button
           type="button"
           variant="ghost"
@@ -35,9 +39,10 @@ export function StaffSessionControls({ className }: StaffSessionControlsProps) {
           onClick={() => {
             void logout()
           }}
-          className="min-h-0 px-2"
+          className="h-8 shrink-0 gap-1.5 pl-0 pr-2"
         >
-          Sign Out
+          <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          Sign out
         </Button>
       </div>
     )

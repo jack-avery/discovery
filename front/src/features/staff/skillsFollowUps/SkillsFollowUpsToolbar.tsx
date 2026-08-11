@@ -36,8 +36,8 @@ export function SkillsFollowUpsToolbar({
   onStatusFilterChange,
 }: SkillsFollowUpsToolbarProps) {
   return (
-    <div className="space-y-3 border-b border-border px-4 py-4 sm:px-5">
-      <div className="space-y-1">
+    <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-border px-4 py-3 sm:px-5">
+      <div className="min-w-0 space-y-1">
         <h2 className="font-heading text-sm font-semibold text-foreground">
           Accepted for follow-up
         </h2>
@@ -46,8 +46,8 @@ export function SkillsFollowUpsToolbar({
         </p>
       </div>
 
-      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-end">
-        <label className="flex min-w-0 flex-col gap-1 sm:w-44">
+      <div className="flex flex-wrap items-center gap-2.5">
+        <label className="block w-44 shrink-0">
           <span className="sr-only">Filter by status</span>
           <select
             value={statusFilter}
@@ -67,7 +67,7 @@ export function SkillsFollowUpsToolbar({
           </select>
         </label>
 
-        <label className="flex min-w-0 flex-col gap-1 sm:w-48">
+        <label className="block w-48 shrink-0">
           <span className="sr-only">Sort by date accepted</span>
           <select
             value={sort}

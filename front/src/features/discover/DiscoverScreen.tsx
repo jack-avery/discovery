@@ -50,7 +50,10 @@ export function DiscoverScreen({
   return (
     <div className="workspace-content flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin">
       <SearchSection search={search} onSearchChange={onSearchChange} />
-      <div data-tour="filters">
+      <div
+        data-tour="filters"
+        className="flex flex-col gap-[var(--ds-workspace-section-gap)]"
+      >
         <CategorySection
           categories={categories}
           selectedCategories={selectedCategories}

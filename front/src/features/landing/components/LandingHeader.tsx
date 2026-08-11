@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom'
+import { CircleUser } from 'lucide-react'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { StaffSessionControls } from '@/components/shared/StaffSessionControls'
-import { CircleUser } from 'lucide-react'
+import { APP_BRANDING } from '@/config/appBranding'
 
 /**
  * Minimal public landing header: brand + Staff Portal.
@@ -22,7 +23,7 @@ export function LandingHeader() {
           aria-hidden="true"
         >
           <span className="font-heading text-xs font-bold text-primary-foreground">
-            RC
+            {APP_BRANDING.communityMark}
           </span>
         </div>
         <span className="truncate font-heading text-sm font-semibold text-foreground sm:text-base">
