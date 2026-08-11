@@ -22,7 +22,8 @@
     "test:user-management": "tsx --tsconfig tsconfig.app.json --test src/services/userService.test.ts src/features/staff/auth/SetupPasswordForm.test.ts",
     "test:skills-follow-ups": "tsx --tsconfig tsconfig.app.json --test src/services/skillsFollowUpService.test.ts src/features/staff/skillsFollowUps/buildSkillsFollowUpDetailView.test.ts src/features/staff/skillsFollowUps/skillsFollowUpStatusHelpers.test.ts",
     "test:guided-tour": "tsx --tsconfig tsconfig.app.json --test src/features/discover/tour/discoverTour.test.ts",
-    "test:auth-session": "tsx --tsconfig tsconfig.app.json --test src/services/authSession.test.ts"
+    "test:auth-session": "tsx --tsconfig tsconfig.app.json --test src/services/authSession.test.ts",
+    "test:draft-persistence": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/state/draftPersistence.test.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
