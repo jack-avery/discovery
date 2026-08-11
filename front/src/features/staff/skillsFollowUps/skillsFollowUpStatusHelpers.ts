@@ -8,12 +8,19 @@ import type {
   SkillsFollowUpStatus,
 } from '@/types/skillsFollowUp'
 
-/** Converted records stay display-only in the lightweight status control. */
-export function isFollowUpStatusReadOnly(status: string): boolean {
+export function isConvertedStatus(status: string): boolean {
   return status === 'converted'
 }
 
-/** Options offered by the table/detail status editor (never includes Converted). */
+/**
+ * Status is never badge-locked; conversion is a separate action/dialog.
+ * Kept so call sites/tests can assert the control remains interactive.
+ */
+export function isFollowUpStatusReadOnly(_status: string): boolean {
+  return false
+}
+
+/** Ordinary lifecycle options for immediate PATCH (never includes Converted). */
 export function editableFollowUpStatusOptions(): ReadonlyArray<{
   value: EditableSkillsFollowUpStatus
   label: string
@@ -22,6 +29,29 @@ export function editableFollowUpStatusOptions(): ReadonlyArray<{
     value,
     label: skillsFollowUpStatusLabel(value),
   }))
+}
+
+/**
+ * Status `<select>` options.
+ *
+ * Converted is never offered as a selectable conversion path. When the
+ * confirmed status is already `converted`, include it only so the controlled
+ * select can display the current value while staff moves to another status.
+ */
+export function followUpStatusSelectOptions(
+  currentStatus: string,
+): ReadonlyArray<{ value: SkillsFollowUpStatus | string; label: string }> {
+  const options: Array<{ value: SkillsFollowUpStatus | string; label: string }> =
+    [...editableFollowUpStatusOptions()]
+
+  if (currentStatus === 'converted') {
+    options.push({
+      value: 'converted',
+      label: skillsFollowUpStatusLabel('converted'),
+    })
+  }
+
+  return options
 }
 
 /** Toolbar filter options: All + every backend status including Converted. */

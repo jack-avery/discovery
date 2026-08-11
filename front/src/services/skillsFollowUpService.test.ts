@@ -10,8 +10,13 @@ import {
   reverseFollowUpPageItems,
   serverPageForOldestFirst,
   skillsFollowUpStatusLabel,
+  toConvertFollowUpPayload,
   toSkillsFollowUpsApiParams,
   toUpdateSkillsFollowUpPayload,
+  buildConvertedResourceSearchParams,
+  mergeConvertedResourceSearchPages,
+  shouldSearchConvertedResources,
+  CONVERTED_RESOURCE_SEARCH_PAGE_SIZE,
 } from '@/services/skillsFollowUpService'
 import type { PaginationMeta } from '@/types/resource'
 import type { SkillsFollowUpSummaryDto } from '@/types/skillsFollowUp'
@@ -59,6 +64,17 @@ describe('toSkillsFollowUpsApiParams', () => {
       toSkillsFollowUpsApiParams({ status: 'converted', page: 1 }),
       {
         status: 'converted',
+        page: 1,
+        limit: 20,
+      },
+    )
+  })
+
+  it('filters by Awaiting Contact using backend status=accepted', () => {
+    assert.deepEqual(
+      toSkillsFollowUpsApiParams({ status: 'accepted', page: 1 }),
+      {
+        status: 'accepted',
         page: 1,
         limit: 20,
       },
@@ -133,23 +149,32 @@ describe('skills follow-up display helpers', () => {
     assert.equal(displaySkillName(item), 'Untitled skill or service')
   })
 
-  it('labels known follow-up statuses including Converted', () => {
-    assert.equal(skillsFollowUpStatusLabel('accepted'), 'Accepted')
+  it('labels known follow-up statuses for staff UI', () => {
+    assert.equal(skillsFollowUpStatusLabel('accepted'), 'Awaiting Contact')
     assert.equal(skillsFollowUpStatusLabel('contacted'), 'Contacted')
-    assert.equal(skillsFollowUpStatusLabel('in_discussion'), 'In discussion')
-    assert.equal(skillsFollowUpStatusLabel('converted'), 'Converted')
+    assert.equal(skillsFollowUpStatusLabel('in_discussion'), 'In Discussion')
+    assert.equal(
+      skillsFollowUpStatusLabel('converted'),
+      'Converted to Resource',
+    )
     assert.equal(skillsFollowUpStatusLabel('closed'), 'Closed')
   })
 })
 
 describe('toUpdateSkillsFollowUpPayload', () => {
-  it('builds a status-only PATCH body for Accepted → Contacted', () => {
+  it('builds a status-only PATCH body for Awaiting Contact → Contacted', () => {
     assert.deepEqual(toUpdateSkillsFollowUpPayload({ status: 'contacted' }), {
       status: 'contacted',
     })
   })
 
-  it('builds PATCH bodies for Contacted → In discussion and In discussion → Closed', () => {
+  it('PATCHes backend value accepted when selecting Awaiting Contact', () => {
+    assert.deepEqual(toUpdateSkillsFollowUpPayload({ status: 'accepted' }), {
+      status: 'accepted',
+    })
+  })
+
+  it('builds PATCH bodies for Contacted → In Discussion and In Discussion → Closed', () => {
     assert.deepEqual(
       toUpdateSkillsFollowUpPayload({ status: 'in_discussion' }),
       { status: 'in_discussion' },
@@ -179,7 +204,7 @@ describe('toUpdateSkillsFollowUpPayload', () => {
     assert.deepEqual(toUpdateSkillsFollowUpPayload({}), {})
   })
 
-  it('keeps Converted out of the editable status set', () => {
+  it('keeps Converted out of the immediate-edit status set', () => {
     assert.deepEqual([...EDITABLE_SKILLS_FOLLOW_UP_STATUSES], [
       'accepted',
       'contacted',
@@ -188,6 +213,75 @@ describe('toUpdateSkillsFollowUpPayload', () => {
     ])
     assert.equal(isEditableSkillsFollowUpStatus('converted'), false)
     assert.equal(isEditableSkillsFollowUpStatus('accepted'), true)
+  })
+
+  it('requires converted_resource_id when status is converted', () => {
+    assert.throws(
+      () => toUpdateSkillsFollowUpPayload({ status: 'converted' }),
+      /converted_resource_id is required/,
+    )
+  })
+
+  it('sends conversion PATCH with status and converted_resource_id together', () => {
+    assert.deepEqual(toConvertFollowUpPayload(42), {
+      status: 'converted',
+      converted_resource_id: 42,
+    })
+    assert.deepEqual(toUpdateSkillsFollowUpPayload(toConvertFollowUpPayload(42)), {
+      status: 'converted',
+      converted_resource_id: 42,
+    })
+  })
+
+  it('never emits null converted_resource_id when moving away from Converted', () => {
+    const payload = toUpdateSkillsFollowUpPayload({ status: 'contacted' })
+    assert.deepEqual(payload, { status: 'contacted' })
+    assert.equal('converted_resource_id' in payload, false)
+    assert.equal(
+      'converted_resource_id' in
+        toUpdateSkillsFollowUpPayload({ status: 'closed' }),
+      false,
+    )
+  })
+})
+
+describe('converted resource search helpers', () => {
+  it('does not search for blank or single-character queries', () => {
+    assert.equal(shouldSearchConvertedResources(''), false)
+    assert.equal(shouldSearchConvertedResources(' '), false)
+    assert.equal(shouldSearchConvertedResources('a'), false)
+    assert.equal(shouldSearchConvertedResources('ab'), true)
+    assert.equal(shouldSearchConvertedResources('  coding  '), true)
+  })
+
+  it('builds search params with page and per_page=10', () => {
+    assert.deepEqual(buildConvertedResourceSearchParams('coding', 1), {
+      search: 'coding',
+      page: 1,
+      perPage: CONVERTED_RESOURCE_SEARCH_PAGE_SIZE,
+    })
+    assert.equal(CONVERTED_RESOURCE_SEARCH_PAGE_SIZE, 10)
+    assert.deepEqual(buildConvertedResourceSearchParams(' coding ', 3), {
+      search: 'coding',
+      page: 3,
+      perPage: 10,
+    })
+  })
+
+  it('appends Load more pages without duplicating resource ids', () => {
+    const page1 = [
+      { resource_id: 1, name: 'A' },
+      { resource_id: 2, name: 'B' },
+    ]
+    const page2 = [
+      { resource_id: 2, name: 'B duplicate' },
+      { resource_id: 3, name: 'C' },
+    ]
+    assert.deepEqual(mergeConvertedResourceSearchPages(page1, page2), [
+      { resource_id: 1, name: 'A' },
+      { resource_id: 2, name: 'B' },
+      { resource_id: 3, name: 'C' },
+    ])
   })
 })
 

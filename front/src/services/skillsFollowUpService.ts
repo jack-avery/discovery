@@ -29,9 +29,23 @@ export const EDITABLE_SKILLS_FOLLOW_UP_STATUSES: readonly EditableSkillsFollowUp
 
 export const INTERNAL_NOTES_MAX_LENGTH = 5000
 
+/** Page size for the Converted-to-Resource picker search. */
+export const CONVERTED_RESOURCE_SEARCH_PAGE_SIZE = 10
+
+/** Minimum characters before the conversion resource search requests the API. */
+export const CONVERTED_RESOURCE_SEARCH_MIN_CHARS = 2
+
+/** Debounce for conversion resource search (ms). */
+export const CONVERTED_RESOURCE_SEARCH_DEBOUNCE_MS = 300
+
 export interface UpdateSkillsFollowUpInput {
   status?: EditableSkillsFollowUpStatus | SkillsFollowUpStatus
   internal_notes?: string | null
+  /**
+   * Required together with `status: 'converted'`.
+   * Never send null while status remains converted.
+   */
+  converted_resource_id?: number
 }
 
 export const EMPTY_SKILLS_FOLLOW_UP_LIST: SkillsFollowUpListDto = {
@@ -194,18 +208,80 @@ export async function fetchSkillsFollowUpById(
  * Build PATCH /skills-follow-ups/:id body.
  * Only includes fields that are explicitly provided.
  * Empty notes are sent as "" (backend accepts and clears the column).
+ *
+ * Guard: never emit `status: 'converted'` without a positive
+ * `converted_resource_id`, and never emit a null converted_resource_id.
  */
 export function toUpdateSkillsFollowUpPayload(
   input: UpdateSkillsFollowUpInput,
 ): Record<string, unknown> {
   const payload: Record<string, unknown> = {}
+
+  if (input.converted_resource_id !== undefined) {
+    if (
+      typeof input.converted_resource_id === 'number' &&
+      Number.isFinite(input.converted_resource_id) &&
+      input.converted_resource_id > 0
+    ) {
+      payload.converted_resource_id = input.converted_resource_id
+    }
+  }
+
   if (input.status !== undefined) {
+    if (input.status === 'converted') {
+      if (payload.converted_resource_id === undefined) {
+        throw new Error(
+          'converted_resource_id is required when setting status to converted.',
+        )
+      }
+    }
     payload.status = input.status
   }
+
   if (input.internal_notes !== undefined) {
     payload.internal_notes = input.internal_notes ?? ''
   }
+
   return payload
+}
+
+/**
+ * Confirmed conversion PATCH body — always pairs status with resource id.
+ */
+export function toConvertFollowUpPayload(resourceId: number): UpdateSkillsFollowUpInput {
+  return {
+    status: 'converted',
+    converted_resource_id: resourceId,
+  }
+}
+
+export function shouldSearchConvertedResources(query: string): boolean {
+  return query.trim().length >= CONVERTED_RESOURCE_SEARCH_MIN_CHARS
+}
+
+export function buildConvertedResourceSearchParams(
+  query: string,
+  page = 1,
+): { search: string; page: number; perPage: number } {
+  return {
+    search: query.trim(),
+    page: Math.max(1, page),
+    perPage: CONVERTED_RESOURCE_SEARCH_PAGE_SIZE,
+  }
+}
+
+/** Append page results, skipping duplicate resource_id rows. */
+export function mergeConvertedResourceSearchPages<
+  T extends { resource_id: number },
+>(existing: readonly T[], incoming: readonly T[]): T[] {
+  const seen = new Set(existing.map((item) => item.resource_id))
+  const merged = [...existing]
+  for (const item of incoming) {
+    if (seen.has(item.resource_id)) continue
+    seen.add(item.resource_id)
+    merged.push(item)
+  }
+  return merged
 }
 
 export function isEditableSkillsFollowUpStatus(
@@ -216,7 +292,7 @@ export function isEditableSkillsFollowUpStatus(
   )
 }
 
-/** PATCH /skills-follow-ups/:id — status and/or internal_notes (moderator+). */
+/** PATCH /skills-follow-ups/:id — status, notes, and/or converted_resource_id. */
 export async function updateSkillsFollowUp(
   followUpId: number,
   input: UpdateSkillsFollowUpInput,
@@ -238,13 +314,13 @@ export function formatFollowUpAcceptedAt(
 export function skillsFollowUpStatusLabel(status: string): string {
   switch (status) {
     case 'accepted':
-      return 'Accepted'
+      return 'Awaiting Contact'
     case 'contacted':
       return 'Contacted'
     case 'in_discussion':
-      return 'In discussion'
+      return 'In Discussion'
     case 'converted':
-      return 'Converted'
+      return 'Converted to Resource'
     case 'closed':
       return 'Closed'
     default:

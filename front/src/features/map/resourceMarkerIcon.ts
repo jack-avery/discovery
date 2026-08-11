@@ -26,7 +26,7 @@ export function getResourceMarkerIcon(
   const selectedClass = selected ? ' resource-map-marker__pin--selected' : ''
   const icon = L.divIcon({
     className: 'resource-map-marker',
-    html: `<div class="resource-map-marker__pin${selectedClass}" aria-hidden="true"><span class="resource-map-marker__icon">●</span></div>`,
+    html: `<div class="resource-map-marker__pin${selectedClass}" aria-hidden="true"><span class="resource-map-marker__icon"></span></div>`,
     iconSize: [32, 32],
     iconAnchor: [16, 32],
     // Open tooltips from the top of the pin so labels sit clearly above the marker.

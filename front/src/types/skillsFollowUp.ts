@@ -11,9 +11,9 @@ export type SkillsFollowUpStatus =
   | 'closed'
 
 /**
- * Statuses staff may select in the lightweight follow-up control.
- * `converted` remains a valid backend status but requires converted_resource_id
- * and is not offered here.
+ * Statuses staff may select in the lightweight follow-up control for
+ * immediate PATCH. `converted` is offered separately and uses a staged
+ * resource-link workflow (requires `converted_resource_id`).
  */
 export type EditableSkillsFollowUpStatus = Exclude<
   SkillsFollowUpStatus,

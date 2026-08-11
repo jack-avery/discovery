@@ -34,7 +34,7 @@ export function SkillsFollowUpsTable({
 }: SkillsFollowUpsTableProps) {
   return (
     <div className="overflow-x-auto scrollbar-thin">
-      <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
+      <table className="w-full min-w-[44rem] border-collapse text-left text-sm">
         <thead>
           <tr className="border-b border-border bg-muted/40">
             <th scope="col" className={usersTableHeaderCellClass}>

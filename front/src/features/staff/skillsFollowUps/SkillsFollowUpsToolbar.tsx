@@ -39,7 +39,7 @@ export function SkillsFollowUpsToolbar({
     <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 border-b border-border px-4 py-3 sm:px-5">
       <div className="min-w-0 space-y-1">
         <h2 className="font-heading text-sm font-semibold text-foreground">
-          Accepted for follow-up
+          Follow-ups
         </h2>
         <p className="text-xs text-muted-foreground">
           {resultCount} follow-up{resultCount === 1 ? '' : 's'}
@@ -47,7 +47,7 @@ export function SkillsFollowUpsToolbar({
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5">
-        <label className="block w-44 shrink-0">
+        <label className="block w-52 shrink-0">
           <span className="sr-only">Filter by status</span>
           <select
             value={statusFilter}
