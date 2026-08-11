@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import type { Marker as LeafletMarker } from 'leaflet'
 import { Marker, Tooltip } from 'react-leaflet'
 import { useResourceSelection } from '@/features/discover/useResourceSelection'
@@ -37,6 +37,18 @@ function ResourceMapMarker({
 }) {
   const markerRef = useRef<LeafletMarker | null>(null)
 
+  /**
+   * react-leaflet calls setLatLng whenever `position` identity changes.
+   * Keep a stable tuple while lat/lng are unchanged across refetches.
+   */
+  const position = useMemo(
+    (): [number, number] => [
+      item.location.latitude,
+      item.location.longitude,
+    ],
+    [item.location.latitude, item.location.longitude],
+  )
+
   useEffect(() => {
     const marker = markerRef.current
     if (!marker) return
@@ -44,7 +56,6 @@ function ResourceMapMarker({
     const element = marker.getElement()
     if (!element) return
 
-    // Leaflet markers are keyboard-focusable (`keyboard: true`); mirror hover tooltips on focus.
     const showTooltip = () => {
       marker.openTooltip()
     }
@@ -65,10 +76,11 @@ function ResourceMapMarker({
   return (
     <Marker
       ref={markerRef}
-      position={[item.location.latitude, item.location.longitude]}
+      position={position}
       icon={getResourceMarkerIcon({ selected })}
       alt={item.name}
       keyboard
+      zIndexOffset={selected ? 1000 : 0}
       eventHandlers={{
         click: () => onSelect(item.id),
       }}

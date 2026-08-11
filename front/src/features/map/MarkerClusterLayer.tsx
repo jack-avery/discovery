@@ -17,6 +17,10 @@ export const MarkerClusterGroup = createLayerComponent<
       showCoverageOnHover: cluster.showCoverageOnHover,
       spiderfyOnMaxZoom: cluster.spiderfyOnMaxZoom,
       maxClusterRadius: cluster.maxClusterRadius,
+      spiderLegPolylineOptions: {
+        ...cluster.spiderLegPolylineOptions,
+        interactive: false,
+      },
       ...props,
     })
     return {

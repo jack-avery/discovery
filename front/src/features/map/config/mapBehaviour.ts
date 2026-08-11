@@ -27,17 +27,47 @@ export const MAP_BEHAVIOUR = {
     maxClusterRadius: 50,
     spiderfyOnMaxZoom: true,
     showCoverageOnHover: false,
+    /**
+     * Shared stroke for MarkerCluster spider legs and detail-zoom overlap fans.
+     * Target: ~2.5–3px, dark grey, high opacity, solid round caps/joins.
+     */
+    spiderLegPolylineOptions: {
+      weight: 2.75,
+      color: '#222222',
+      opacity: 0.8,
+      lineCap: 'round' as const,
+      lineJoin: 'round' as const,
+    },
+  },
+  /**
+   * Detail-zoom overlap rendering (OPTION B).
+   * Non-separable coordinates use a display-only fan — not MarkerCluster spiderfy.
+   */
+  overlap: {
+    /** At this zoom and above, non-separable groups use the fan layout. */
+    detailZoom: 16,
+    /**
+     * Max projected pixel distance at map maxZoom for treating two pins as
+     * the same location. Distinct nearby places must remain separate.
+     */
+    maxPixelDistance: 1,
+    /** Pixel radius of the display-only fan around the shared geographic anchor. */
+    fanRadiusPx: 28,
+    /** Legs from the true geographic anchor to each fan marker. */
+    showSpiderLegs: true,
   },
   resize: {
     /** Delay before invalidating map size — slightly after the workspace transition completes. */
     invalidateSizeDelayMs: 320,
   },
   /**
-   * Selection movement: pan only when the target is outside this padded usable view.
+   * Selection camera: origin-aware (map click vs resource panel).
    * Left padding approximates the Discover workspace when expanded (`w-80` / `md:w-[23rem]`).
    */
   selection: {
-    /** Short pan duration (seconds) when movement is required — replaces long flyTo. */
+    /** Standard resource-focus zoom when the current zoom is below this level. */
+    focusZoom: 16,
+    /** Short animation duration (seconds) for selection camera moves. */
     panDurationSec: 0.3,
     paddingExpanded: {
       topLeft: [352, 56] as const,

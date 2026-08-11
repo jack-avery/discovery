@@ -9,8 +9,7 @@ import { getBasemapConfig } from '@/features/map/services'
 import { FlyToSelectedResource } from './FlyToSelectedResource'
 import { MapResizeHandler } from './MapResizeHandler'
 import { MapViewportReporter } from './MapViewportReporter'
-import { MarkerClusterGroup } from './MarkerClusterLayer'
-import { ResourceMapMarkers } from './ResourceMapMarkers'
+import { ResourceMarkersLayer } from './ResourceMarkersLayer'
 
 interface LeafletMapProps {
   items: ResourceMapItem[]
@@ -49,9 +48,7 @@ export function LeafletMap({ items, layoutKey, onViewportQueryChange }: LeafletM
           layoutKey={layoutKey}
           layoutReadyKey={layoutReadyKey}
         />
-        <MarkerClusterGroup>
-          <ResourceMapMarkers items={items} />
-        </MarkerClusterGroup>
+        <ResourceMarkersLayer items={items} />
       </LeafletMapContainer>
 
       {devFallback && <BasemapDevFallbackBanner devFallback={devFallback} />}

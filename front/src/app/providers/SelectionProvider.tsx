@@ -13,7 +13,7 @@ interface SelectionContextValue {
   clearSelection: () => void
 }
 
-const SelectionContext = createContext<SelectionContextValue | null>(null)
+export const SelectionContext = createContext<SelectionContextValue | null>(null)
 
 export function SelectionProvider({ children }: { children: ReactNode }) {
   const [selectedResourceId, setSelectedResourceId] = useState<string | null>(null)

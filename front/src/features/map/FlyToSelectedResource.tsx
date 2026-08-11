@@ -1,9 +1,14 @@
 import { useEffect, useRef } from 'react'
-import { useMap } from 'react-leaflet'
+import L from 'leaflet'
 import type { LatLngExpression } from 'leaflet'
+import { useMap } from 'react-leaflet'
 import { useResourceSelection } from '@/features/discover/useResourceSelection'
 import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
 import { getMapBehaviour } from '@/features/map/config'
+import {
+  getPaddedViewCenter,
+  resolveFocusZoom,
+} from '@/features/map/selectionCamera'
 import { fetchResourceById } from '@/services/resourceService'
 import type { ResourceMapItem } from '@/types'
 
@@ -19,9 +24,15 @@ interface FlyToSelectedResourceProps {
 }
 
 /**
- * When Resource Detail opens, bring the resource into the padded usable viewport
- * only if it is not already comfortably visible. Preserves zoom. Does not call
- * invalidateSize (MapResizeHandler owns that).
+ * Origin-aware selection camera (single owner of automatic map movement).
+ *
+ * - Map marker click: zoom to focusZoom around the pin only when below it;
+ *   never pan/recenter when already at/above focusZoom.
+ * - Panel / programmatic: always center in the padded usable map area; zoom up
+ *   to focusZoom when below it; preserve closer zooms.
+ *
+ * Does not manage overlap presentation (ResourceMarkersLayer owns clustering vs
+ * detail-zoom fan layout). Does not call invalidateSize (MapResizeHandler owns that).
  */
 export function FlyToSelectedResource({
   items,
@@ -29,7 +40,7 @@ export function FlyToSelectedResource({
   layoutReadyKey,
 }: FlyToSelectedResourceProps) {
   const map = useMap()
-  const { selectedResourceId } = useResourceSelection()
+  const { selectedResourceId, lastResourceOpenOrigin } = useResourceSelection()
   const { isExpanded } = useWorkspace()
   const { selection } = getMapBehaviour()
 
@@ -48,8 +59,16 @@ export function FlyToSelectedResource({
       return
     }
 
-    // Layout changed (e.g. workspace expand): wait until MapResizeHandler signals
-    // that invalidateSize has completed for this layoutKey.
+    const origin = lastResourceOpenOrigin
+    const focusZoom = selection.focusZoom
+    const isMapOrigin = origin === 'map' || origin == null
+    const isPanelOrigin = origin === 'results' || origin === 'programmatic'
+
+    if (isMapOrigin && map.getZoom() >= focusZoom) {
+      evaluatedResourceIdRef.current = selectedResourceId
+      return
+    }
+
     if (layoutKey !== layoutReadyKey) {
       return
     }
@@ -69,19 +88,25 @@ export function FlyToSelectedResource({
       )
       if (cancelled || !target) return
 
-      // Newest selection wins — stop any in-flight pan/fly before deciding.
       map.stop()
 
-      // panInside no-ops when the point is already inside the padded view.
-      map.panInside(target, {
-        paddingTopLeft: [...padding.topLeft] as [number, number],
-        paddingBottomRight: [...padding.bottomRight] as [number, number],
-        animate: true,
-        duration: selection.panDurationSec,
-        easeLinearity: 0.25,
-      })
+      if (isMapOrigin) {
+        map.setZoomAround(L.latLng(target), focusZoom, { animate: true })
+        evaluatedResourceIdRef.current = selectedResourceId
+        return
+      }
 
-      evaluatedResourceIdRef.current = selectedResourceId
+      if (isPanelOrigin) {
+        focusResourceFromPanel({
+          map,
+          target,
+          focusZoom,
+          paddingTopLeft: padding.topLeft,
+          paddingBottomRight: padding.bottomRight,
+          durationSec: selection.panDurationSec,
+        })
+        evaluatedResourceIdRef.current = selectedResourceId
+      }
     })()
 
     return () => {
@@ -91,16 +116,69 @@ export function FlyToSelectedResource({
     }
   }, [
     selectedResourceId,
+    lastResourceOpenOrigin,
     map,
     layoutKey,
     layoutReadyKey,
     isExpanded,
+    selection.focusZoom,
     selection.paddingExpanded,
     selection.paddingCollapsed,
     selection.panDurationSec,
   ])
 
   return null
+}
+
+interface PanelFocusArgs {
+  map: L.Map
+  target: LatLngExpression
+  focusZoom: number
+  paddingTopLeft: readonly [number, number]
+  paddingBottomRight: readonly [number, number]
+  durationSec: number
+}
+
+function focusResourceFromPanel(args: PanelFocusArgs): void {
+  const {
+    map,
+    target,
+    focusZoom,
+    paddingTopLeft,
+    paddingBottomRight,
+    durationSec,
+  } = args
+
+  const zoom = resolveFocusZoom(map.getZoom(), focusZoom)
+  const center = getPaddedViewCenter(
+    map,
+    target,
+    zoom,
+    paddingTopLeft,
+    paddingBottomRight,
+  )
+
+  if (isCameraAlreadyAt(map, center, zoom)) {
+    return
+  }
+
+  map.flyTo(center, zoom, {
+    animate: true,
+    duration: durationSec,
+    easeLinearity: 0.25,
+  })
+}
+
+function isCameraAlreadyAt(
+  map: L.Map,
+  center: L.LatLng,
+  zoom: number,
+): boolean {
+  if (Math.abs(map.getZoom() - zoom) > 1e-6) return false
+  const current = map.getCenter()
+  const px = map.project(current, zoom)
+  const targetPx = map.project(center, zoom)
+  return px.distanceTo(targetPx) < 1
 }
 
 async function resolveTargetLatLng(

@@ -24,7 +24,8 @@
     "test:guided-tour": "tsx --tsconfig tsconfig.app.json --test src/features/discover/tour/discoverTour.test.ts",
     "test:auth-session": "VITE_API_URL=http://localhost:5000 tsx --tsconfig tsconfig.app.json --test src/services/authSession.test.ts",
     "test:permissions": "tsx --tsconfig tsconfig.app.json --test src/auth/permissions.test.ts src/auth/postLoginNavigation.test.ts",
-    "test:draft-persistence": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/state/draftPersistence.test.ts"
+    "test:draft-persistence": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/state/draftPersistence.test.ts",
+    "test:map-overlap": "tsx --tsconfig tsconfig.app.json --test src/features/map/overlapGrouping.test.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",
