@@ -4,6 +4,7 @@ export { NavigationRail } from './NavigationRail'
 export { OverlayPanel } from './OverlayPanel'
 export { PageShell } from './PageShell'
 export { PanelHeader } from './PanelHeader'
+export { ResourcePlaceholderIllustration } from './ResourcePlaceholderIllustration'
 export { SearchBar } from './SearchBar'
 export { StaffSessionControls } from './StaffSessionControls'
 export {
