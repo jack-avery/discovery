@@ -84,7 +84,9 @@ export function ResultsList({
             <li key={resource.id}>
               <button
                 type="button"
-                onClick={() => openResourceDetail(resource.id)}
+                onClick={() =>
+                  openResourceDetail(resource.id, { origin: 'results' })
+                }
                 aria-current={isSelected ? 'true' : undefined}
                 className={cn(
                   'flex w-full flex-col gap-0.5 px-1 py-3 text-left transition-colors',
@@ -106,5 +108,9 @@ export function ResultsList({
     )
   }
 
-  return <WorkspaceSection aria-label="Results list">{content}</WorkspaceSection>
+  return (
+    <WorkspaceSection aria-label="Results list" data-tour="results">
+      {content}
+    </WorkspaceSection>
+  )
 }

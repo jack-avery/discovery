@@ -50,21 +50,23 @@ export function DiscoverScreen({
   return (
     <div className="workspace-content flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin">
       <SearchSection search={search} onSearchChange={onSearchChange} />
-      <CategorySection
-        categories={categories}
-        selectedCategories={selectedCategories}
-        onCategoriesChange={onCategoriesChange}
-        isLoading={categoriesLoading}
-        error={categoriesError}
-        onRetry={onCategoriesRetry}
-      />
-      <AdvancedFiltersSection
-        tags={tags}
-        selectedFilters={selectedAdvancedFilters}
-        onFiltersChange={onAdvancedFiltersChange}
-        isLoading={tagsLoading}
-        error={tagsError}
-      />
+      <div data-tour="filters">
+        <CategorySection
+          categories={categories}
+          selectedCategories={selectedCategories}
+          onCategoriesChange={onCategoriesChange}
+          isLoading={categoriesLoading}
+          error={categoriesError}
+          onRetry={onCategoriesRetry}
+        />
+        <AdvancedFiltersSection
+          tags={tags}
+          selectedFilters={selectedAdvancedFilters}
+          onFiltersChange={onAdvancedFiltersChange}
+          isLoading={tagsLoading}
+          error={tagsError}
+        />
+      </div>
       <ResultsSummary
         totalItems={resourcesTotal}
         isLoading={resourcesLoading}

@@ -50,7 +50,10 @@ export function MapCanvas({
   const layoutKey = isExpanded ? 'workspace-expanded' : 'workspace-collapsed'
 
   return (
-    <div className={cn('relative h-full min-h-0 min-w-0 flex-1', className)}>
+    <div
+      className={cn('relative h-full min-h-0 min-w-0 flex-1', className)}
+      data-tour="map"
+    >
       <MapContainer
         items={mapItems}
         isLoading={mapLoading}

@@ -9,6 +9,8 @@ interface WorkspaceSectionProps {
   divider?: boolean
   'aria-label'?: string
   className?: string
+  /** Stable Discover guided-tour anchor. */
+  'data-tour'?: string
 }
 
 /**
@@ -23,6 +25,7 @@ export function WorkspaceSection({
   divider = false,
   'aria-label': ariaLabel,
   className,
+  'data-tour': dataTour,
 }: WorkspaceSectionProps) {
   const hasHeader = Boolean(title || subtitle || actions)
   const hasContent = children !== undefined && children !== null && children !== false
@@ -34,6 +37,7 @@ export function WorkspaceSection({
   return (
     <section
       aria-label={!title ? ariaLabel : undefined}
+      data-tour={dataTour}
       className={cn(divider && 'border-b border-border', className)}
     >
       {hasHeader && (

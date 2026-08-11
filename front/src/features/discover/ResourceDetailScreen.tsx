@@ -157,7 +157,10 @@ export function ResourceDetailScreen() {
   const { resource, isLoading, error } = useResourceDetail(resourceId)
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin">
+    <div
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto scrollbar-thin"
+      data-tour="resource-detail"
+    >
       <div className="workspace-content flex-1 !gap-3">
         {!resourceId ? (
           <EmptyState

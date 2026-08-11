@@ -1,14 +1,17 @@
 import { Play } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { DISCOVER_START_TOUR_QUERY } from '@/features/discover/constants'
 
 const eyebrowClassName =
   'font-heading text-xs font-semibold uppercase tracking-[0.14em] text-interactive sm:text-sm'
 
+/** Public landing CTA → Discover with one-shot `?tour=1` to auto-start the guided tour. */
+export function guidedTourHref(): string {
+  return `/?${DISCOVER_START_TOUR_QUERY}=1`
+}
+
 /**
  * Compact final CTA inviting users into Discover via the guided tour.
- *
- * TODO(feature/guided-tour): Wire this button to start the guided tour once
- * that experience exists. For now it opens Discover so users can begin exploring.
  */
 export function GetStartedSection() {
   return (
@@ -35,7 +38,7 @@ export function GetStartedSection() {
         </p>
 
         <div className="mt-5 flex justify-center sm:mt-6">
-          <Button href="/" variant="primary" size="lg">
+          <Button href={guidedTourHref()} variant="primary" size="lg">
             <Play className="h-4 w-4 shrink-0" aria-hidden="true" />
             Take a Guided Tour
           </Button>

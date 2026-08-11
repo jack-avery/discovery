@@ -16,6 +16,7 @@ import { useAuth } from '@/app/providers/AuthProvider'
 import { useNavigationRail } from '@/app/providers/NavigationRailProvider'
 import { PanelHeader } from '@/components/shared/PanelHeader'
 import { Button } from '@/components/ui'
+import { isDiscoverTourSessionActive } from '@/features/discover/tour/tourSession'
 import { cn } from '@/utils/cn'
 
 const publicNavItems = [
@@ -122,6 +123,13 @@ export function NavigationRail() {
             end={end}
             aria-label={isCollapsed ? label : undefined}
             title={isCollapsed ? label : undefined}
+            data-tour={to === '/submit' ? 'contribute' : undefined}
+            onClick={(event) => {
+              // Finish the tour before leaving Discover via Contribute.
+              if (to === '/submit' && isDiscoverTourSessionActive()) {
+                event.preventDefault()
+              }
+            }}
             className={({ isActive }) => navLinkClassName(isActive, isCollapsed)}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
