@@ -115,6 +115,16 @@ function resolveInitialData(
   return createEmptyExistingResourceData()
 }
 
+/**
+ * Public New Resource / Update Resource contribution editor.
+ *
+ * TODO(images): Implement public resource image upload once the backend exposes
+ * a public-safe upload contract. Current POST /uploads/resources is moderator+
+ * only, while POST /submissions already accepts image_url. Intended flow:
+ * select image -> preview -> upload -> receive image_url -> include in submission.
+ * Ensure submitted images are visible in staff review and published Resource
+ * Detail. Backend/deployment must also confirm /uploads serving through Caddy.
+ */
 export function ExistingResourceEditor({
   initialContribution,
   initialData,
