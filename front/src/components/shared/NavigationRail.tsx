@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import {
   ClipboardList,
+  Handshake,
   Home,
   LayoutDashboard,
   MapPin,
@@ -38,6 +39,12 @@ const staffNavItems: StaffNavItem[] = [
     to: '/staff/submissions',
     label: 'Review Submissions',
     icon: ClipboardList,
+    end: false,
+  },
+  {
+    to: '/staff/skills-follow-ups',
+    label: 'Skills Follow-ups',
+    icon: Handshake,
     end: false,
   },
   {

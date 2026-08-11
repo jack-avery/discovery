@@ -11,6 +11,7 @@ import { SubmitResourcePage } from '@/pages/SubmitResourcePage'
 import { StaffSignInPage } from '@/pages/StaffSignInPage'
 import { StaffHomePage } from '@/pages/StaffHomePage'
 import { StaffSubmissionsPage } from '@/pages/StaffSubmissionsPage'
+import { StaffSkillsFollowUpsPage } from '@/pages/StaffSkillsFollowUpsPage'
 import { StaffUsersPage } from '@/pages/StaffUsersPage'
 import { SetupPasswordPage } from '@/pages/SetupPasswordPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
@@ -43,6 +44,7 @@ export const routes: RouteObject[] = [
             children: [
               { index: true, element: <StaffHomePage /> },
               { path: 'submissions', element: <StaffSubmissionsPage /> },
+              { path: 'skills-follow-ups', element: <StaffSkillsFollowUpsPage /> },
               { path: 'users', element: <StaffUsersPage /> },
             ],
           },
