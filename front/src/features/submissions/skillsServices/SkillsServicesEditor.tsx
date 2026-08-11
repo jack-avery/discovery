@@ -131,7 +131,7 @@ export function SkillsServicesEditor({
         aria-label="What happens next"
       >
         <p className="text-sm leading-relaxed text-foreground">
-          A member of the RRCRC team will review your submission and may
+          A member of our team will review your submission and may
           contact you to learn more about your idea and discuss how it could
           best support the community.
         </p>
@@ -193,7 +193,7 @@ export function SkillsServicesEditor({
           <EditorSection
             id="skills-availability"
             title="When are you generally available?"
-            description="Keep it simple. RRCRC staff will discuss the details with you later."
+            description="Keep it simple. We will discuss the details with you later."
           >
             <CheckboxOptionGroup<AvailabilityOption>
               legend="General availability (optional)"
@@ -254,7 +254,7 @@ export function SkillsServicesEditor({
           <EditorSection
             id="skills-inspiration"
             title="What inspired you to offer this?"
-            description="Optional. This helps RRCRC understand motivation and community fit."
+            description="Optional. This helps our team understand motivation and community fit."
           >
             <Field id="skills-why" label="Your inspiration (optional)">
               <Textarea

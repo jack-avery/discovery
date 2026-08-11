@@ -89,7 +89,7 @@ export function NewResourceIdentityFields({
           value={data.name}
           maxLength={RESOURCE_NAME_MAX_LENGTH}
           onChange={(event) => patch({ name: event.target.value })}
-          placeholder="e.g. Rideau-Rockcliffe Community Food Cupboard"
+          placeholder="e.g. Community Food Cupboard"
           aria-invalid={Boolean(errors.name)}
         />
       </Field>
@@ -321,7 +321,7 @@ export function NewResourceServiceFields({
           id="review-eligibility"
           value={data.eligibility}
           onChange={(event) => patch({ eligibility: event.target.value })}
-          placeholder="e.g. Open to Rideau-Rockcliffe residents"
+          placeholder="e.g. Open to local residents"
         />
       </Field>
 

@@ -593,7 +593,7 @@ function EditingStage({
 
       <Field
         id="update-staff-notes"
-        label="Anything else RRCRC staff should know? (optional)"
+        label="Anything else we should know? (optional)"
       >
         <Textarea
           id="update-staff-notes"

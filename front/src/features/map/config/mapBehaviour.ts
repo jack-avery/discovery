@@ -1,16 +1,18 @@
 import type { LatLngExpression } from 'leaflet'
-
-/** Rideau-Rockcliffe Community Resource Centre — 815 St. Laurent Blvd, Ottawa */
-const RRCRC_CENTER: LatLngExpression = [45.4445, -75.6392]
+import { DEPLOYMENT_CONFIG } from '@/config/deploymentConfig'
 
 /**
  * Application defaults for map behaviour — viewport, clustering, and resize timing.
  * Provider-agnostic settings live here; basemap provider settings live in mapConfig.ts.
+ * Geographic centre/zoom come from DEPLOYMENT_CONFIG (not branding).
  */
 export const MAP_BEHAVIOUR = {
   viewport: {
-    center: RRCRC_CENTER,
-    defaultZoom: 13,
+    center: [
+      DEPLOYMENT_CONFIG.geography.defaultMapCenter[0],
+      DEPLOYMENT_CONFIG.geography.defaultMapCenter[1],
+    ] as LatLngExpression,
+    defaultZoom: DEPLOYMENT_CONFIG.geography.defaultMapZoom,
     minZoom: 11,
     maxZoom: 18,
     /**

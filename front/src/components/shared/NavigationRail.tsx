@@ -16,6 +16,7 @@ import { useAuth } from '@/app/providers/AuthProvider'
 import { useNavigationRail } from '@/app/providers/NavigationRailProvider'
 import { PanelHeader } from '@/components/shared/PanelHeader'
 import { Button } from '@/components/ui'
+import { APP_BRANDING } from '@/config/appBranding'
 import { isDiscoverTourSessionActive } from '@/features/discover/tour/tourSession'
 import { cn } from '@/utils/cn'
 
@@ -63,7 +64,9 @@ function NavigationRailLogo() {
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary"
       aria-hidden="true"
     >
-      <span className="font-heading text-xs font-bold text-primary-foreground">RC</span>
+      <span className="font-heading text-xs font-bold text-primary-foreground">
+        {APP_BRANDING.communityMark}
+      </span>
     </div>
   )
 }
@@ -105,12 +108,16 @@ export function NavigationRail() {
         leading={<NavigationRailLogo />}
         title={
           !isCollapsed ? (
-            <p className="font-heading text-sm font-semibold text-foreground">RRCRC</p>
+            <p className="font-heading text-sm font-semibold tracking-tight text-foreground">
+              {APP_BRANDING.communityName}
+            </p>
           ) : undefined
         }
         subtitle={
           !isCollapsed ? (
-            <p className="text-xs text-muted-foreground">Resource Discovery</p>
+            <p className="text-xs text-muted-foreground">
+              {APP_BRANDING.applicationName}
+            </p>
           ) : undefined
         }
       />

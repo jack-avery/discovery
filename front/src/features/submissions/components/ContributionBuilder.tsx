@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ArrowRight, PlusCircle } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { APP_BRANDING } from '@/config/appBranding'
 import type {
   ContributorInfo,
   SavedContributionPayload,
@@ -419,11 +420,11 @@ export function ContributionBuilder() {
 
   const editorDescription =
     editor?.type === 'existing_resource'
-      ? 'Tell us about an organization, program, service, or place that people can already access in the Rideau-Rockcliffe community.'
+      ? `Tell us about an organization, program, service, or place that people can already access in the ${APP_BRANDING.communityName} community.`
       : editor?.type === 'community_asset'
-        ? 'Tell us about something you would personally like to offer to the Rideau-Rockcliffe community.'
+        ? `Tell us about something you would personally like to offer to the ${APP_BRANDING.communityName} community.`
         : editor?.type === 'event'
-          ? 'Tell us about an upcoming one-time or recurring event that could benefit people in the Rideau-Rockcliffe community.'
+          ? `Tell us about an upcoming one-time or recurring event that could benefit people in the ${APP_BRANDING.communityName} community.`
           : undefined
 
   const progressNode = editorProgress ? (
@@ -670,7 +671,7 @@ export function ContributionBuilder() {
       <ContributionEditorSheet
         open={ui.showContributorEditor}
         title="Your Information"
-        description="Tell us how RRCRC can contact you if we need to clarify anything about your submission."
+        description="Tell us how we can contact you if we need to clarify anything about your submission."
         onClose={requestCloseContributor}
         onSave={handleContributorSave}
         saveLabel="Save your information"
@@ -701,8 +702,8 @@ export function ContributionBuilder() {
           submitOutcome
             ? undefined
             : isSubmitting
-              ? 'Please wait while we send your contributions to RRCRC.'
-              : 'Check the information below before submitting it to RRCRC.'
+              ? 'Please wait while we send your contributions.'
+              : 'Check the information below before submitting.'
         }
         onClose={() => {
           if (isSubmitting) return

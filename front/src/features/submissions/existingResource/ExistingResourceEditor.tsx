@@ -350,7 +350,7 @@ export function ExistingResourceEditor({
           value={data.name}
           maxLength={RESOURCE_NAME_MAX_LENGTH}
           onChange={(e) => patch({ name: e.target.value })}
-          placeholder="e.g. Rideau-Rockcliffe Community Food Cupboard"
+          placeholder="e.g. Community Food Cupboard"
           aria-invalid={Boolean(aboutErrors.name)}
         />
       </Field>
@@ -557,7 +557,7 @@ export function ExistingResourceEditor({
           id="eligibility"
           value={data.eligibility}
           onChange={(e) => patch({ eligibility: e.target.value })}
-          placeholder="e.g. Open to Rideau-Rockcliffe residents"
+          placeholder="e.g. Open to local residents"
         />
       </Field>
 
@@ -693,7 +693,7 @@ export function ExistingResourceEditor({
               id="eligibility"
               value={data.eligibility}
               onChange={(e) => patch({ eligibility: e.target.value })}
-              placeholder="e.g. Open to Rideau-Rockcliffe residents"
+              placeholder="e.g. Open to local residents"
             />
           </Field>
           <Field

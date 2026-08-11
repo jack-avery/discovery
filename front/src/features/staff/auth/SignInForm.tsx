@@ -2,8 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/app/providers/AuthProvider'
-import { Field } from '@/features/submissions/form/Field'
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui'
+import { APP_BRANDING } from '@/config/appBranding'
+import { Field } from '@/features/submissions/form/Field'
 import { ApiError } from '@/services/api'
 import {
   looksLikeTechnicalErrorMessage,
@@ -102,7 +103,7 @@ export function SignInForm() {
     <Card className="w-full">
       <CardHeader>
         <h2 className="font-heading text-lg font-semibold text-foreground">
-          RRCRC Staff Portal
+          {APP_BRANDING.communityName} Staff Portal
         </h2>
         <p className="text-sm text-muted-foreground">
           Sign in with your staff account to access moderation tools.

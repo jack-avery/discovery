@@ -7,6 +7,9 @@ import '@/index.css'
 import '@/styles/globals.css'
 import '@/styles/leaflet-overrides.css'
 import App from '@/App'
+import { appDocumentTitle } from '@/config/appBranding'
+
+document.title = appDocumentTitle()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

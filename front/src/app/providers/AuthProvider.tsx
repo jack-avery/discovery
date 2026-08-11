@@ -20,6 +20,7 @@ import {
 } from '@/services/authToken'
 import { ApiError } from '@/services/api'
 import type { AuthUser, LoginRequest } from '@/types/auth'
+import { APP_BRANDING } from '@/config/appBranding'
 
 export type AuthStatus = 'anonymous' | 'authenticated'
 
@@ -79,7 +80,7 @@ async function establishSessionFromAccessToken(
     }
     setAccessToken(null)
     throw new ApiError(
-      'This portal is for RRCRC staff only. Your account does not have staff access.',
+      `This portal is for ${APP_BRANDING.communityName} staff only. Your account does not have staff access.`,
       403,
     )
   }

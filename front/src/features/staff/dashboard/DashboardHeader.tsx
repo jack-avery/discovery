@@ -1,6 +1,7 @@
 import { ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { Card } from '@/components/ui/Card'
+import { APP_BRANDING } from '@/config/appBranding'
 import { displayName } from '@/types/auth'
 
 const ROLE_LABELS: Record<string, string> = {
@@ -47,7 +48,8 @@ export function DashboardHeader() {
           Welcome back, {name}! <span aria-hidden="true">👋</span>
         </h2>
         <p className="text-sm text-muted-foreground">
-          Here&apos;s what&apos;s happening on RRCRC today.
+          Here&apos;s what&apos;s happening in {APP_BRANDING.communityName}{' '}
+          today.
         </p>
       </div>
 

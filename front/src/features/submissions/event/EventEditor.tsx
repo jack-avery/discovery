@@ -447,7 +447,7 @@ export function EventEditor({
               id="event-eligibility"
               value={data.eligibility}
               onChange={(e) => patch({ eligibility: e.target.value })}
-              placeholder="e.g. Open to Rideau-Rockcliffe residents and nearby neighbours"
+              placeholder="e.g. Open to local residents and nearby neighbours"
             />
           </Field>
 

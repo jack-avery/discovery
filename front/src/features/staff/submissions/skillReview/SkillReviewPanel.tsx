@@ -388,7 +388,7 @@ export function SkillReviewPanel({
 
       <WorkspaceSection aria-label="Disclaimer">
         <p className="text-xs leading-relaxed text-muted-foreground">
-          A member of the RRCRC team will follow up with the contributor as
+          A member of our team will follow up with the contributor as
           needed before anything is published.
         </p>
       </WorkspaceSection>

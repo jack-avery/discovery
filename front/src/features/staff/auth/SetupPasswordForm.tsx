@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui'
+import { APP_BRANDING } from '@/config/appBranding'
 import { ApiError } from '@/services/api'
 import { setupPassword } from '@/services/authService'
 import {
@@ -130,8 +131,8 @@ export function SetupPasswordForm() {
           Set your password
         </h2>
         <p className="text-sm text-muted-foreground">
-          Choose a password for your RRCRC staff account. This link can only be
-          used once.
+          Choose a password for your {APP_BRANDING.communityName} staff account.
+          This link can only be used once.
         </p>
       </CardHeader>
       <CardContent>
