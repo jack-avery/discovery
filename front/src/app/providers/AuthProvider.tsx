@@ -14,7 +14,10 @@ import {
   type StaffPermissions,
 } from '@/auth/permissions'
 import * as authService from '@/services/authService'
-import { setAccessToken } from '@/services/authToken'
+import {
+  onAccessTokenInvalidated,
+  setAccessToken,
+} from '@/services/authToken'
 import { ApiError } from '@/services/api'
 import type { AuthUser, LoginRequest } from '@/types/auth'
 
@@ -96,6 +99,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setAccessToken(token)
     setTokenState(token)
     setUser(nextUser)
+  }, [])
+
+  // When api.ts refresh fails mid-session, drop React auth state too.
+  useEffect(() => {
+    return onAccessTokenInvalidated(() => {
+      setTokenState(null)
+      setUser(null)
+    })
   }, [])
 
   /**
