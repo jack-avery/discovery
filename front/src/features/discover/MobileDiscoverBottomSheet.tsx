@@ -13,14 +13,15 @@ import { WorkspaceNavigationStack } from '@/features/discover/WorkspaceNavigatio
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
 import { cn } from '@/utils/cn'
+import { MOBILE_DISCOVER_SHEET_HEIGHT } from '@/features/discover/mobileDiscoverSheet'
 
 type SheetSnap = 'collapsed' | 'mid' | 'expanded'
 
 /** Fraction of the Discover map area height for each snap state. */
 const SHEET_HEIGHT: Record<SheetSnap, number> = {
-  collapsed: 0.18,
-  mid: 0.55,
-  expanded: 0.88,
+  collapsed: MOBILE_DISCOVER_SHEET_HEIGHT.collapsed,
+  mid: MOBILE_DISCOVER_SHEET_HEIGHT.mid,
+  expanded: MOBILE_DISCOVER_SHEET_HEIGHT.expanded,
 }
 
 const SNAP_ORDER: SheetSnap[] = ['collapsed', 'mid', 'expanded']

@@ -1,14 +1,16 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useContext } from 'react'
 import L from 'leaflet'
 import type { LatLngExpression } from 'leaflet'
 import { useMap } from 'react-leaflet'
 import { useResourceSelection } from '@/features/discover/useResourceSelection'
+import { WorkspaceNavigationContext } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
 import { getMapBehaviour } from '@/features/map/config'
 import {
   getPaddedViewCenter,
   resolveFocusZoom,
 } from '@/features/map/selectionCamera'
+import { resolveSelectionPadding } from '@/features/map/selectionPadding'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { fetchResourceById } from '@/services/resourceService'
 import type { ResourceMapItem } from '@/types'
@@ -28,7 +30,9 @@ interface FlyToSelectedResourceProps {
  * Origin-aware selection camera (single owner of automatic map movement).
  *
  * - Map marker click: zoom to focusZoom around the pin only when below it;
- *   never pan/recenter when already at/above focusZoom.
+ *   never pan/recenter when already at/above focusZoom (desktop only).
+ * - Mobile map marker: same zoom rules, but pan into the visible map strip
+ *   above the resource-detail bottom sheet when the sheet would obscure the pin.
  * - Panel / programmatic: always center in the padded usable map area; zoom up
  *   to focusZoom when below it; preserve closer zooms.
  *
@@ -43,21 +47,26 @@ export function FlyToSelectedResource({
   const map = useMap()
   const isMobile = useIsMobile()
   const { selectedResourceId, lastResourceOpenOrigin } = useResourceSelection()
+  const workspaceNav = useContext(WorkspaceNavigationContext)
   const { isExpanded } = useWorkspace()
   const { selection } = getMapBehaviour()
 
-  /** Last resource we finished evaluating for movement — blocks repeats while still selected. */
-  const evaluatedResourceIdRef = useRef<string | null>(null)
+  const showingMobileResourceDetail =
+    isMobile && workspaceNav?.current.id === 'resource-detail'
+
+  /** Blocks repeat moves for the same resource + mobile sheet obstruction state. */
+  const evaluatedCameraKeyRef = useRef<string | null>(null)
   const itemsRef = useRef(items)
   itemsRef.current = items
 
   useEffect(() => {
     if (!selectedResourceId) {
-      evaluatedResourceIdRef.current = null
+      evaluatedCameraKeyRef.current = null
       return
     }
 
-    if (evaluatedResourceIdRef.current === selectedResourceId) {
+    const cameraKey = `${selectedResourceId}:${showingMobileResourceDetail ? 'detail' : 'browse'}`
+    if (evaluatedCameraKeyRef.current === cameraKey) {
       return
     }
 
@@ -66,8 +75,8 @@ export function FlyToSelectedResource({
     const isMapOrigin = origin === 'map' || origin == null
     const isPanelOrigin = origin === 'results' || origin === 'programmatic'
 
-    if (isMapOrigin && map.getZoom() >= focusZoom) {
-      evaluatedResourceIdRef.current = selectedResourceId
+    if (!isMobile && isMapOrigin && map.getZoom() >= focusZoom) {
+      evaluatedCameraKeyRef.current = cameraKey
       return
     }
 
@@ -83,6 +92,7 @@ export function FlyToSelectedResource({
       isExpanded,
       mapHeightPx: map.getSize().y,
       selection,
+      showingResourceDetail: showingMobileResourceDetail,
     })
 
     void (async () => {
@@ -95,9 +105,22 @@ export function FlyToSelectedResource({
 
       map.stop()
 
-      if (isMapOrigin) {
+      if (isMapOrigin && !isMobile) {
         map.setZoomAround(L.latLng(target), focusZoom, { animate: true })
-        evaluatedResourceIdRef.current = selectedResourceId
+        evaluatedCameraKeyRef.current = cameraKey
+        return
+      }
+
+      if (isMapOrigin && isMobile) {
+        focusResourceFromPanel({
+          map,
+          target,
+          focusZoom,
+          paddingTopLeft: padding.topLeft,
+          paddingBottomRight: padding.bottomRight,
+          durationSec: selection.panDurationSec,
+        })
+        evaluatedCameraKeyRef.current = cameraKey
         return
       }
 
@@ -110,7 +133,7 @@ export function FlyToSelectedResource({
           paddingBottomRight: padding.bottomRight,
           durationSec: selection.panDurationSec,
         })
-        evaluatedResourceIdRef.current = selectedResourceId
+        evaluatedCameraKeyRef.current = cameraKey
       }
     })()
 
@@ -122,6 +145,7 @@ export function FlyToSelectedResource({
   }, [
     selectedResourceId,
     lastResourceOpenOrigin,
+    showingMobileResourceDetail,
     map,
     layoutKey,
     layoutReadyKey,
@@ -131,30 +155,6 @@ export function FlyToSelectedResource({
   ])
 
   return null
-}
-
-function resolveSelectionPadding(args: {
-  isMobile: boolean
-  isExpanded: boolean
-  mapHeightPx: number
-  selection: ReturnType<typeof getMapBehaviour>['selection']
-}): {
-  topLeft: readonly [number, number]
-  bottomRight: readonly [number, number]
-} {
-  const { isMobile, isExpanded, mapHeightPx, selection } = args
-
-  if (isMobile) {
-    const bottom = Math.round(
-      mapHeightPx * selection.paddingMobile.bottomInsetFraction,
-    )
-    return {
-      topLeft: selection.paddingMobile.topLeft,
-      bottomRight: [selection.paddingMobile.bottomRightX, bottom] as const,
-    }
-  }
-
-  return isExpanded ? selection.paddingExpanded : selection.paddingCollapsed
 }
 
 interface PanelFocusArgs {

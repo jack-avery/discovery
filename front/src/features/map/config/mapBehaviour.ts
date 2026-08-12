@@ -79,13 +79,14 @@ export const MAP_BEHAVIOUR = {
     },
     /**
      * Mobile Discover (bottom sheet): left clears zoom controls; bottom inset
-     * is applied dynamically from map height × bottomInsetFraction.
+     * is derived from sheet height when resource detail is open (see
+     * `resolveSelectionPadding`); this fraction is the browse fallback.
      */
     paddingMobile: {
       topLeft: [56, 72] as const,
       bottomRightX: 24,
-      /** Approximate mid-sheet coverage so pins sit in the visible map strip. */
-      bottomInsetFraction: 0.5,
+      /** Mid-sheet fallback when detail sheet is not open. */
+      bottomInsetFraction: 0.55,
     },
   },
 } as const
