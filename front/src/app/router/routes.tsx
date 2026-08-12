@@ -6,7 +6,6 @@ import { DiscoverPage } from '@/pages/DiscoverPage'
 import { HomePage } from '@/pages/HomePage'
 import { MapPage } from '@/pages/MapPage'
 import { ResourcesPage } from '@/pages/ResourcesPage'
-import { SubmissionsPage } from '@/pages/SubmissionsPage'
 import { SubmitResourcePage } from '@/pages/SubmitResourcePage'
 import { StaffSignInPage } from '@/pages/StaffSignInPage'
 import { StaffHomePage } from '@/pages/StaffHomePage'
@@ -34,7 +33,6 @@ export const routes: RouteObject[] = [
       { path: 'setup-password', element: <SetupPasswordPage /> },
       { path: 'map', element: <MapPage /> },
       { path: 'resources', element: <ResourcesPage /> },
-      { path: 'submissions', element: <SubmissionsPage /> },
       {
         path: 'staff',
         element: <RequireAuth />,
