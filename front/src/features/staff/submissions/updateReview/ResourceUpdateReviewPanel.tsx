@@ -7,10 +7,8 @@ import {
 import { ResourceUpdateComparisonView } from '@/features/submissions/updateRequest/ResourceUpdateComparisonView'
 import { buildResourceUpdateComparison } from '@/features/submissions/updateRequest/buildResourceUpdateComparison'
 import { mapResourceVersionToExistingResourceData } from '@/features/submissions/updateRequest/mapResourceVersionToExistingResourceData'
-import {
-  INCOMPLETE_EDITED_APPROVAL_HELPER,
-  type SubmissionApprovalGate,
-} from '@/features/staff/submissions/submissionApprovalGate'
+import { resolveStaffLocationApprovalGate } from '@/features/staff/submissions/physicalLocationApproval'
+import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
 import { useResourceUpdateAcceptance } from '@/features/staff/submissions/updateReview/useResourceUpdateAcceptance'
 import { fieldErrorForUpdateComparisonField } from '@/features/staff/submissions/updateReview/updateReviewFieldErrors'
 import { mergeLookupOptionsWithSelectedIds } from '@/features/staff/submissions/updateReview/mergeLookupOptionsWithSelectedIds'
@@ -52,6 +50,7 @@ export function ResourceUpdateReviewPanel({
     error: tagsError,
   } = useTags()
   const [showUnchanged, setShowUnchanged] = useState(false)
+  const [locationsVerified, setLocationsVerified] = useState(true)
 
   const proposed = useMemo(
     () => (version ? mapResourceVersionToExistingResourceData(version) : null),
@@ -114,6 +113,8 @@ export function ResourceUpdateReviewPanel({
     acceptance.hasOutcomeChanges
 
   const composedData = acceptance.composedFinal?.data ?? null
+  /** Final version that Approve would publish (composed edits or proposal). */
+  const publishData = composedData ?? proposed
 
   // Shared public-form publishability check against the composed resource.
   const isComplete = useMemo(
@@ -122,14 +123,28 @@ export function ResourceUpdateReviewPanel({
     [composedData],
   )
 
-  const showValidationErrors = differsFromProposed
+  const needsPhysical =
+    publishData != null &&
+    (publishData.accessMode === 'physical' || publishData.accessMode === 'both')
+
+  const showValidationErrors =
+    differsFromProposed || (needsPhysical && !locationsVerified)
   const validationErrors = useMemo(
     () =>
-      showValidationErrors && composedData != null
-        ? validateExistingResource(composedData)
+      showValidationErrors && publishData != null
+        ? validateExistingResource(publishData)
         : {},
-    [composedData, showValidationErrors],
+    [publishData, showValidationErrors],
   )
+
+  useEffect(() => {
+    if (!needsPhysical) setLocationsVerified(true)
+  }, [needsPhysical])
+
+  // Reset geocode readiness when switching submissions.
+  useEffect(() => {
+    setLocationsVerified(true)
+  }, [submission.submission_id])
 
   // Lift composed final into the shared workspace path when outcome ≠ proposal.
   useEffect(() => {
@@ -145,18 +160,29 @@ export function ResourceUpdateReviewPanel({
     onFinalVersionChange,
   ])
 
-  // Gate Approve when the composed (edited) resource would not be publishable.
+  // Gate Approve for completeness + physical MapTiler verification.
   useEffect(() => {
     if (!onApprovalGateChange) return
-    if (differsFromProposed && !isComplete) {
-      onApprovalGateChange({
-        approveDisabled: true,
-        approveHelper: INCOMPLETE_EDITED_APPROVAL_HELPER,
-      })
+    if (!publishData) {
+      onApprovalGateChange({ approveDisabled: false })
       return
     }
-    onApprovalGateChange({ approveDisabled: false })
-  }, [differsFromProposed, isComplete, onApprovalGateChange])
+    onApprovalGateChange(
+      resolveStaffLocationApprovalGate({
+        outcomeDiffersFromProposal: differsFromProposed,
+        isComplete,
+        accessMode: publishData.accessMode,
+        locations: publishData.locations,
+        locationsVerified,
+      }),
+    )
+  }, [
+    differsFromProposed,
+    isComplete,
+    publishData,
+    locationsVerified,
+    onApprovalGateChange,
+  ])
 
   // Clear gate / final version when leaving this panel / switching submissions.
   useEffect(() => {
@@ -257,6 +283,7 @@ export function ResourceUpdateReviewPanel({
               onAccessModeChange: acceptance.setAccessModeEdit,
               getLocations: acceptance.getLocationsEditorValue,
               onLocationsChange: acceptance.setLocationsEdit,
+              onLocationsVerifiedChange: setLocationsVerified,
               getCategoryIds: acceptance.getCategoryIdsEditorValue,
               onCategoryIdsChange: acceptance.setCategoryIdsEdit,
               getFilterIds: acceptance.getFilterIdsEditorValue,

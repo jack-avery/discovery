@@ -50,6 +50,8 @@ export interface UpdateReviewStructuredEditorHandlers {
   onAccessModeChange: (accessMode: AccessMode) => void
   getLocations: () => ExistingResourceLocation[]
   onLocationsChange: (locations: ExistingResourceLocation[]) => void
+  /** Live MapTiler verification for physical sites (Approve gate). */
+  onLocationsVerifiedChange?: (verified: boolean) => void
   getCategoryIds: () => number[]
   onCategoryIdsChange: (categoryIds: number[]) => void
   getFilterIds: () => number[]
@@ -153,6 +155,7 @@ export function renderUpdateReviewStructuredEditor(
           showErrors={showErrors}
           locationFields={showErrors ? errors.locationFields : undefined}
           listError={showErrors ? errors.locations : undefined}
+          onVerifiedChange={handlers.onLocationsVerifiedChange}
         />
       ) : null}
 

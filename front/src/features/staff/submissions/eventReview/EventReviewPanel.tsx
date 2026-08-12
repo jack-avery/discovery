@@ -30,10 +30,8 @@ import {
 } from '@/features/submissions/form/AccessModeSelector'
 import { PhysicalLocationList } from '@/features/submissions/form/PhysicalLocationList'
 import type { PhysicalLocationGeocodingHandle } from '@/features/submissions/form/PhysicalLocationList'
-import {
-  INCOMPLETE_EDITED_APPROVAL_HELPER,
-  type SubmissionApprovalGate,
-} from '@/features/staff/submissions/submissionApprovalGate'
+import { resolveStaffLocationApprovalGate } from '@/features/staff/submissions/physicalLocationApproval'
+import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
 import { SectionEditChrome } from '@/features/staff/submissions/SectionEditChrome'
 import {
   getEditedEventSections,
@@ -105,7 +103,7 @@ export function EventReviewPanel({
     useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
   const locationGeocodingRef = useRef<PhysicalLocationGeocodingHandle>(null)
-  const [, setLocationsVerified] = useState(true)
+  const [locationsVerified, setLocationsVerified] = useState(true)
 
   const baseline = useMemo(() => {
     if (!version) return createEmptyEventData()
@@ -139,7 +137,9 @@ export function EventReviewPanel({
     [baseline, data],
   )
   const isComplete = useMemo(() => isEventContributionComplete(data), [data])
-  const showErrors = hasEdits
+  const needsPhysicalAccess =
+    data.accessMode === 'physical' || data.accessMode === 'both'
+  const showErrors = hasEdits || (needsPhysicalAccess && !locationsVerified)
   const errors = useMemo(
     () => (showErrors ? validateEventContribution(data) : {}),
     [data, showErrors],
@@ -166,20 +166,32 @@ export function EventReviewPanel({
   )
 
   useEffect(() => {
+    if (!needsPhysicalAccess) setLocationsVerified(true)
+  }, [needsPhysicalAccess])
+
+  useEffect(() => {
     onFinalVersionChange?.(hasEdits ? data : null)
   }, [data, hasEdits, onFinalVersionChange])
 
   useEffect(() => {
     if (!onApprovalGateChange) return
-    if (hasEdits && !isComplete) {
-      onApprovalGateChange({
-        approveDisabled: true,
-        approveHelper: INCOMPLETE_EDITED_APPROVAL_HELPER,
-      })
-      return
-    }
-    onApprovalGateChange({ approveDisabled: false })
-  }, [hasEdits, isComplete, onApprovalGateChange])
+    onApprovalGateChange(
+      resolveStaffLocationApprovalGate({
+        outcomeDiffersFromProposal: hasEdits,
+        isComplete,
+        accessMode: data.accessMode,
+        locations: data.locations,
+        locationsVerified,
+      }),
+    )
+  }, [
+    hasEdits,
+    isComplete,
+    data.accessMode,
+    data.locations,
+    locationsVerified,
+    onApprovalGateChange,
+  ])
 
   useEffect(() => {
     return () => {
