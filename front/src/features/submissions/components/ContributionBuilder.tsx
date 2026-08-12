@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ArrowRight, PlusCircle } from 'lucide-react'
 import { Button } from '@/components/ui'
 import { APP_BRANDING } from '@/config/appBranding'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import type {
   ContributorInfo,
   SavedContributionPayload,
@@ -52,6 +53,7 @@ const ADD_ANOTHER_BUTTON_ID = 'add-another-contribution'
 const NEXT_ACTION_BUTTON_ID = 'contribution-next-action'
 
 export function ContributionBuilder() {
+  const isMobile = useIsMobile()
   const {
     draft,
     restoreNotice,
@@ -116,6 +118,10 @@ export function ContributionBuilder() {
   const [showErrors, setShowErrors] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const [editorProgress, setEditorProgress] = useState<EditorProgress>(null)
+  /** Existing completeness gate for the open contribution editor (mobile Save). */
+  const [editorCanSave, setEditorCanSave] = useState(false)
+  /** Existing completeness gate for the contributor editor (mobile Save). */
+  const [contributorCanSave, setContributorCanSave] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [showReviewGate, setShowReviewGate] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -145,9 +151,26 @@ export function ContributionBuilder() {
     setEditorProgress(progress)
   }, [])
 
+  const handleEditorCanSaveChange = useCallback((canSave: boolean) => {
+    setEditorCanSave(canSave)
+  }, [])
+
+  const handleContributorCanSaveChange = useCallback((canSave: boolean) => {
+    setContributorCanSave(canSave)
+  }, [])
+
   useEffect(() => {
-    if (!editor) setEditorProgress(null)
+    if (!editor) {
+      setEditorProgress(null)
+      setEditorCanSave(false)
+    }
   }, [editor])
+
+  useEffect(() => {
+    if (!ui.showContributorEditor) {
+      setContributorCanSave(false)
+    }
+  }, [ui.showContributorEditor])
 
   useEffect(() => {
     if (atLimit && editor?.mode === 'create') {
@@ -634,6 +657,7 @@ export function ContributionBuilder() {
         saveLabel={
           editor?.mode === 'edit' ? 'Save changes' : 'Save Contribution'
         }
+        primaryDisabled={isMobile && !editorCanSave}
       >
         {editor?.type === 'existing_resource' ? (
           <ExistingResourceEditor
@@ -643,6 +667,7 @@ export function ContributionBuilder() {
             onShowErrorsChange={setShowErrors}
             onDirtyChange={setIsDirty}
             onRegisterSave={registerSave}
+            onCanSaveChange={handleEditorCanSaveChange}
             onProgressChange={handleProgressChange}
           />
         ) : editor?.type === 'community_asset' ? (
@@ -653,6 +678,7 @@ export function ContributionBuilder() {
             onShowErrorsChange={setShowErrors}
             onDirtyChange={setIsDirty}
             onRegisterSave={registerSave}
+            onCanSaveChange={handleEditorCanSaveChange}
             onProgressChange={handleProgressChange}
           />
         ) : editor?.type === 'event' ? (
@@ -663,6 +689,7 @@ export function ContributionBuilder() {
             onShowErrorsChange={setShowErrors}
             onDirtyChange={setIsDirty}
             onRegisterSave={registerSave}
+            onCanSaveChange={handleEditorCanSaveChange}
             onProgressChange={handleProgressChange}
           />
         ) : null}
@@ -675,6 +702,7 @@ export function ContributionBuilder() {
         onClose={requestCloseContributor}
         onSave={handleContributorSave}
         saveLabel="Save your information"
+        primaryDisabled={isMobile && !contributorCanSave}
       >
         {ui.showContributorEditor ? (
           <ContributorEditor
@@ -684,6 +712,7 @@ export function ContributionBuilder() {
             onShowErrorsChange={setShowErrors}
             onDirtyChange={setIsDirty}
             onRegisterSave={registerContributorSave}
+            onValidityChange={handleContributorCanSaveChange}
             requireResourceConnection={requireResourceConnection}
           />
         ) : null}

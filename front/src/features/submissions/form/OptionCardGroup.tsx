@@ -70,8 +70,8 @@ export function OptionCardGroup<T extends string>({
       <div
         className={cn(
           chips
-            ? // Equal columns sized by the longest label; left-aligned; wrap on small screens.
-              'inline-grid max-w-full grid-cols-2 gap-2 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-[1fr]'
+            ? // Equal columns sized by the longest label; wrap on narrow phones.
+              'inline-grid max-w-full grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:grid-flow-col sm:grid-cols-none sm:auto-cols-[1fr]'
             : cn(
                 'grid gap-2',
                 stack ? 'grid-cols-1' : 'sm:grid-cols-3',
@@ -89,7 +89,7 @@ export function OptionCardGroup<T extends string>({
               className={cn(
                 'relative cursor-pointer rounded-xl border bg-surface transition-colors',
                 chips
-                  ? 'inline-flex items-center justify-center px-4 py-2 text-center whitespace-nowrap'
+                  ? 'inline-flex items-center justify-center px-4 py-2 text-center min-[380px]:whitespace-nowrap'
                   : rich
                     ? 'px-3 py-4'
                     : 'px-3 py-3',

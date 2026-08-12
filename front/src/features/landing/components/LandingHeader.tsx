@@ -12,7 +12,7 @@ export function LandingHeader() {
   const { isAuthenticated } = useAuth()
 
   return (
-    <header className="app-header flex shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4 sm:px-6 lg:px-10">
+    <header className="app-header hidden shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4 sm:px-6 md:flex lg:px-10">
       <Link
         to="/home"
         className="flex min-w-0 items-center gap-3 rounded-lg focus-ring"

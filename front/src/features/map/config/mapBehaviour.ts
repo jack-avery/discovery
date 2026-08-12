@@ -77,6 +77,16 @@ export const MAP_BEHAVIOUR = {
       topLeft: [56, 56] as const,
       bottomRight: [48, 48] as const,
     },
+    /**
+     * Mobile Discover (bottom sheet): left clears zoom controls; bottom inset
+     * is applied dynamically from map height × bottomInsetFraction.
+     */
+    paddingMobile: {
+      topLeft: [56, 72] as const,
+      bottomRightX: 24,
+      /** Approximate mid-sheet coverage so pins sit in the visible map strip. */
+      bottomInsetFraction: 0.5,
+    },
   },
 } as const
 

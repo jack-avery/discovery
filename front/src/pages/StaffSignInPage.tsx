@@ -1,12 +1,17 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
-import { resolveAuthenticatedSignInRedirect } from '@/auth/postLoginNavigation'
+import {
+  PUBLIC_POST_LOGIN_PATH,
+  resolveAuthenticatedSignInRedirect,
+} from '@/auth/postLoginNavigation'
 import { PageShell } from '@/components/shared/PageShell'
 import { APP_BRANDING } from '@/config/appBranding'
 import { SignInForm } from '@/features/staff/auth/SignInForm'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 export function StaffSignInPage() {
   const { isAuthenticated, isInitializing, user } = useAuth()
+  const isMobile = useIsMobile()
 
   if (isInitializing && !isAuthenticated) {
     return (
@@ -21,9 +26,14 @@ export function StaffSignInPage() {
   }
 
   if (isAuthenticated && user) {
+    const redirect = resolveAuthenticatedSignInRedirect(user.roles)
     return (
       <Navigate
-        to={resolveAuthenticatedSignInRedirect(user.roles)}
+        to={
+          isMobile && redirect.startsWith('/staff')
+            ? PUBLIC_POST_LOGIN_PATH
+            : redirect
+        }
         replace
       />
     )

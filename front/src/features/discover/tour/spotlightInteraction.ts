@@ -126,6 +126,17 @@ export function shouldResetToRootBeforeStep(stepId: string): boolean {
   )
 }
 
+/**
+ * Mobile-only: open the hamburger menu so the real Contribute Resource item
+ * is available as the `contribute` tour target.
+ */
+export function shouldOpenMobileNavForTourStep(
+  stepId: string | undefined,
+  isMobile: boolean,
+): boolean {
+  return isMobile && stepId === 'contribute'
+}
+
 /** Update Resource step needs an open Resource Detail panel first. */
 export function requiresResourceDetailStep(stepId: string): boolean {
   return stepId === 'update-resource'

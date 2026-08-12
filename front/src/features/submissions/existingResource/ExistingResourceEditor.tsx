@@ -70,6 +70,11 @@ interface ExistingResourceEditorProps {
   onShowErrorsChange: (show: boolean) => void
   onDirtyChange: (dirty: boolean) => void
   onRegisterSave: (save: () => SavedContributionPayload | null) => void
+  /**
+   * Live signal: whether the registered save handler would currently succeed
+   * (existing completeness + location verification gates). Does not toggle errors.
+   */
+  onCanSaveChange?: (canSave: boolean) => void
   onProgressChange?: (progress: {
     sections: readonly string[]
     revealed: number
@@ -135,6 +140,7 @@ export function ExistingResourceEditor({
   onShowErrorsChange,
   onDirtyChange,
   onRegisterSave,
+  onCanSaveChange,
   onProgressChange,
   onUpdateStateChange,
 }: ExistingResourceEditorProps) {
@@ -245,6 +251,19 @@ export function ExistingResourceEditor({
 
   const needsPhysical =
     data.accessMode === 'physical' || data.accessMode === 'both'
+
+  const canSave =
+    isComplete &&
+    (!needsPhysical || locationsVerified) &&
+    (!isUpdate || hasChanges)
+
+  useEffect(() => {
+    onCanSaveChange?.(canSave)
+  }, [canSave, onCanSaveChange])
+
+  useEffect(() => {
+    return () => onCanSaveChange?.(false)
+  }, [onCanSaveChange])
 
   useEffect(() => {
     if (!needsPhysical) setLocationsVerified(true)

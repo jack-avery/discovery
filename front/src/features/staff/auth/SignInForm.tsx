@@ -2,10 +2,14 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/app/providers/AuthProvider'
-import { resolvePostLoginPath } from '@/auth/postLoginNavigation'
+import {
+  PUBLIC_POST_LOGIN_PATH,
+  resolvePostLoginPath,
+} from '@/auth/postLoginNavigation'
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui'
 import { APP_BRANDING } from '@/config/appBranding'
 import { Field } from '@/features/submissions/form/Field'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { ApiError } from '@/services/api'
 import {
   looksLikeTechnicalErrorMessage,
@@ -39,6 +43,7 @@ export function SignInForm() {
   const { login, isLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const isMobile = useIsMobile()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -46,6 +51,8 @@ export function SignInForm() {
   const [emailError, setEmailError] = useState<string | undefined>()
   const [passwordError, setPasswordError] = useState<string | undefined>()
   const [formError, setFormError] = useState<string | null>(null)
+
+  const credentialsReady = Boolean(email.trim() && password)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -73,7 +80,14 @@ export function SignInForm() {
     try {
       const user = await login({ email: trimmedEmail, password })
       setFormError(null)
-      navigate(resolvePostLoginPath(user.roles, location.state), { replace: true })
+      const nextPath = resolvePostLoginPath(user.roles, location.state)
+      // Staff portal is unavailable below md — land on Discover instead.
+      navigate(
+        isMobile && nextPath.startsWith('/staff')
+          ? PUBLIC_POST_LOGIN_PATH
+          : nextPath,
+        { replace: true },
+      )
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.errors?.email) setEmailError(error.errors.email)
@@ -174,7 +188,11 @@ export function SignInForm() {
             ) : null}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading || (isMobile && !credentialsReady)}
+          >
             {isLoading ? 'Signing in…' : 'Sign In'}
           </Button>
         </form>

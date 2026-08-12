@@ -25,6 +25,7 @@ import { isResourceDetailIntroStep } from '@/features/discover/tour/tourSteps'
 import { TOUR_CLOSE_LABEL } from '@/features/discover/tour/tourSession'
 import { useTourEscape } from '@/features/discover/tour/useTourEscape'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { cn } from '@/utils/cn'
 
 const ESTIMATED_CARD_HEIGHT = 220
@@ -50,6 +51,7 @@ export function DiscoverTour() {
     finish,
   } = useDiscoverTour()
   const { current, selectedResourceId } = useWorkspaceNavigation()
+  const isMobile = useIsMobile()
   const isResourceDetailActive =
     current.id === 'resource-detail' && Boolean(selectedResourceId)
 
@@ -114,10 +116,22 @@ export function DiscoverTour() {
         : null
 
       // Mode B — Explore the map: full map spotlight, coachmark over panel.
-      if (step.id === 'explore-map' && mapRegion && workspace) {
+      // On mobile the bottom sheet is the workspace; if it is missing briefly,
+      // use a short placeholder so the card parks at the top of the map.
+      if (step.id === 'explore-map' && mapRegion) {
+        const layoutWorkspace =
+          workspace ??
+          ({
+            top: mapRegion.top,
+            left: mapRegion.left,
+            right: mapRegion.right,
+            bottom: mapRegion.top + 1,
+            width: mapRegion.width,
+            height: 1,
+          } satisfies RectLike)
         const layout = placeExploreMapTourLayout({
           mapRegion,
-          workspace,
+          workspace: layoutWorkspace,
           cardWidth: measuredCardWidth,
           cardHeight: measuredCardHeight,
           viewportWidth,
@@ -193,8 +207,12 @@ export function DiscoverTour() {
       setCardPosition(
         placeTourCard({
           target: spotlightRect,
-          workspace,
-          mapRegion,
+          // Mobile contribute targets the hamburger drawer item — dock beside
+          // the target, not the Discover bottom sheet workspace.
+          workspace:
+            step.id === 'contribute' && isMobile ? null : workspace,
+          mapRegion:
+            step.id === 'contribute' && isMobile ? null : mapRegion,
           cardWidth: measuredCardWidth,
           cardHeight: measuredCardHeight,
           viewportWidth,
@@ -203,7 +221,14 @@ export function DiscoverTour() {
       )
       setCardWidthPx(measuredCardWidth)
     },
-    [isActive, step, reduceMotion, isResourceDetailActive, selectedResourceId],
+    [
+      isActive,
+      step,
+      reduceMotion,
+      isResourceDetailActive,
+      selectedResourceId,
+      isMobile,
+    ],
   )
 
   useLayoutEffect(() => {

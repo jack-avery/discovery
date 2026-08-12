@@ -66,11 +66,42 @@ export function LandingHero() {
       aria-labelledby="landing-hero-heading"
       className="relative h-[60vh] max-h-[700px] min-h-[400px] shrink-0"
     >
-      {/* Left-to-right readability overlay — fades out at the bottom into the shared scene */}
+      {/*
+        Readability overlays over the shared photo.
+        Mobile and desktop are separate layers so desktop stays pixel-identical.
+      */}
+      {/* Mobile (< md): vertical top→bottom — light overlay through BOTH CTAs; photo fade only below */}
+      <div
+        className="absolute inset-0 md:hidden"
+        style={{
+          backgroundImage: [
+            'linear-gradient(',
+            'to bottom,',
+            // 0–60%: strong light behind heading + description
+            'var(--color-surface) 0%,',
+            'color-mix(in srgb, var(--color-surface) 98%, transparent) 30%,',
+            'color-mix(in srgb, var(--color-surface) 96%, transparent) 50%,',
+            'color-mix(in srgb, var(--color-surface) 94%, transparent) 60%,',
+            // 60–75%: modest reduction only
+            'color-mix(in srgb, var(--color-surface) 90%, transparent) 68%,',
+            'color-mix(in srgb, var(--color-surface) 86%, transparent) 75%,',
+            // 75–85%: still clearly light behind Explore + Contribute CTAs
+            'color-mix(in srgb, var(--color-surface) 82%, transparent) 80%,',
+            'color-mix(in srgb, var(--color-surface) 78%, transparent) 85%,',
+            // 85–100%: stronger fade into the photograph
+            'color-mix(in srgb, var(--color-surface) 45%, transparent) 92%,',
+            'color-mix(in srgb, var(--color-surface) 12%, transparent) 97%,',
+            'transparent 100%',
+            ')',
+          ].join(' '),
+        }}
+        aria-hidden="true"
+      />
+      {/* Desktop (md+): existing left→right overlay + bottom mask — unchanged */}
       <div
         className={cn(
-          'absolute inset-0 bg-gradient-to-r from-surface via-surface/90 to-surface/40',
-          'sm:from-surface/95 sm:via-surface/80 sm:to-transparent',
+          'pointer-events-none absolute inset-0 hidden md:block',
+          'bg-gradient-to-r from-surface/95 via-surface/80 to-transparent',
           '[mask-image:linear-gradient(to_bottom,black_calc(100%-9rem),transparent)]',
         )}
         aria-hidden="true"

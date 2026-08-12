@@ -33,6 +33,7 @@ export {
   buildBlockingPanels,
   isTourTargetInteractive,
   shouldResetToRootBeforeStep,
+  shouldOpenMobileNavForTourStep,
   requiresResourceDetailStep,
   isPointInAnyRect,
   isPointBlockedByPanels,

@@ -219,6 +219,8 @@ export function placeTourCardOverWorkspace(args: {
 
 /**
  * Explore-map layout: full map canvas spotlight + coachmark over workspace.
+ * When the workspace is too short to host the card (mobile collapsed sheet),
+ * park the coachmark near the top of the map so pins remain visible/tappable.
  */
 export function placeExploreMapTourLayout(args: {
   mapRegion: RectLike
@@ -237,11 +239,31 @@ export function placeExploreMapTourLayout(args: {
     viewportHeight,
   } = args
 
-  // Fit the card inside the workspace so it does not cover the map.
   const overlayCardWidth = Math.min(
     cardWidth,
-    Math.max(200, workspace.width - 32),
+    Math.max(200, Math.min(workspace.width, viewportWidth) - 32),
   )
+
+  // Collapsed mobile sheet is shorter than the coachmark — don't bury the map.
+  if (workspace.height < cardHeight + 48) {
+    const clamped = clampToViewport(
+      mapRegion.top + 12,
+      (viewportWidth - overlayCardWidth) / 2,
+      overlayCardWidth,
+      cardHeight,
+      viewportWidth,
+      viewportHeight,
+    )
+    return {
+      card: {
+        top: clamped.top,
+        left: clamped.left,
+        placement: 'over-panel',
+      },
+      cardWidth: overlayCardWidth,
+      spotlight: { ...mapRegion },
+    }
+  }
 
   const card = placeTourCardOverWorkspace({
     workspace,

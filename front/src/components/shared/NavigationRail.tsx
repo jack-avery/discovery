@@ -2,12 +2,9 @@ import { useMemo } from 'react'
 import {
   ClipboardList,
   Handshake,
-  Home,
   LayoutDashboard,
-  MapPin,
   PanelLeftClose,
   PanelLeftOpen,
-  PlusCircle,
   Users,
   type LucideIcon,
 } from 'lucide-react'
@@ -15,16 +12,11 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { useNavigationRail } from '@/app/providers/NavigationRailProvider'
 import { PanelHeader } from '@/components/shared/PanelHeader'
+import { PUBLIC_NAV_ITEMS } from '@/components/shared/publicNavItems'
 import { Button } from '@/components/ui'
 import { APP_BRANDING } from '@/config/appBranding'
 import { isDiscoverTourSessionActive } from '@/features/discover/tour/tourSession'
 import { cn } from '@/utils/cn'
-
-const publicNavItems = [
-  { to: '/home', label: 'Home', icon: Home, end: true as const },
-  { to: '/', label: 'Discover Resources', icon: MapPin, end: true as const },
-  { to: '/submit', label: 'Contribute Resource', icon: PlusCircle, end: false as const },
-]
 
 interface StaffNavItem {
   to: string
@@ -98,7 +90,8 @@ export function NavigationRail() {
   return (
     <aside
       className={cn(
-        'flex h-full shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200',
+        // Desktop-only persistent rail — mobile uses MobilePublicHeader.
+        'hidden h-full shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200 md:flex',
         isCollapsed ? 'w-16' : 'w-56',
       )}
       aria-label="Main navigation"
@@ -124,7 +117,7 @@ export function NavigationRail() {
       />
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-2 scrollbar-thin">
-        {publicNavItems.map(({ to, label, icon: Icon, end }) => (
+        {PUBLIC_NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}

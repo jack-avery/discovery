@@ -38,6 +38,7 @@ import {
   isPointInAnyRect,
   isTourTargetInteractive,
   requiresResourceDetailStep,
+  shouldOpenMobileNavForTourStep,
   shouldResetToRootBeforeStep,
 } from '@/features/discover/tour/spotlightInteraction'
 import {
@@ -655,6 +656,39 @@ describe('tour card placement', () => {
     assert.equal(isPointBlockedByPanels(200, 400, panels), true)
   })
 
+  it('parks explore-map coachmark at the top of the map when the sheet is collapsed', () => {
+    const collapsedSheet = {
+      top: 680,
+      left: 0,
+      right: 390,
+      bottom: 800,
+      width: 390,
+      height: 120,
+    }
+    const mobileMap = {
+      top: 56,
+      left: 0,
+      right: 390,
+      bottom: 800,
+      width: 390,
+      height: 744,
+    }
+    const layout = placeExploreMapTourLayout({
+      mapRegion: mobileMap,
+      workspace: collapsedSheet,
+      cardWidth: 360,
+      cardHeight: 220,
+      viewportWidth: 390,
+      viewportHeight: 800,
+    })
+
+    assert.equal(layout.spotlight.height, mobileMap.height)
+    assert.ok(layout.card.top < collapsedSheet.top)
+    assert.ok(layout.card.top <= mobileMap.top + 24)
+    // Mid-map pins stay outside the coachmark vertically.
+    assert.ok(layout.card.top + 220 < mobileMap.top + mobileMap.height * 0.55)
+  })
+
   it('returns to beside-workspace placement after the map step', () => {
     const updateTarget = {
       top: 500,
@@ -792,6 +826,13 @@ describe('tour navigation contract', () => {
     assert.equal(requiresResourceDetailStep('update-resource'), true)
     assert.equal(requiresResourceDetailStep('details'), false)
     assert.equal(requiresResourceDetailStep('map-details'), false)
+  })
+
+  it('opens the mobile hamburger only for the contribute tour step', () => {
+    assert.equal(shouldOpenMobileNavForTourStep('contribute', true), true)
+    assert.equal(shouldOpenMobileNavForTourStep('contribute', false), false)
+    assert.equal(shouldOpenMobileNavForTourStep('explore-map', true), false)
+    assert.equal(shouldOpenMobileNavForTourStep(undefined, true), false)
   })
 
   it('documents Back transitions between interactive steps', () => {

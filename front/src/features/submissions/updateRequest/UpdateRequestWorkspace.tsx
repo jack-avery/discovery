@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { PanelHeader } from '@/components/shared/PanelHeader'
 import { Button, Textarea } from '@/components/ui'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { useResourceDetail } from '@/hooks/useResourceDetail'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { submitCreateSubmissionRequest, toHumanErrorMessage } from '@/services/submissionService'
@@ -53,6 +54,7 @@ interface UpdateRequestWorkspaceProps {
  * internal names with product terminology.
  */
 export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps) {
+  const isMobile = useIsMobile()
   const { selectedResourceId } = useWorkspaceNavigation()
   const resourceIdNumber = selectedResourceId ? Number(selectedResourceId) : NaN
   const hasResourceId = Number.isFinite(resourceIdNumber)
@@ -109,6 +111,14 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     resourceValidationRevealed: showResourceErrors,
     contributorValidationRevealed: showContributorErrors,
   })
+
+  /**
+   * Desktop: preserve existing gate (changes-only).
+   * Mobile: also require existing completeness checks before Submit enables.
+   */
+  const canSubmitPrimary =
+    submitGate.canSubmit &&
+    (!isMobile || (updateState.isComplete && contributorComplete))
 
   const resetWorkflow = useCallback(() => {
     submitAbortRef.current?.abort()
@@ -395,7 +405,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
             onStaffNotesChange={setStaffNotes}
             footerMessage={submitGate.footerMessage}
             submitError={submitError}
-            canSubmit={submitGate.canSubmit}
+            canSubmit={canSubmitPrimary}
             isSubmitting={isSubmitting}
             onShowResourceErrorsChange={setShowResourceErrors}
             onShowContributorErrorsChange={setShowContributorErrors}

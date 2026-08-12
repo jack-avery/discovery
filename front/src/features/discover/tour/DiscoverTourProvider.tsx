@@ -11,6 +11,8 @@ import {
 import { useDiscoverSideWorkspace } from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
 import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
+import { useMobileNavMenu } from '@/app/providers/MobileNavMenuProvider'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import {
   MAP_SELECTION_AUTO_ADVANCE_STEP_ID,
   RESULTS_SELECTION_AUTO_ADVANCE_STEP_ID,
@@ -30,6 +32,7 @@ import {
 import { findTourTarget, TOUR_TARGETS } from '@/features/discover/tour/tourTargets'
 import {
   requiresResourceDetailStep,
+  shouldOpenMobileNavForTourStep,
   shouldResetToRootBeforeStep,
 } from '@/features/discover/tour/spotlightInteraction'
 import { setDiscoverTourSessionActive } from '@/features/discover/tour/tourSession'
@@ -127,6 +130,8 @@ export function resolveAvailableTourStepIndex(args: {
 }
 
 export function DiscoverTourProvider({ children }: { children: ReactNode }) {
+  const isMobile = useIsMobile()
+  const { setTourContributeLock } = useMobileNavMenu()
   const { expand } = useWorkspace()
   const {
     resetToRoot,
@@ -162,6 +167,27 @@ export function DiscoverTourProvider({ children }: { children: ReactNode }) {
     setDemoResourceId(selectedResourceId)
   }, [isActive, selectedResourceId])
 
+  const step = isActive ? (DISCOVER_TOUR_STEPS[stepIndex] ?? null) : null
+
+  /**
+   * Mobile-only: open the hamburger menu for "Share what you know" (`contribute`)
+   * so the real Contribute Resource nav item is the tour target. Desktop rail
+   * already exposes that target — leave it alone.
+   */
+  useEffect(() => {
+    if (!isMobile) {
+      setTourContributeLock(false)
+      return
+    }
+    setTourContributeLock(
+      shouldOpenMobileNavForTourStep(step?.id, true),
+    )
+  }, [isMobile, isActive, step?.id, setTourContributeLock])
+
+  useEffect(() => {
+    return () => setTourContributeLock(false)
+  }, [setTourContributeLock])
+
   const endTour = useCallback(() => {
     setIsActive(false)
     setStepIndex(0)
@@ -170,8 +196,9 @@ export function DiscoverTourProvider({ children }: { children: ReactNode }) {
     setMapResourceId(null)
     autoAdvanceGuardRef.current = null
     setDiscoverTourSessionActive(false)
+    setTourContributeLock(false)
     expand()
-  }, [expand])
+  }, [expand, setTourContributeLock])
 
   const openDemoResourceDetail = useCallback(
     async (
@@ -625,8 +652,6 @@ export function DiscoverTourProvider({ children }: { children: ReactNode }) {
   const finish = useCallback(() => {
     endTour()
   }, [endTour])
-
-  const step = isActive ? (DISCOVER_TOUR_STEPS[stepIndex] ?? null) : null
 
   const value = useMemo(
     () => ({

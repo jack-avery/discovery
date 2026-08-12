@@ -49,6 +49,8 @@ interface EventEditorProps {
   onShowErrorsChange: (show: boolean) => void
   onDirtyChange: (dirty: boolean) => void
   onRegisterSave: (save: () => SavedContributionPayload | null) => void
+  /** Live save-eligibility for mobile primary button (existing completeness gates). */
+  onCanSaveChange?: (canSave: boolean) => void
   onProgressChange?: (progress: {
     sections: readonly string[]
     revealed: number
@@ -101,6 +103,7 @@ export function EventEditor({
   onShowErrorsChange,
   onDirtyChange,
   onRegisterSave,
+  onCanSaveChange,
   onProgressChange,
 }: EventEditorProps) {
   const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } =
@@ -126,6 +129,18 @@ export function EventEditor({
 
   const needsPhysical =
     data.accessMode === 'physical' || data.accessMode === 'both'
+
+  const canSave =
+    isEventContributionComplete(data) &&
+    (!needsPhysical || locationsVerified)
+
+  useEffect(() => {
+    onCanSaveChange?.(canSave)
+  }, [canSave, onCanSaveChange])
+
+  useEffect(() => {
+    return () => onCanSaveChange?.(false)
+  }, [onCanSaveChange])
 
   useEffect(() => {
     if (!needsPhysical) setLocationsVerified(true)

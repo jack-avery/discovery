@@ -9,6 +9,7 @@ import {
   getPaddedViewCenter,
   resolveFocusZoom,
 } from '@/features/map/selectionCamera'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { fetchResourceById } from '@/services/resourceService'
 import type { ResourceMapItem } from '@/types'
 
@@ -40,6 +41,7 @@ export function FlyToSelectedResource({
   layoutReadyKey,
 }: FlyToSelectedResourceProps) {
   const map = useMap()
+  const isMobile = useIsMobile()
   const { selectedResourceId, lastResourceOpenOrigin } = useResourceSelection()
   const { isExpanded } = useWorkspace()
   const { selection } = getMapBehaviour()
@@ -76,9 +78,12 @@ export function FlyToSelectedResource({
     let cancelled = false
     const abort = new AbortController()
 
-    const padding = isExpanded
-      ? selection.paddingExpanded
-      : selection.paddingCollapsed
+    const padding = resolveSelectionPadding({
+      isMobile,
+      isExpanded,
+      mapHeightPx: map.getSize().y,
+      selection,
+    })
 
     void (async () => {
       const target = await resolveTargetLatLng(
@@ -121,13 +126,35 @@ export function FlyToSelectedResource({
     layoutKey,
     layoutReadyKey,
     isExpanded,
-    selection.focusZoom,
-    selection.paddingExpanded,
-    selection.paddingCollapsed,
-    selection.panDurationSec,
+    isMobile,
+    selection,
   ])
 
   return null
+}
+
+function resolveSelectionPadding(args: {
+  isMobile: boolean
+  isExpanded: boolean
+  mapHeightPx: number
+  selection: ReturnType<typeof getMapBehaviour>['selection']
+}): {
+  topLeft: readonly [number, number]
+  bottomRight: readonly [number, number]
+} {
+  const { isMobile, isExpanded, mapHeightPx, selection } = args
+
+  if (isMobile) {
+    const bottom = Math.round(
+      mapHeightPx * selection.paddingMobile.bottomInsetFraction,
+    )
+    return {
+      topLeft: selection.paddingMobile.topLeft,
+      bottomRight: [selection.paddingMobile.bottomRightX, bottom] as const,
+    }
+  }
+
+  return isExpanded ? selection.paddingExpanded : selection.paddingCollapsed
 }
 
 interface PanelFocusArgs {

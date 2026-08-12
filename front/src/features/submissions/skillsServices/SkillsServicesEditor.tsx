@@ -33,6 +33,8 @@ interface SkillsServicesEditorProps {
   onShowErrorsChange: (show: boolean) => void
   onDirtyChange: (dirty: boolean) => void
   onRegisterSave: (save: () => SavedContributionPayload | null) => void
+  /** Live save-eligibility for mobile primary button (existing completeness gates). */
+  onCanSaveChange?: (canSave: boolean) => void
   onProgressChange?: (progress: {
     sections: readonly string[]
     revealed: number
@@ -77,6 +79,7 @@ export function SkillsServicesEditor({
   onShowErrorsChange,
   onDirtyChange,
   onRegisterSave,
+  onCanSaveChange,
   onProgressChange,
 }: SkillsServicesEditorProps) {
   const [data, setData] = useState<SkillsServicesData>(() =>
@@ -97,6 +100,15 @@ export function SkillsServicesEditor({
   const errors = showErrors ? validateSkillsServices(data) : {}
   const showOptional = isSkillsOfferReady(data)
   const revealed = getRevealedSkillsSections(data)
+  const canSave = isSkillsServicesComplete(data)
+
+  useEffect(() => {
+    onCanSaveChange?.(canSave)
+  }, [canSave, onCanSaveChange])
+
+  useEffect(() => {
+    return () => onCanSaveChange?.(false)
+  }, [onCanSaveChange])
 
   useEffect(() => {
     onProgressChange?.({
