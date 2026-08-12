@@ -25,6 +25,7 @@
     "test:auth-session": "VITE_API_URL=http://localhost:5000 tsx --tsconfig tsconfig.app.json --test src/services/authSession.test.ts",
     "test:permissions": "tsx --tsconfig tsconfig.app.json --test src/auth/permissions.test.ts src/auth/postLoginNavigation.test.ts",
     "test:draft-persistence": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/state/draftPersistence.test.ts",
+    "test:submission-navigation-guard": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/state/submissionNavigationGuard.test.ts",
     "test:map-overlap": "tsx --tsconfig tsconfig.app.json --test src/features/map/overlapGrouping.test.ts",
     "test:featured-resources": "tsx --tsconfig tsconfig.app.json --test src/services/resourceService.featured.test.ts",
     "test:review-queue-navigation": "tsx --tsconfig tsconfig.app.json --test src/features/staff/submissions/reviewQueueNavigation.test.ts",

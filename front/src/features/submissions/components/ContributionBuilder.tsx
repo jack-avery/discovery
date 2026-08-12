@@ -72,6 +72,8 @@ export function ContributionBuilder() {
     closeReview,
     retainFailedContributions,
     completeSuccessfulSubmission,
+    isSubmitting,
+    setIsSubmitting,
   } = useSubmissionDraft()
 
   const { contributions, ui, contributor } = draft
@@ -124,7 +126,6 @@ export function ContributionBuilder() {
   const [contributorCanSave, setContributorCanSave] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [showReviewGate, setShowReviewGate] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitOutcome, setSubmitOutcome] = useState<{
     kind: 'partial' | 'failure'
     succeeded: ContributionSubmitSuccess[]

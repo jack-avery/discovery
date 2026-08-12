@@ -72,6 +72,9 @@ interface SubmissionDraftContextValue {
   continueDraft: () => void
   discardDraft: () => void
   dismissRestoreBanner: () => void
+  /** True while the review Submit batch is actively posting to the API. */
+  isSubmitting: boolean
+  setIsSubmitting: (active: boolean) => void
 }
 
 const SubmissionDraftContext = createContext<SubmissionDraftContextValue | null>(
@@ -95,6 +98,7 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
   )
   const [showRestoreBanner, setShowRestoreBanner] = useState(false)
   const [restoreNotice, setRestoreNotice] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const persistenceEnabledRef = useRef(true)
 
   const draftRef = useRef(draft)
@@ -502,6 +506,8 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
       continueDraft,
       discardDraft,
       dismissRestoreBanner,
+      isSubmitting,
+      setIsSubmitting,
     }),
     [
       draft,
@@ -526,6 +532,7 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
       continueDraft,
       discardDraft,
       dismissRestoreBanner,
+      isSubmitting,
     ],
   )
 
