@@ -331,22 +331,111 @@ export function mapResourceDetailToFeaturedCard(
 }
 
 /**
+ * Pages available when listing with {@link FEATURED_RESOURCE_COUNT} per page.
+ * Uses `total_items` from any list response (page size of the probe does not matter).
+ */
+export function featuredPageCount(
+  totalItems: number,
+  pageSize: number = FEATURED_RESOURCE_COUNT,
+): number {
+  if (totalItems <= 0 || pageSize <= 0) return 0
+  return Math.ceil(totalItems / pageSize)
+}
+
+/**
+ * Inclusive random page in `[1, totalPages]`.
+ */
+export function pickRandomFeaturedPage(
+  totalPages: number,
+  random: () => number = Math.random,
+): number {
+  if (totalPages <= 0) return 1
+  const unit = Math.min(Math.max(random(), 0), 0.999999999999)
+  return 1 + Math.floor(unit * totalPages)
+}
+
+/**
+ * Append fill-page summaries until `limit`, skipping duplicates by resource id.
+ */
+export function mergeFeaturedSummaries(
+  primary: Resource[],
+  fill: Resource[],
+  limit: number = FEATURED_RESOURCE_COUNT,
+): Resource[] {
+  const merged: Resource[] = []
+  const seen = new Set<string>()
+
+  for (const resource of [...primary, ...fill]) {
+    if (merged.length >= limit) break
+    if (seen.has(resource.id)) continue
+    seen.add(resource.id)
+    merged.push(resource)
+  }
+
+  return merged
+}
+
+/** Optional overrides for tests; production callers omit this. */
+export type FetchFeaturedResourcesDeps = {
+  listResources?: typeof fetchResources
+  getResourceById?: typeof fetchResourceById
+  /** Returns a value in `[0, 1)` like `Math.random`. */
+  random?: () => number
+}
+
+/**
  * Load published resources for the landing showcase.
- * Prefers the first page of published resources (no featured flag in the API yet).
- * Hydrates each item via detail so cards can show description, categories, and tags.
+ *
+ * Page-level randomization via existing GET /resources pagination only:
+ * 1. Lightweight probe (`per_page=1`) for `total_items`
+ * 2. Random valid page at `per_page=9`
+ * 3. Optional single fill page when the last page is short and ≥9 exist
+ * 4. Concurrent detail hydration for card fields
+ *
+ * Selection is established once per call; carousel navigation must not re-invoke this.
  */
 export async function fetchFeaturedResources(
   options: FetchResourcesOptions = {},
+  deps: FetchFeaturedResourcesDeps = {},
 ): Promise<FeaturedResourceCard[]> {
-  const list = await fetchResources(
-    { page: 1, perPage: FEATURED_RESOURCE_COUNT },
+  const listResources = deps.listResources ?? fetchResources
+  const getResourceById = deps.getResourceById ?? fetchResourceById
+  const random = deps.random ?? Math.random
+
+  const probe = await listResources({ page: 1, perPage: 1 }, options)
+  const totalItems = probe.pagination.total_items
+  const totalPages = featuredPageCount(totalItems)
+
+  if (totalPages === 0 || totalItems === 0) {
+    return []
+  }
+
+  const primaryPage = pickRandomFeaturedPage(totalPages, random)
+  const primary = await listResources(
+    { page: primaryPage, perPage: FEATURED_RESOURCE_COUNT },
     options,
   )
 
+  let selected = mergeFeaturedSummaries(primary.resources, [])
+
+  // Last page can be short; pull one other page and fill without unbounded walking.
+  if (
+    selected.length < FEATURED_RESOURCE_COUNT &&
+    totalItems >= FEATURED_RESOURCE_COUNT &&
+    totalPages > 1
+  ) {
+    const fillPage = primaryPage === 1 ? 2 : 1
+    const fill = await listResources(
+      { page: fillPage, perPage: FEATURED_RESOURCE_COUNT },
+      options,
+    )
+    selected = mergeFeaturedSummaries(primary.resources, fill.resources)
+  }
+
   const details = await Promise.all(
-    list.resources.map(async (resource) => {
+    selected.map(async (resource) => {
       try {
-        return await fetchResourceById(resource.id, options)
+        return await getResourceById(resource.id, options)
       } catch {
         return null
       }
