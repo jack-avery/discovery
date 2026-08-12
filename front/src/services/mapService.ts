@@ -37,12 +37,10 @@ export interface ResourceMapQuery {
   search?: string
 }
 
-export type ResourceMapQueryLimitation =
-  | {
-      code: 'RADIUS_APPROXIMATES_VIEWPORT'
-      detail: string
-    }
-  | { code: 'MULTI_TAG_UNSUPPORTED'; selectedIds: number[] }
+export type ResourceMapQueryLimitation = {
+  code: 'RADIUS_APPROXIMATES_VIEWPORT'
+  detail: string
+}
 
 export interface FetchMapResourcesOptions {
   signal?: AbortSignal
@@ -74,10 +72,10 @@ export function mapPinToItem(pin: MapPinDto): ResourceMapItem {
 /**
  * Adapts {@link ResourceMapQuery} to GET /resources/map params.
  *
- * Required: `lat`, `lng`. Optional: `radius_km`, repeated `category_id` (OR),
- * single `tag_id` until multi-tag is wired, `search`.
+ * Required: `lat`, `lng`. Optional: `radius_km`, repeated `category_id` /
+ * `tag_id` (OR within each type, same as GET /resources), `search`.
  *
- * Category multi-select matches the list adapter (0 omit / 1+ send).
+ * Category and tag multi-select: 0 omit / 1 scalar / 2+ array → repeated keys.
  */
 export function buildMapQueryParams(query: ResourceMapQuery): {
   params: Record<string, QueryParamValue>
@@ -116,10 +114,7 @@ export function buildMapQueryParams(query: ResourceMapQuery): {
   if (tagIds.length === 1) {
     params.tag_id = tagIds[0]
   } else if (tagIds.length > 1) {
-    limitations.push({
-      code: 'MULTI_TAG_UNSUPPORTED',
-      selectedIds: tagIds,
-    })
+    params.tag_id = tagIds
   }
 
   const search = query.search?.trim()

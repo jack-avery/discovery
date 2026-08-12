@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import {
   AlertCircle,
@@ -21,7 +21,10 @@ import {
   type ReviewContributionKind,
   type ReviewQueueSort,
 } from '@/features/staff/submissions/fetchReviewQueue'
-import { parseReviewQueueFiltersFromSearchParams } from '@/features/staff/submissions/reviewQueueNavigation'
+import {
+  areReviewContributionFiltersEqual,
+  resolveReviewQueueFiltersFromSearchParams,
+} from '@/features/staff/submissions/reviewQueueNavigation'
 import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
 import { toApprovedVersionPayload } from '@/features/submissions/mappers/toApprovedVersionPayload'
 import {
@@ -38,7 +41,7 @@ import { cn } from '@/utils/cn'
 export function ReviewSubmissionsWorkspace() {
   const [searchParams] = useSearchParams()
   const [filters, setFilters] = useState<ReviewContributionKind[]>(() => {
-    return parseReviewQueueFiltersFromSearchParams(searchParams) ?? []
+    return resolveReviewQueueFiltersFromSearchParams(searchParams)
   })
   const [sort, setSort] = useState<ReviewQueueSort>('newest')
   const { items, isLoading, error, reload, removeItem } = useSubmissionQueue(
@@ -53,6 +56,9 @@ export function ReviewSubmissionsWorkspace() {
   /** Composed final version when the reviewer edited the proposal (for approved_version). */
   const [moderationFinalVersion, setModerationFinalVersion] =
     useState<ModerationFinalVersion | null>(null)
+
+  const filtersRef = useRef(filters)
+  filtersRef.current = filters
 
   const handleApprovalGateChange = useCallback(
     (gate: SubmissionApprovalGate) => {
@@ -77,13 +83,18 @@ export function ReviewSubmissionsWorkspace() {
     clearError,
   } = useReviewSubmission()
 
-  // Apply contribution-type filters when navigating from dashboard KPI links.
+  // Deep-link sync: valid ?types= applies filters; absent/invalid → all types ([]).
+  // Depend on the types value so unrelated param identity churn cannot wipe
+  // manual toolbar filters on an already-bare URL.
+  const typesQuery = searchParams.get('types')
   useEffect(() => {
-    const parsed = parseReviewQueueFiltersFromSearchParams(searchParams)
-    if (parsed != null) {
-      setFilters(parsed)
+    const nextFilters = resolveReviewQueueFiltersFromSearchParams(searchParams)
+    if (areReviewContributionFiltersEqual(filtersRef.current, nextFilters)) {
+      return
     }
-  }, [searchParams])
+    setFilters(nextFilters)
+    setSelectedId(null)
+  }, [typesQuery, searchParams])
 
   // Keep selection valid when the queue changes (filter/sort/reload/moderation).
   useEffect(() => {
@@ -100,10 +111,12 @@ export function ReviewSubmissionsWorkspace() {
     }
   }, [items, isLoading, selectedId])
 
-  // Reset approval gate when switching submissions.
+  // Reset in-flight review UI when switching submissions (approve gate,
+  // composed edits, and Reject dialog — confirmation uses live selectedId).
   useEffect(() => {
     setUpdateApprovalGate({ approveDisabled: false })
     setModerationFinalVersion(null)
+    setRejectOpen(false)
   }, [selectedId])
 
   const resourceName =

@@ -30,10 +30,9 @@ export interface ResourceListQuery {
 
 /**
  * Limitations encountered when adapting the long-term query to today's API.
- * Exposed so callers can observe unsupported multi-select without UI workarounds.
+ * Currently unused for list queries (multi-tag is supported via repeated `tag_id`).
  */
-export type ResourceQueryLimitation =
-  | { code: 'MULTI_TAG_UNSUPPORTED'; selectedIds: number[] }
+export type ResourceQueryLimitation = never
 
 export interface ResourceListResult {
   resources: Resource[]
@@ -63,18 +62,14 @@ export const EMPTY_RESOURCE_LIST: ResourceListResult = {
 /**
  * Adapts {@link ResourceListQuery} to GET /resources query params.
  *
- * Categories: repeated `category_id` (OR within type). Tags: single `tag_id`
- * until multi-tag is wired the same way. Also `search`, `resource_type`,
- * `page`, `per_page`.
+ * Categories and tags both use repeated query keys with OR-within-type
+ * semantics on the backend (`category_id`, `tag_id`). Also `search`,
+ * `resource_type`, `page`, `per_page`.
  *
- * Category multi-select policy (0 / 1 / 2+):
+ * Multi-select policy (0 / 1 / 2+) for categories and tags:
  * - 0 selected → omit that param (all)
- * - 1+ selected → send as `category_id` (scalar or array → repeated params)
- *
- * Tag multi-select policy (0 / 1 / 2+):
- * - 0 selected → omit
- * - 1 selected → send that single id
- * - 2+ selected → omit that param, record a limitation, preserve UI selection upstream
+ * - 1 selected → send scalar id
+ * - 2+ selected → send id array → repeated params via {@link buildUrl}
  */
 export function buildResourceListParams(query: ResourceListQuery): {
   params: Record<string, QueryParamValue>
@@ -95,11 +90,7 @@ export function buildResourceListParams(query: ResourceListQuery): {
   if (tagIds.length === 1) {
     params.tag_id = tagIds[0]
   } else if (tagIds.length > 1) {
-    limitations.push({
-      code: 'MULTI_TAG_UNSUPPORTED',
-      selectedIds: tagIds,
-    })
-    // Intentionally omit tag_id until backend multi-select is wired here.
+    params.tag_id = tagIds
   }
 
   const search = query.search?.trim()
