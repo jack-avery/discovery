@@ -1,17 +1,18 @@
 import { Link } from 'react-router-dom'
+import { CircleUser } from 'lucide-react'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { StaffSessionControls } from '@/components/shared/StaffSessionControls'
-import { CircleUser } from 'lucide-react'
+import { APP_BRANDING } from '@/config/appBranding'
 
 /**
- * Minimal public landing header: brand + Staff Portal.
+ * Minimal public landing header: brand + Sign in / session controls.
  * Application navigation stays in the left rail — do not duplicate it here.
  */
 export function LandingHeader() {
   const { isAuthenticated } = useAuth()
 
   return (
-    <header className="app-header flex shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4 sm:px-6 lg:px-10">
+    <header className="app-header hidden shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4 sm:px-6 md:flex lg:px-10">
       <Link
         to="/home"
         className="flex min-w-0 items-center gap-3 rounded-lg focus-ring"
@@ -22,7 +23,7 @@ export function LandingHeader() {
           aria-hidden="true"
         >
           <span className="font-heading text-xs font-bold text-primary-foreground">
-            RC
+            {APP_BRANDING.communityMark}
           </span>
         </div>
         <span className="truncate font-heading text-sm font-semibold text-foreground sm:text-base">

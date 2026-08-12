@@ -1,6 +1,2 @@
-import { useRoutes } from 'react-router-dom'
-import { routes } from './routes'
-
-export function AppRouter() {
-  return useRoutes(routes)
-}
+export { browserRouter } from './browserRouter'
+export { routes } from './routes'

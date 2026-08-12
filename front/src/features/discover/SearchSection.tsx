@@ -8,7 +8,7 @@ interface SearchSectionProps {
 
 export function SearchSection({ search, onSearchChange }: SearchSectionProps) {
   return (
-    <WorkspaceSection aria-label="Search resources">
+    <WorkspaceSection aria-label="Search resources" data-tour="search">
       <SearchBar
         value={search}
         onChange={onSearchChange}

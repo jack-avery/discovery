@@ -1,5 +1,22 @@
-import type { ApiEnvelope, ApiErrorEnvelope, ApiFieldErrors } from '@/types/api'
 import { getAccessToken } from '@/services/authToken'
+import {
+  handleRefreshFailure,
+  refreshSessionAccessToken,
+} from '@/services/sessionRefresh'
+import {
+  ApiError,
+  API_URL,
+  buildUrl,
+  extractFieldErrors,
+  isApiErrorEnvelope,
+  isApiSuccessEnvelope,
+  readJsonBody,
+  throwHttpError,
+  type QueryParamValue,
+} from '@/services/apiBase'
+
+export { ApiError, API_URL } from '@/services/apiBase'
+export type { QueryParamValue } from '@/services/apiBase'
 
 /**
  * Canonical HTTP client for all backend communication.
@@ -10,50 +27,10 @@ import { getAccessToken } from '@/services/authToken'
  * - Throws `ApiError` for HTTP failures and `{ status: "error" }` bodies
  * - Supports query params, credentials (JWT refresh cookies), AbortSignal,
  *   and Authorization: Bearer when an in-memory access token is set
+ * - On 401 for Bearer-authenticated requests: single-flight refresh + one retry
  *
  * Health endpoints do not use the standard envelope — pass `parseEnvelope: false`.
  */
-
-/**
- * Normalize VITE_API_URL for both absolute origins and same-origin relative prefixes.
- * Examples: `http://localhost:5000`, `/api/v1`
- */
-function normalizeApiBaseUrl(raw: string | undefined): string {
-  const trimmed = raw?.trim().replace(/\/+$/, '') ?? ''
-  if (!trimmed) return ''
-  if (/^https?:\/\//i.test(trimmed)) return trimmed
-  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`
-}
-
-const configuredBaseUrl = normalizeApiBaseUrl(import.meta.env?.VITE_API_URL)
-
-export const API_URL = configuredBaseUrl
-
-export class ApiError extends Error {
-  readonly status: number
-  readonly errors?: ApiFieldErrors
-  readonly body?: unknown
-
-  constructor(
-    message: string,
-    status: number,
-    options?: { errors?: ApiFieldErrors; body?: unknown },
-  ) {
-    super(message)
-    this.name = 'ApiError'
-    this.status = status
-    this.errors = options?.errors
-    this.body = options?.body
-  }
-}
-
-export type QueryParamValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | ReadonlyArray<string | number | boolean>
 
 export interface ApiRequestOptions extends Omit<RequestInit, 'body' | 'method'> {
   /** JSON-serializable request body (sent as `application/json`). */
@@ -65,112 +42,16 @@ export interface ApiRequestOptions extends Omit<RequestInit, 'body' | 'method'> 
    * Set to false for health endpoints and other non-envelope responses.
    */
   parseEnvelope?: boolean
-}
-
-function isAbsoluteHttpUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value)
-}
-
-/**
- * Join API base + endpoint without requiring an absolute URL.
- * Relative bases (e.g. `/api/v1`) stay relative so fetch remains same-origin.
- */
-function joinApiPath(base: string, endpoint: string): string {
-  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`
-  return `${base}${path}`
-}
-
-function buildUrl(endpoint: string, params?: Record<string, QueryParamValue>): string {
-  const joined = joinApiPath(API_URL, endpoint)
-
-  if (!params) {
-    return joined
-  }
-
-  const search = new URLSearchParams()
-  for (const [key, value] of Object.entries(params)) {
-    if (value === null || value === undefined) continue
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        search.append(key, String(item))
-      }
-    } else {
-      search.set(key, String(value))
-    }
-  }
-
-  const qs = search.toString()
-  if (!qs) {
-    return joined
-  }
-
-  // Preserve absolute vs relative form; never call `new URL(relative)` without a base.
-  if (isAbsoluteHttpUrl(joined)) {
-    const url = new URL(joined)
-    url.search = qs
-    return url.toString()
-  }
-
-  return `${joined}?${qs}`
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function isApiErrorEnvelope(value: unknown): value is ApiErrorEnvelope {
-  return isRecord(value) && value.status === 'error' && typeof value.message === 'string'
-}
-
-function isApiSuccessEnvelope<T>(value: unknown): value is ApiEnvelope<T> & { status: 'success' } {
-  return isRecord(value) && value.status === 'success'
-}
-
-function extractFieldErrors(value: unknown): ApiFieldErrors | undefined {
-  if (!isRecord(value) || value.errors === undefined || value.errors === null) {
-    return undefined
-  }
-  if (!isRecord(value.errors)) {
-    return undefined
-  }
-
-  const errors: ApiFieldErrors = {}
-  for (const [key, message] of Object.entries(value.errors)) {
-    if (typeof message === 'string') {
-      errors[key] = message
-    }
-  }
-  return Object.keys(errors).length > 0 ? errors : undefined
-}
-
-async function readJsonBody(response: Response): Promise<unknown> {
-  const text = await response.text()
-  if (!text) {
-    return undefined
-  }
-
-  try {
-    return JSON.parse(text) as unknown
-  } catch {
-    return text
-  }
-}
-
-function throwHttpError(response: Response, body: unknown): never {
-  if (isApiErrorEnvelope(body)) {
-    throw new ApiError(body.message, response.status, {
-      errors: extractFieldErrors(body),
-      body,
-    })
-  }
-
-  const fallback =
-    typeof body === 'string' && body.trim().length > 0
-      ? body
-      : `Request failed: ${response.statusText || response.status}`
-
-  throw new ApiError(fallback, response.status, { body })
+  /**
+   * When true, a 401 will not trigger access-token refresh/retry.
+   * Use for login, logout, refresh, and other auth-establishment calls.
+   */
+  skipAuthRefresh?: boolean
+  /**
+   * Internal: marks a request that already retried after refresh.
+   * Prevents infinite 401 → refresh → 401 loops.
+   */
+  _authRetry?: boolean
 }
 
 async function request<T>(
@@ -185,8 +66,21 @@ async function request<T>(
     )
   }
 
-  const { body, params, parseEnvelope = true, headers, credentials, signal, ...rest } = options
-  const token = getAccessToken()
+  const {
+    body,
+    params,
+    parseEnvelope = true,
+    headers,
+    credentials,
+    signal,
+    skipAuthRefresh = false,
+    _authRetry = false,
+    ...rest
+  } = options
+
+  // Capture whether this call was authenticated with a Bearer token.
+  const tokenAtSend = getAccessToken()
+  const sentBearer = Boolean(tokenAtSend)
 
   const response = await fetch(buildUrl(endpoint, params), {
     ...rest,
@@ -196,7 +90,7 @@ async function request<T>(
     headers: {
       Accept: 'application/json',
       ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(tokenAtSend ? { Authorization: `Bearer ${tokenAtSend}` } : {}),
       ...headers,
     },
     body: body !== undefined ? JSON.stringify(body) : undefined,
@@ -207,6 +101,27 @@ async function request<T>(
   }
 
   const payload = await readJsonBody(response)
+
+  if (
+    response.status === 401 &&
+    sentBearer &&
+    !skipAuthRefresh &&
+    !_authRetry
+  ) {
+    try {
+      await refreshSessionAccessToken(signal ?? undefined)
+    } catch (refreshError) {
+      handleRefreshFailure()
+      throw refreshError
+    }
+
+    // Retry once with the NEW access token from the shared store.
+    return request<T>(method, endpoint, {
+      ...options,
+      skipAuthRefresh,
+      _authRetry: true,
+    })
+  }
 
   if (!response.ok) {
     throwHttpError(response, payload)

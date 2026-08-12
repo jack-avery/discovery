@@ -2,8 +2,14 @@ import { useState, type FormEvent } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuth } from '@/app/providers/AuthProvider'
-import { Field } from '@/features/submissions/form/Field'
+import {
+  PUBLIC_POST_LOGIN_PATH,
+  resolvePostLoginPath,
+} from '@/auth/postLoginNavigation'
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui'
+import { APP_BRANDING } from '@/config/appBranding'
+import { Field } from '@/features/submissions/form/Field'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { ApiError } from '@/services/api'
 import {
   looksLikeTechnicalErrorMessage,
@@ -12,23 +18,6 @@ import {
 } from '@/utils/userFacingError'
 
 const INVALID_CREDENTIALS_MESSAGE = 'Invalid email or password.'
-
-function resolveReturnPath(state: unknown): string {
-  if (
-    state &&
-    typeof state === 'object' &&
-    'from' in state &&
-    state.from &&
-    typeof state.from === 'object' &&
-    'pathname' in state.from &&
-    typeof state.from.pathname === 'string' &&
-    state.from.pathname.startsWith('/staff')
-  ) {
-    const from = state.from as { pathname: string; search?: string; hash?: string }
-    return `${from.pathname}${from.search ?? ''}${from.hash ?? ''}`
-  }
-  return '/staff'
-}
 
 function resolveLoginErrorMessage(error: unknown): string {
   if (error instanceof ApiError && error.status === 401) {
@@ -54,6 +43,7 @@ export function SignInForm() {
   const { login, isLoading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const isMobile = useIsMobile()
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -61,6 +51,8 @@ export function SignInForm() {
   const [emailError, setEmailError] = useState<string | undefined>()
   const [passwordError, setPasswordError] = useState<string | undefined>()
   const [formError, setFormError] = useState<string | null>(null)
+
+  const credentialsReady = Boolean(email.trim() && password)
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -86,9 +78,16 @@ export function SignInForm() {
     if (hasClientError) return
 
     try {
-      await login({ email: trimmedEmail, password })
+      const user = await login({ email: trimmedEmail, password })
       setFormError(null)
-      navigate(resolveReturnPath(location.state), { replace: true })
+      const nextPath = resolvePostLoginPath(user.roles, location.state)
+      // Staff portal is unavailable below md — land on Discover instead.
+      navigate(
+        isMobile && nextPath.startsWith('/staff')
+          ? PUBLIC_POST_LOGIN_PATH
+          : nextPath,
+        { replace: true },
+      )
     } catch (error) {
       if (error instanceof ApiError) {
         if (error.errors?.email) setEmailError(error.errors.email)
@@ -102,10 +101,11 @@ export function SignInForm() {
     <Card className="w-full">
       <CardHeader>
         <h2 className="font-heading text-lg font-semibold text-foreground">
-          RRCRC Staff Portal
+          Sign in
         </h2>
         <p className="text-sm text-muted-foreground">
-          Sign in with your staff account to access moderation tools.
+          Use your {APP_BRANDING.communityName} account. Staff open the
+          workspace; contributors continue on Discover.
         </p>
       </CardHeader>
       <CardContent>
@@ -188,7 +188,11 @@ export function SignInForm() {
             ) : null}
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="w-full"
+            disabled={isLoading || (isMobile && !credentialsReady)}
+          >
             {isLoading ? 'Signing in…' : 'Sign In'}
           </Button>
         </form>

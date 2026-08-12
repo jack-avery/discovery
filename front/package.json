@@ -19,7 +19,20 @@
     "test:website-moderation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/websiteStructuredModeration.test.ts",
     "test:empty-structured-edit": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/emptyStructuredEditComposition.test.ts",
     "test:update-submit-gate": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/updateRequest/deriveUpdateSubmitGate.test.ts",
-    "test:user-management": "tsx --tsconfig tsconfig.app.json --test src/services/userService.test.ts src/features/staff/auth/SetupPasswordForm.test.ts"
+    "test:user-management": "tsx --tsconfig tsconfig.app.json --test src/services/userService.test.ts src/features/staff/auth/SetupPasswordForm.test.ts",
+    "test:skills-follow-ups": "tsx --tsconfig tsconfig.app.json --test src/services/skillsFollowUpService.test.ts src/features/staff/skillsFollowUps/buildSkillsFollowUpDetailView.test.ts src/features/staff/skillsFollowUps/skillsFollowUpStatusHelpers.test.ts src/features/staff/skillsFollowUps/convertedStatusInteraction.test.ts",
+    "test:guided-tour": "tsx --tsconfig tsconfig.app.json --test src/features/discover/tour/discoverTour.test.ts",
+    "test:auth-session": "VITE_API_URL=http://localhost:5000 tsx --tsconfig tsconfig.app.json --test src/services/authSession.test.ts",
+    "test:permissions": "tsx --tsconfig tsconfig.app.json --test src/auth/permissions.test.ts src/auth/postLoginNavigation.test.ts",
+    "test:draft-persistence": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/state/draftPersistence.test.ts",
+    "test:submission-navigation-guard": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/state/submissionNavigationGuard.test.ts",
+    "test:map-overlap": "tsx --tsconfig tsconfig.app.json --test src/features/map/overlapGrouping.test.ts",
+    "test:selection-padding": "tsx --tsconfig tsconfig.app.json --test src/features/map/selectionPadding.test.ts",
+    "test:featured-resources": "tsx --tsconfig tsconfig.app.json --test src/services/resourceService.featured.test.ts",
+    "test:review-queue-navigation": "tsx --tsconfig tsconfig.app.json --test src/features/staff/submissions/reviewQueueNavigation.test.ts",
+    "test:physical-location-approval": "tsx --tsconfig tsconfig.app.json --test src/features/staff/submissions/physicalLocationApproval.test.ts",
+    "test:hours-validation": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/existingResource/hoursValidation.test.ts",
+    "test:resource-query-params": "tsx --tsconfig tsconfig.app.json --test src/services/resourceQueryParams.test.ts"
   },
   "dependencies": {
     "clsx": "^2.1.1",

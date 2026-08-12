@@ -1,5 +1,6 @@
 import { DiscoverWorkspace } from '@/features/discover/DiscoverWorkspace'
 import { MapCanvas } from '@/features/discover/MapCanvas'
+import { MobileDiscoverBottomSheet } from '@/features/discover/MobileDiscoverBottomSheet'
 import { StaffSessionControls } from '@/components/shared/StaffSessionControls'
 import { useDiscoverSideWorkspace } from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
 import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
@@ -7,6 +8,7 @@ import type { Category, Resource, ResourceMapItem, Tag } from '@/types'
 import type { ResourceEmptyReason } from '@/features/resources'
 import type { ResourceMapQuery } from '@/services/mapService'
 import { FLOATING_FILTER_BAR_Z_CLASS } from '@/features/discover/constants'
+import { useIsMobile } from '@/hooks/useIsMobile'
 
 interface DiscoverLayoutProps {
   search: string
@@ -57,12 +59,15 @@ export function DiscoverLayout({
   resourcesError,
   resourcesEmptyReason,
 }: DiscoverLayoutProps) {
+  const isMobile = useIsMobile()
   const { isExpanded } = useWorkspace()
   const { isOpen: editingWorkspaceOpen } = useDiscoverSideWorkspace()
 
   // Floating map toolbar owns the staff chip when the map overlay is visible.
   // When the Discover workspace is expanded, keep a top-right session chip.
-  const showExpandedWorkspaceStaffChip = isExpanded && !editingWorkspaceOpen
+  // Mobile: session lives in MobilePublicHeader — never duplicate here.
+  const showExpandedWorkspaceStaffChip =
+    !isMobile && isExpanded && !editingWorkspaceOpen
 
   const categoryProps = {
     categories,
@@ -96,7 +101,7 @@ export function DiscoverLayout({
 
   return (
     <div className="relative flex h-full min-h-0">
-      <DiscoverWorkspace {...workspaceProps} />
+      {!isMobile ? <DiscoverWorkspace {...workspaceProps} /> : null}
       <MapCanvas
         search={search}
         onSearchChange={onSearchChange}
@@ -115,6 +120,7 @@ export function DiscoverLayout({
           </div>
         </div>
       ) : null}
+      {isMobile ? <MobileDiscoverBottomSheet {...workspaceProps} /> : null}
     </div>
   )
 }

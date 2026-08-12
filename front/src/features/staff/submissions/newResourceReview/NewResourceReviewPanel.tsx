@@ -19,10 +19,8 @@ import {
 } from '@/features/submissions/existingResource/validation'
 import { mapResourceVersionToExistingResourceData } from '@/features/submissions/updateRequest/mapResourceVersionToExistingResourceData'
 import type { PhysicalLocationGeocodingHandle } from '@/features/submissions/form/PhysicalLocationList'
-import {
-  INCOMPLETE_EDITED_APPROVAL_HELPER,
-  type SubmissionApprovalGate,
-} from '@/features/staff/submissions/submissionApprovalGate'
+import { resolveStaffLocationApprovalGate } from '@/features/staff/submissions/physicalLocationApproval'
+import type { SubmissionApprovalGate } from '@/features/staff/submissions/submissionApprovalGate'
 import {
   getEditedNewResourceSections,
   hasNewResourceReviewChanges,
@@ -64,7 +62,7 @@ export function NewResourceReviewPanel({
     useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
   const locationGeocodingRef = useRef<PhysicalLocationGeocodingHandle>(null)
-  const [, setLocationsVerified] = useState(true)
+  const [locationsVerified, setLocationsVerified] = useState(true)
 
   const baseline = useMemo(() => {
     if (!version) return createEmptyExistingResourceData()
@@ -96,7 +94,9 @@ export function NewResourceReviewPanel({
     [baseline, data],
   )
   const isComplete = useMemo(() => isExistingResourceComplete(data), [data])
-  const showErrors = hasEdits
+  const needsPhysical =
+    data.accessMode === 'physical' || data.accessMode === 'both'
+  const showErrors = hasEdits || (needsPhysical && !locationsVerified)
   const errors = useMemo(
     () => (showErrors ? validateExistingResource(data) : {}),
     [data, showErrors],
@@ -112,20 +112,32 @@ export function NewResourceReviewPanel({
   )
 
   useEffect(() => {
+    if (!needsPhysical) setLocationsVerified(true)
+  }, [needsPhysical])
+
+  useEffect(() => {
     onFinalVersionChange?.(hasEdits ? data : null)
   }, [data, hasEdits, onFinalVersionChange])
 
   useEffect(() => {
     if (!onApprovalGateChange) return
-    if (hasEdits && !isComplete) {
-      onApprovalGateChange({
-        approveDisabled: true,
-        approveHelper: INCOMPLETE_EDITED_APPROVAL_HELPER,
-      })
-      return
-    }
-    onApprovalGateChange({ approveDisabled: false })
-  }, [hasEdits, isComplete, onApprovalGateChange])
+    onApprovalGateChange(
+      resolveStaffLocationApprovalGate({
+        outcomeDiffersFromProposal: hasEdits,
+        isComplete,
+        accessMode: data.accessMode,
+        locations: data.locations,
+        locationsVerified,
+      }),
+    )
+  }, [
+    hasEdits,
+    isComplete,
+    data.accessMode,
+    data.locations,
+    locationsVerified,
+    onApprovalGateChange,
+  ])
 
   useEffect(() => {
     return () => {

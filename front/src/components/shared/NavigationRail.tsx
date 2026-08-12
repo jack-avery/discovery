@@ -1,12 +1,10 @@
 import { useMemo } from 'react'
 import {
   ClipboardList,
-  Home,
+  Handshake,
   LayoutDashboard,
-  MapPin,
   PanelLeftClose,
   PanelLeftOpen,
-  PlusCircle,
   Users,
   type LucideIcon,
 } from 'lucide-react'
@@ -14,14 +12,11 @@ import { NavLink } from 'react-router-dom'
 import { useAuth } from '@/app/providers/AuthProvider'
 import { useNavigationRail } from '@/app/providers/NavigationRailProvider'
 import { PanelHeader } from '@/components/shared/PanelHeader'
+import { PUBLIC_NAV_ITEMS } from '@/components/shared/publicNavItems'
 import { Button } from '@/components/ui'
+import { APP_BRANDING } from '@/config/appBranding'
+import { isDiscoverTourSessionActive } from '@/features/discover/tour/tourSession'
 import { cn } from '@/utils/cn'
-
-const publicNavItems = [
-  { to: '/home', label: 'Home', icon: Home, end: true as const },
-  { to: '/', label: 'Discover Resources', icon: MapPin, end: true as const },
-  { to: '/submit', label: 'Contribute Resource', icon: PlusCircle, end: false as const },
-]
 
 interface StaffNavItem {
   to: string
@@ -41,6 +36,12 @@ const staffNavItems: StaffNavItem[] = [
     end: false,
   },
   {
+    to: '/staff/skills-follow-ups',
+    label: 'Skills Follow-ups',
+    icon: Handshake,
+    end: false,
+  },
+  {
     to: '/staff/users',
     label: 'User Management',
     icon: Users,
@@ -55,7 +56,9 @@ function NavigationRailLogo() {
       className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary"
       aria-hidden="true"
     >
-      <span className="font-heading text-xs font-bold text-primary-foreground">RC</span>
+      <span className="font-heading text-xs font-bold text-primary-foreground">
+        {APP_BRANDING.communityMark}
+      </span>
     </div>
   )
 }
@@ -73,7 +76,8 @@ function navLinkClassName(isActive: boolean, isCollapsed: boolean, nested = fals
 
 export function NavigationRail() {
   const { isCollapsed, toggleCollapsed } = useNavigationRail()
-  const { isAuthenticated, permissions } = useAuth()
+  const { permissions } = useAuth()
+  const showStaffWorkspace = permissions.canAccessStaffWorkspace
 
   const visibleStaffNavItems = useMemo(
     () =>
@@ -86,7 +90,8 @@ export function NavigationRail() {
   return (
     <aside
       className={cn(
-        'flex h-full shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200',
+        // Desktop-only persistent rail — mobile uses MobilePublicHeader.
+        'hidden h-full shrink-0 flex-col border-r border-border bg-surface transition-[width] duration-200 md:flex',
         isCollapsed ? 'w-16' : 'w-56',
       )}
       aria-label="Main navigation"
@@ -97,24 +102,35 @@ export function NavigationRail() {
         leading={<NavigationRailLogo />}
         title={
           !isCollapsed ? (
-            <p className="font-heading text-sm font-semibold text-foreground">RRCRC</p>
+            <p className="font-heading text-sm font-semibold tracking-tight text-foreground">
+              {APP_BRANDING.communityName}
+            </p>
           ) : undefined
         }
         subtitle={
           !isCollapsed ? (
-            <p className="text-xs text-muted-foreground">Resource Discovery</p>
+            <p className="text-xs text-muted-foreground">
+              {APP_BRANDING.applicationName}
+            </p>
           ) : undefined
         }
       />
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-2 scrollbar-thin">
-        {publicNavItems.map(({ to, label, icon: Icon, end }) => (
+        {PUBLIC_NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
           <NavLink
             key={to}
             to={to}
             end={end}
             aria-label={isCollapsed ? label : undefined}
             title={isCollapsed ? label : undefined}
+            data-tour={to === '/submit' ? 'contribute' : undefined}
+            onClick={(event) => {
+              // Finish the tour before leaving Discover via Contribute.
+              if (to === '/submit' && isDiscoverTourSessionActive()) {
+                event.preventDefault()
+              }
+            }}
             className={({ isActive }) => navLinkClassName(isActive, isCollapsed)}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
@@ -122,7 +138,7 @@ export function NavigationRail() {
           </NavLink>
         ))}
 
-        {isAuthenticated ? (
+        {showStaffWorkspace ? (
           <div className={cn('pt-3', !isCollapsed && 'mt-1 border-t border-border')}>
             {!isCollapsed ? (
               <p className="px-3 pb-1.5 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">

@@ -2,6 +2,8 @@ import { useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { Button, Card, CardContent, CardHeader, Input } from '@/components/ui'
+import { APP_BRANDING } from '@/config/appBranding'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { ApiError } from '@/services/api'
 import { setupPassword } from '@/services/authService'
 import {
@@ -47,6 +49,7 @@ function resolveSetupErrorMessage(error: unknown): string {
 export function SetupPasswordForm() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const isMobile = useIsMobile()
 
   const token = useMemo(
     () => (searchParams.get('token') || '').trim(),
@@ -64,6 +67,11 @@ export function SetupPasswordForm() {
     token ? null : 'This setup link is missing or incomplete.',
   )
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const fieldsReady = useMemo(() => {
+    const errors = validateSetupPasswordFields(password, confirmPassword)
+    return !errors.password && !errors.confirm
+  }, [password, confirmPassword])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -130,8 +138,8 @@ export function SetupPasswordForm() {
           Set your password
         </h2>
         <p className="text-sm text-muted-foreground">
-          Choose a password for your RRCRC staff account. This link can only be
-          used once.
+          Choose a password for your {APP_BRANDING.communityName} staff account.
+          This link can only be used once.
         </p>
       </CardHeader>
       <CardContent>
@@ -268,7 +276,7 @@ export function SetupPasswordForm() {
           <Button
             type="submit"
             className="w-full"
-            disabled={isSubmitting || !token}
+            disabled={isSubmitting || !token || (isMobile && !fieldsReady)}
           >
             {isSubmitting ? 'Saving…' : 'Set password'}
           </Button>

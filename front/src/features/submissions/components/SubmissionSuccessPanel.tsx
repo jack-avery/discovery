@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { Button } from '@/components/ui'
+import { APP_BRANDING } from '@/config/appBranding'
 
 interface SubmissionSuccessPanelProps {
   onSubmitAnother: () => void
@@ -32,11 +33,11 @@ export function SubmissionSuccessPanel({
           Thank you for submitting!
         </h2>
         <div className="space-y-2 text-sm leading-relaxed text-muted-foreground sm:text-base">
-          <p>All submissions are reviewed by RRCRC staff.</p>
+          <p>All submissions are reviewed by our staff.</p>
           <p>You may be contacted if more information is needed.</p>
           <p>
-            Once approved, your contribution will appear on the Rideau-Rockcliffe
-            Resource Map.
+            Once approved, your contribution will appear on the{' '}
+            {APP_BRANDING.communityName} resource map.
           </p>
         </div>
       </div>

@@ -1,16 +1,16 @@
 import { useState } from 'react'
-import { MapContainer as LeafletMapContainer } from 'react-leaflet'
+import { MapContainer as LeafletMapContainer, ZoomControl } from 'react-leaflet'
 import type { ResourceMapItem } from '@/types'
 import type { ResourceMapQuery } from '@/services/mapService'
 import { BasemapDevFallbackBanner } from '@/features/map/components/BasemapDevFallbackBanner'
 import { BasemapErrorOverlay } from '@/features/map/components/BasemapErrorOverlay'
 import { BasemapTileLayer } from '@/features/map/components/BasemapTileLayer'
 import { getBasemapConfig } from '@/features/map/services'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { FlyToSelectedResource } from './FlyToSelectedResource'
 import { MapResizeHandler } from './MapResizeHandler'
 import { MapViewportReporter } from './MapViewportReporter'
-import { MarkerClusterGroup } from './MarkerClusterLayer'
-import { ResourceMapMarkers } from './ResourceMapMarkers'
+import { ResourceMarkersLayer } from './ResourceMarkersLayer'
 
 interface LeafletMapProps {
   items: ResourceMapItem[]
@@ -19,6 +19,7 @@ interface LeafletMapProps {
 }
 
 export function LeafletMap({ items, layoutKey, onViewportQueryChange }: LeafletMapProps) {
+  const isMobile = useIsMobile()
   const basemap = getBasemapConfig()
   const { viewport, tileLayer, error, devFallback } = basemap
 
@@ -37,8 +38,10 @@ export function LeafletMap({ items, layoutKey, onViewportQueryChange }: LeafletM
         minZoom={viewport.minZoom}
         maxZoom={viewport.maxZoom}
         className="absolute inset-0 z-0 h-full w-full"
-        zoomControl
+        // Mobile: hide +/-; pinch zoom + touch pan keep Leaflet defaults.
+        zoomControl={false}
       >
+        {!isMobile ? <ZoomControl position="topleft" /> : null}
         {tileLayer && <BasemapTileLayer config={tileLayer} />}
         <MapResizeHandler layoutKey={layoutKey} onLayoutReady={setLayoutReadyKey} />
         {onViewportQueryChange && (
@@ -49,9 +52,7 @@ export function LeafletMap({ items, layoutKey, onViewportQueryChange }: LeafletM
           layoutKey={layoutKey}
           layoutReadyKey={layoutReadyKey}
         />
-        <MarkerClusterGroup>
-          <ResourceMapMarkers items={items} />
-        </MarkerClusterGroup>
+        <ResourceMarkersLayer items={items} />
       </LeafletMapContainer>
 
       {devFallback && <BasemapDevFallbackBanner devFallback={devFallback} />}

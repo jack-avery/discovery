@@ -33,6 +33,8 @@ interface SkillsServicesEditorProps {
   onShowErrorsChange: (show: boolean) => void
   onDirtyChange: (dirty: boolean) => void
   onRegisterSave: (save: () => SavedContributionPayload | null) => void
+  /** Live save-eligibility for mobile primary button (existing completeness gates). */
+  onCanSaveChange?: (canSave: boolean) => void
   onProgressChange?: (progress: {
     sections: readonly string[]
     revealed: number
@@ -77,6 +79,7 @@ export function SkillsServicesEditor({
   onShowErrorsChange,
   onDirtyChange,
   onRegisterSave,
+  onCanSaveChange,
   onProgressChange,
 }: SkillsServicesEditorProps) {
   const [data, setData] = useState<SkillsServicesData>(() =>
@@ -97,6 +100,15 @@ export function SkillsServicesEditor({
   const errors = showErrors ? validateSkillsServices(data) : {}
   const showOptional = isSkillsOfferReady(data)
   const revealed = getRevealedSkillsSections(data)
+  const canSave = isSkillsServicesComplete(data)
+
+  useEffect(() => {
+    onCanSaveChange?.(canSave)
+  }, [canSave, onCanSaveChange])
+
+  useEffect(() => {
+    return () => onCanSaveChange?.(false)
+  }, [onCanSaveChange])
 
   useEffect(() => {
     onProgressChange?.({
@@ -131,7 +143,7 @@ export function SkillsServicesEditor({
         aria-label="What happens next"
       >
         <p className="text-sm leading-relaxed text-foreground">
-          A member of the RRCRC team will review your submission and may
+          A member of our team will review your submission and may
           contact you to learn more about your idea and discuss how it could
           best support the community.
         </p>
@@ -193,7 +205,7 @@ export function SkillsServicesEditor({
           <EditorSection
             id="skills-availability"
             title="When are you generally available?"
-            description="Keep it simple. RRCRC staff will discuss the details with you later."
+            description="Keep it simple. We will discuss the details with you later."
           >
             <CheckboxOptionGroup<AvailabilityOption>
               legend="General availability (optional)"
@@ -254,7 +266,7 @@ export function SkillsServicesEditor({
           <EditorSection
             id="skills-inspiration"
             title="What inspired you to offer this?"
-            description="Optional. This helps RRCRC understand motivation and community fit."
+            description="Optional. This helps our team understand motivation and community fit."
           >
             <Field id="skills-why" label="Your inspiration (optional)">
               <Textarea

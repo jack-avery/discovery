@@ -7,6 +7,7 @@ import { WorkspaceSection } from '@/features/discover/WorkspaceSection'
 import { useDiscoverCatalogRefresh } from '@/features/discover/providers/DiscoverCatalogRefreshProvider'
 import { useDiscoverSideWorkspace } from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
 import { useWorkspaceNavigation } from '@/features/discover/providers/WorkspaceNavigationProvider'
+import { isDiscoverTourSessionActive } from '@/features/discover/tour/tourSession'
 import { ConfirmDialog } from '@/features/submissions/form/ConfirmDialog'
 import {
   deleteResource,
@@ -87,7 +88,11 @@ export function RequestResourceUpdateFlow({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => openSideWorkspace('update-request')}
+              data-tour="update-resource"
+              onClick={() => {
+                if (isDiscoverTourSessionActive()) return
+                openSideWorkspace('update-request')
+              }}
             >
               Update Resource
             </Button>

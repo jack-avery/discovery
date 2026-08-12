@@ -1,24 +1,23 @@
-import type { ReactNode } from 'react'
-import { BrowserRouter } from 'react-router-dom'
 import { ToastProvider } from '@/components/shared/toast'
+import { browserRouter } from '@/app/router/browserRouter'
+import { RouterProvider } from 'react-router-dom'
 import { AuthProvider } from './AuthProvider'
+import { MobileNavMenuProvider } from './MobileNavMenuProvider'
 import { NavigationRailProvider } from './NavigationRailProvider'
 import { SearchProvider } from './SearchProvider'
 
-interface AppProvidersProps {
-  children: ReactNode
-}
-
-export function AppProviders({ children }: AppProvidersProps) {
+export function AppProviders() {
   return (
-    <BrowserRouter>
-      <ToastProvider>
-        <AuthProvider>
-          <NavigationRailProvider>
-            <SearchProvider>{children}</SearchProvider>
-          </NavigationRailProvider>
-        </AuthProvider>
-      </ToastProvider>
-    </BrowserRouter>
+    <ToastProvider>
+      <AuthProvider>
+        <NavigationRailProvider>
+          <MobileNavMenuProvider>
+            <SearchProvider>
+              <RouterProvider router={browserRouter} />
+            </SearchProvider>
+          </MobileNavMenuProvider>
+        </NavigationRailProvider>
+      </AuthProvider>
+    </ToastProvider>
   )
 }

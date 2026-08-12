@@ -32,3 +32,9 @@ export const MAP_REGION_WORKSPACE_Z_CLASS = 'z-[40]'
  * Update Resource side workspace when landing on Discover.
  */
 export const DISCOVER_OPEN_UPDATE_QUERY = 'updateResource'
+
+/**
+ * One-shot query flag from the landing "Take a Guided Tour" CTA.
+ * Discover consumes `?tour=1` then replace-removes it so refresh does not restart.
+ */
+export const DISCOVER_START_TOUR_QUERY = 'tour'

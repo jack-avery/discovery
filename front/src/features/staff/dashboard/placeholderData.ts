@@ -21,6 +21,11 @@ export interface PlaceholderQuickAction {
   onClick?: () => void
   /** When true, only administrators see this action. */
   adminOnly?: boolean
+  /**
+   * When true, only staff_editor+ see this action
+   * (`canManageCategories` / `canManageTags` — same backend boundary).
+   */
+  staffEditorOnly?: boolean
 }
 
 export const PLACEHOLDER_QUICK_ACTIONS: PlaceholderQuickAction[] = [
@@ -63,6 +68,7 @@ export const PLACEHOLDER_QUICK_ACTIONS: PlaceholderQuickAction[] = [
     description: 'Organize how resources are grouped and discovered.',
     icon: FolderTree,
     iconClassName: 'bg-primary-muted text-primary',
+    staffEditorOnly: true,
   },
   {
     id: 'manage-tags',
@@ -70,5 +76,6 @@ export const PLACEHOLDER_QUICK_ACTIONS: PlaceholderQuickAction[] = [
     description: 'Maintain filters used to discover and describe resources.',
     icon: Tag,
     iconClassName: 'bg-pending-muted text-pending',
+    staffEditorOnly: true,
   },
 ]

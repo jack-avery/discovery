@@ -14,19 +14,36 @@ export interface WorkspaceStackEntry {
   params?: Record<string, unknown>
 }
 
+/** How a resource detail screen was opened — used by the guided tour. */
+export type ResourceOpenOrigin = 'results' | 'map' | 'programmatic'
+
+export interface OpenResourceDetailOptions {
+  origin?: ResourceOpenOrigin
+}
+
 interface WorkspaceNavigationContextValue {
   stack: WorkspaceStackEntry[]
   current: WorkspaceStackEntry
   canGoBack: boolean
   push: (entry: WorkspaceStackEntry) => void
   pop: () => void
+  /** Return to the Discover list root without remounting the page. */
+  resetToRoot: () => void
   /** Opens or updates the resource detail workspace screen. */
-  openResourceDetail: (resourceId: string) => void
-  /** @deprecated Use openResourceDetail — kept for map marker compatibility. */
+  openResourceDetail: (
+    resourceId: string,
+    options?: OpenResourceDetailOptions,
+  ) => void
+  /**
+   * Map-marker selection entry point. Opens detail with origin `map`
+   * so the guided tour can distinguish pin clicks from result-list clicks.
+   */
   selectResource: (resourceId: string) => void
   /** @deprecated Use pop — kept for map marker compatibility. */
   clearSelection: () => void
   selectedResourceId: string | null
+  /** Most recent resource-open origin (results / map / programmatic). */
+  lastResourceOpenOrigin: ResourceOpenOrigin | null
 }
 
 const ROOT_ENTRY: WorkspaceStackEntry = { id: 'discover' }
@@ -37,6 +54,8 @@ export { WorkspaceNavigationContext }
 
 export function WorkspaceNavigationProvider({ children }: { children: ReactNode }) {
   const [stack, setStack] = useState<WorkspaceStackEntry[]>([ROOT_ENTRY])
+  const [lastResourceOpenOrigin, setLastResourceOpenOrigin] =
+    useState<ResourceOpenOrigin | null>(null)
   const { isExpanded, expand } = useWorkspace()
 
   const push = useCallback((entry: WorkspaceStackEntry) => {
@@ -47,16 +66,34 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
     setStack((prev) => (prev.length > 1 ? prev.slice(0, -1) : prev))
   }, [])
 
-  const openResourceDetail = useCallback((resourceId: string) => {
-    if (!isExpanded) expand()
-    setStack((prev) => {
-      const top = prev[prev.length - 1]
-      if (top?.id === 'resource-detail') {
-        return [...prev.slice(0, -1), { id: 'resource-detail', params: { resourceId } }]
-      }
-      return [...prev, { id: 'resource-detail', params: { resourceId } }]
-    })
-  }, [expand, isExpanded])
+  const resetToRoot = useCallback(() => {
+    setStack([ROOT_ENTRY])
+  }, [])
+
+  const openResourceDetail = useCallback(
+    (resourceId: string, options?: OpenResourceDetailOptions) => {
+      setLastResourceOpenOrigin(options?.origin ?? 'programmatic')
+      if (!isExpanded) expand()
+      setStack((prev) => {
+        const top = prev[prev.length - 1]
+        if (top?.id === 'resource-detail') {
+          return [
+            ...prev.slice(0, -1),
+            { id: 'resource-detail', params: { resourceId } },
+          ]
+        }
+        return [...prev, { id: 'resource-detail', params: { resourceId } }]
+      })
+    },
+    [expand, isExpanded],
+  )
+
+  const selectResource = useCallback(
+    (resourceId: string) => {
+      openResourceDetail(resourceId, { origin: 'map' })
+    },
+    [openResourceDetail],
+  )
 
   const current = stack[stack.length - 1] ?? ROOT_ENTRY
   const canGoBack = stack.length > 1
@@ -84,12 +121,25 @@ export function WorkspaceNavigationProvider({ children }: { children: ReactNode 
       canGoBack,
       push,
       pop,
+      resetToRoot,
       openResourceDetail,
-      selectResource: openResourceDetail,
+      selectResource,
       clearSelection: pop,
       selectedResourceId,
+      lastResourceOpenOrigin,
     }),
-    [stack, current, canGoBack, push, pop, openResourceDetail, selectedResourceId],
+    [
+      stack,
+      current,
+      canGoBack,
+      push,
+      pop,
+      resetToRoot,
+      openResourceDetail,
+      selectResource,
+      selectedResourceId,
+      lastResourceOpenOrigin,
+    ],
   )
 
   return (

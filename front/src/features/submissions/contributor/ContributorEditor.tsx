@@ -131,8 +131,8 @@ export function ContributorEditor({
         aria-label="Privacy information"
       >
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Your personal contact information is for RRCRC staff and will not be
-          displayed publicly on the Resource Map.
+          Your personal contact information is for staff review only and will not
+          be displayed publicly on the map.
         </p>
       </aside>
 

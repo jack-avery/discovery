@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import { Info, MapPin, Settings } from 'lucide-react'
-import resourcePlaceholder from '@/assets/resource-placeholder.svg'
+import { ResourcePlaceholderIllustration } from '@/components/shared/ResourcePlaceholderIllustration'
 import { DetailSectionCard } from '@/features/discover/DetailInfoCard'
 import { cn } from '@/utils/cn'
 
@@ -23,8 +23,7 @@ export function ResourceDetailHero({
   fallbackAlt?: string
 }) {
   const [failed, setFailed] = useState(false)
-  const src = hasText(imageUrl) && !failed ? imageUrl! : resourcePlaceholder
-  const usingFallback = src === resourcePlaceholder
+  const hasImage = hasText(imageUrl) && !failed
 
   return (
     <div
@@ -34,12 +33,19 @@ export function ResourceDetailHero({
       )}
     >
       <div className="aspect-[17/8] w-full">
-        <img
-          src={src}
-          alt={usingFallback ? fallbackAlt : alt}
-          className="h-full w-full object-cover"
-          onError={() => setFailed(true)}
-        />
+        {hasImage ? (
+          <img
+            src={imageUrl!}
+            alt={alt}
+            className="h-full w-full object-cover"
+            onError={() => setFailed(true)}
+          />
+        ) : (
+          <ResourcePlaceholderIllustration
+            className="h-full w-full object-cover"
+            title={fallbackAlt}
+          />
+        )}
       </div>
     </div>
   )

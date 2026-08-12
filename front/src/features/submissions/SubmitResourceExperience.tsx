@@ -1,6 +1,7 @@
 import { HeroSection } from './components/HeroSection'
 import { ContributionBuilder } from './components/ContributionBuilder'
 import { DraftRestoreBanner } from './components/DraftRestoreBanner'
+import { SubmissionNavigationGuard } from './components/SubmissionNavigationGuard'
 import { SubmissionSuccessPanel } from './components/SubmissionSuccessPanel'
 import { useSubmissionDraft } from './state/SubmissionDraftProvider'
 
@@ -20,6 +21,7 @@ export function SubmitResourceExperience() {
 
   return (
     <div className="flex h-full flex-col overflow-y-auto scrollbar-thin">
+      <SubmissionNavigationGuard />
       {!isSuccess && showRestoreBanner ? (
         <div className="page-container pt-4">
           <DraftRestoreBanner

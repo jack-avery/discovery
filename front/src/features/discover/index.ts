@@ -11,6 +11,8 @@ export {
   WORKSPACE_COLLAPSED_WIDTH_CLASS,
   WORKSPACE_WIDTH_CLASS,
   MAP_REGION_WORKSPACE_Z_CLASS,
+  DISCOVER_OPEN_UPDATE_QUERY,
+  DISCOVER_START_TOUR_QUERY,
 } from './constants'
 export { DiscoverSideWorkspace } from './DiscoverSideWorkspace'
 export {

@@ -13,6 +13,7 @@ export function DiscoverWorkspace(props: DiscoverWorkspaceProps) {
 
   return (
     <div
+      data-tour="workspace"
       className={cn(
         'flex h-full shrink-0 flex-col overflow-hidden border-r border-border bg-surface transition-[width] duration-200',
         isExpanded ? WORKSPACE_WIDTH_CLASS : WORKSPACE_COLLAPSED_WIDTH_CLASS,

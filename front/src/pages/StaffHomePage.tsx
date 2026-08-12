@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { AlertCircle, ClipboardList, FilePenLine, MapPin, TriangleAlert } from 'lucide-react'
+import { useAuth } from '@/app/providers/AuthProvider'
 import { PageShell } from '@/components/shared/PageShell'
 import { Button } from '@/components/ui'
 import { CategoryManagePanel } from '@/features/staff/categories'
@@ -27,6 +28,7 @@ const CATEGORY_BAR_COLOR = 'var(--primary)'
  * Counts come from GET /dashboard/stats when available.
  */
 export function StaffHomePage() {
+  const { permissions } = useAuth()
   const { status, stats, error, isForbidden, reload } = useDashboardStats()
   const [categoriesOpen, setCategoriesOpen] = useState(false)
   const [tagsOpen, setTagsOpen] = useState(false)
@@ -51,14 +53,24 @@ export function StaffHomePage() {
     () =>
       PLACEHOLDER_QUICK_ACTIONS.map((action) => {
         if (action.id === 'manage-categories') {
-          return { ...action, onClick: () => setCategoriesOpen(true) }
+          return {
+            ...action,
+            onClick: () => {
+              if (permissions.canManageCategories) setCategoriesOpen(true)
+            },
+          }
         }
         if (action.id === 'manage-tags') {
-          return { ...action, onClick: () => setTagsOpen(true) }
+          return {
+            ...action,
+            onClick: () => {
+              if (permissions.canManageTags) setTagsOpen(true)
+            },
+          }
         }
         return action
       }),
-    [],
+    [permissions.canManageCategories, permissions.canManageTags],
   )
 
   return (
@@ -168,11 +180,15 @@ export function StaffHomePage() {
         </section>
       </div>
 
-      <CategoryManagePanel
-        open={categoriesOpen}
-        onClose={() => setCategoriesOpen(false)}
-      />
-      <TagManagePanel open={tagsOpen} onClose={() => setTagsOpen(false)} />
+      {permissions.canManageCategories ? (
+        <CategoryManagePanel
+          open={categoriesOpen}
+          onClose={() => setCategoriesOpen(false)}
+        />
+      ) : null}
+      {permissions.canManageTags ? (
+        <TagManagePanel open={tagsOpen} onClose={() => setTagsOpen(false)} />
+      ) : null}
     </PageShell>
   )
 }

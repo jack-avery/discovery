@@ -9,7 +9,16 @@ import {
   DiscoverSideWorkspaceProvider,
   useDiscoverSideWorkspace,
 } from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
-import { DISCOVER_OPEN_UPDATE_QUERY } from '@/features/discover/constants'
+import {
+  DISCOVER_OPEN_UPDATE_QUERY,
+  DISCOVER_START_TOUR_QUERY,
+} from '@/features/discover/constants'
+import {
+  DiscoverTour,
+  DiscoverTourProvider,
+  useDiscoverTour,
+  setTourResourceCatalog,
+} from '@/features/discover/tour'
 import { useCategories, useResourceMap, useResources, useTags } from '@/hooks'
 import {
   getDefaultMapQuery,
@@ -27,7 +36,9 @@ export function DiscoverPage() {
     <WorkspaceProvider>
       <WorkspaceNavigationProvider>
         <DiscoverSideWorkspaceProvider>
-          <DiscoverPageContent />
+          <DiscoverTourProvider>
+            <DiscoverPageContent />
+          </DiscoverTourProvider>
         </DiscoverSideWorkspaceProvider>
       </WorkspaceNavigationProvider>
     </WorkspaceProvider>
@@ -38,8 +49,11 @@ function DiscoverPageContent() {
   const { query, setQuery } = useSearch()
   const [searchParams, setSearchParams] = useSearchParams()
   const { open: openSideWorkspace } = useDiscoverSideWorkspace()
+  const { startTour } = useDiscoverTour()
   const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedAdvancedFilters, setSelectedAdvancedFilters] = useState<string[]>([])
+  const [selectedAdvancedFilters, setSelectedAdvancedFilters] = useState<
+    string[]
+  >([])
   const [viewportQuery, setViewportQuery] = useState<ResourceMapQuery>(() =>
     getDefaultMapQuery(),
   )
@@ -53,13 +67,27 @@ function DiscoverPageContent() {
     setSearchParams(next, { replace: true })
   }, [searchParams, setSearchParams, openSideWorkspace])
 
+  // Landing "Take a Guided Tour" → Discover with one-shot ?tour=1.
+  useEffect(() => {
+    if (searchParams.get(DISCOVER_START_TOUR_QUERY) !== '1') return
+    const next = new URLSearchParams(searchParams)
+    next.delete(DISCOVER_START_TOUR_QUERY)
+    setSearchParams(next, { replace: true })
+    startTour()
+  }, [searchParams, setSearchParams, startTour])
+
   const handleViewportQueryChange = useCallback((next: ResourceMapQuery) => {
     setViewportQuery((prev) =>
       mapViewportQueryKey(prev) === mapViewportQueryKey(next) ? prev : next,
     )
   }, [])
 
-  const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } = useCategories()
+  const {
+    categories,
+    isLoading: categoriesLoading,
+    error: categoriesError,
+    reload: reloadCategories,
+  } = useCategories()
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags()
 
   /** Shared Discover filter state — drives both the resource list and map pins. */
@@ -96,6 +124,10 @@ function DiscoverPageContent() {
     error: resourcesError,
     reload: reloadResources,
   } = useResources(resourceFilters)
+
+  useEffect(() => {
+    setTourResourceCatalog(resources.map((resource) => resource.id))
+  }, [resources])
 
   const reloadCatalog = useCallback(() => {
     reloadResources()
@@ -134,6 +166,7 @@ function DiscoverPageContent() {
           mapError={mapError}
           onViewportQueryChange={handleViewportQueryChange}
         />
+        <DiscoverTour />
       </div>
     </DiscoverCatalogRefreshProvider>
   )

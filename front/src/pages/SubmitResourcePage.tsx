@@ -4,7 +4,7 @@ import { SubmissionDraftProvider } from '@/features/submissions/state/Submission
 
 /**
  * Public Contribute Resource page.
- * Uses the shared PageShell header (Staff Portal / session) identical to Home.
+ * Uses the shared PageShell header (Sign in / session) identical to Home.
  * Hero content remains full-bleed below the header.
  */
 export function SubmitResourcePage() {

@@ -1,4 +1,5 @@
 import { api } from '@/services/api'
+import { refreshSessionAccessToken } from '@/services/sessionRefresh'
 import type {
   LoginRequest,
   LoginResult,
@@ -20,20 +21,25 @@ export async function login(
 ): Promise<LoginResult> {
   return api.post<LoginResult>('/auth/login', request, {
     signal: options?.signal,
+    skipAuthRefresh: true,
   })
 }
 
+/**
+ * CSRF-aware silent refresh (cookie + optional X-CSRF-TOKEN).
+ * Uses the shared session-refresh path (not api.request) so 401 recovery
+ * cannot recurse.
+ */
 export async function refreshAccessToken(
   options?: AuthRequestOptions,
 ): Promise<RefreshResult> {
-  return api.post<RefreshResult>('/auth/refresh', undefined, {
-    signal: options?.signal,
-  })
+  return refreshSessionAccessToken(options?.signal)
 }
 
 export async function logout(options?: AuthRequestOptions): Promise<null> {
   return api.post<null>('/auth/logout', undefined, {
     signal: options?.signal,
+    skipAuthRefresh: true,
   })
 }
 
@@ -64,5 +70,6 @@ export async function setupPassword(
 ): Promise<null> {
   return api.post<null>('/auth/setup-password', request, {
     signal: options?.signal,
+    skipAuthRefresh: true,
   })
 }

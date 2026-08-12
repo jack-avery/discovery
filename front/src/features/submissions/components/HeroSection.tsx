@@ -1,4 +1,5 @@
 import { HeroMedia } from './HeroMedia'
+import { APP_BRANDING } from '@/config/appBranding'
 
 /**
  * Compact, full-width hero with centred overlay copy on decorative background.
@@ -31,8 +32,8 @@ export function HeroSection() {
           id="submit-hero-heading"
           className="mt-4 font-heading text-2xl font-semibold leading-tight tracking-tight text-foreground sm:mt-5 sm:text-3xl"
         >
-          Tell us about something that could help people in the
-          Rideau-Rockcliffe community.
+          Tell us about something that could help people in the{' '}
+          {APP_BRANDING.communityName} community.
         </h2>
 
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:mt-4 sm:text-base">

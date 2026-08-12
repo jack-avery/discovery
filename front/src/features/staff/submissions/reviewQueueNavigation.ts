@@ -27,6 +27,11 @@ export function reviewSubmissionsUrl(
   return `${REVIEW_SUBMISSIONS_PATH}?types=${filters.join(',')}`
 }
 
+/**
+ * Parse `?types=` deep-link values.
+ * Returns `null` when the param is missing, empty, or has no valid kinds
+ * (callers treat that as “all types” / `[]`).
+ */
 export function parseReviewQueueFiltersFromSearchParams(
   searchParams: URLSearchParams,
 ): ReviewContributionKind[] | null {
@@ -39,4 +44,25 @@ export function parseReviewQueueFiltersFromSearchParams(
     .filter((value) => VALID_KINDS.has(value)) as ReviewContributionKind[]
 
   return parsed.length > 0 ? parsed : null
+}
+
+/**
+ * Effective contribution-type filters for the review workspace from the URL.
+ * Missing / empty / invalid `types` → `[]` (all kinds).
+ */
+export function resolveReviewQueueFiltersFromSearchParams(
+  searchParams: URLSearchParams,
+): ReviewContributionKind[] {
+  return parseReviewQueueFiltersFromSearchParams(searchParams) ?? []
+}
+
+/** Order-insensitive equality for contribution-type filter sets. */
+export function areReviewContributionFiltersEqual(
+  a: readonly ReviewContributionKind[],
+  b: readonly ReviewContributionKind[],
+): boolean {
+  if (a.length !== b.length) return false
+  return (
+    a.every((kind) => b.includes(kind)) && b.every((kind) => a.includes(kind))
+  )
 }

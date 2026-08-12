@@ -5,6 +5,7 @@ import { useWorkspace } from '@/features/discover/providers/WorkspaceProvider'
 import { useDiscoverSideWorkspace } from '@/features/discover/providers/DiscoverSideWorkspaceProvider'
 import { DiscoverSideWorkspace } from './DiscoverSideWorkspace'
 import { FloatingDiscoveryToolbar } from './FloatingDiscoveryToolbar'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { cn } from '@/utils/cn'
 
 interface MapCanvasProps {
@@ -42,15 +43,20 @@ export function MapCanvas({
   onViewportQueryChange,
   className,
 }: MapCanvasProps) {
+  const isMobile = useIsMobile()
   const { isExpanded } = useWorkspace()
   const { isOpen: sideWorkspaceOpen } = useDiscoverSideWorkspace()
 
   // Overlay does not change map box size — keep layoutKey independent of it
   // so Leaflet zoom/center/tiles are preserved while the workspace is open.
-  const layoutKey = isExpanded ? 'workspace-expanded' : 'workspace-collapsed'
+  // Include mobile/desktop so crossing the md breakpoint re-invalidates size.
+  const layoutKey = `${isMobile ? 'mobile' : 'desktop'}-${isExpanded ? 'workspace-expanded' : 'workspace-collapsed'}`
 
   return (
-    <div className={cn('relative h-full min-h-0 min-w-0 flex-1', className)}>
+    <div
+      className={cn('relative h-full min-h-0 min-w-0 flex-1', className)}
+      data-tour="map"
+    >
       <MapContainer
         items={mapItems}
         isLoading={mapLoading}
@@ -59,7 +65,7 @@ export function MapCanvas({
         onViewportQueryChange={onViewportQueryChange}
       />
 
-      {!isExpanded && !sideWorkspaceOpen ? (
+      {!isMobile && !isExpanded && !sideWorkspaceOpen ? (
         <FloatingDiscoveryToolbar
           search={search}
           onSearchChange={onSearchChange}

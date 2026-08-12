@@ -153,7 +153,19 @@ export function validateSectionAccess(data: ExistingResourceData): FieldErrors {
   if (data.hoursAvailability === 'structured') {
     for (const day of data.hours) {
       if (day.isClosed || day.byAppointment) continue
-      if (day.opensAt && day.closesAt && day.opensAt >= day.closesAt) {
+
+      const opensAt = day.opensAt.trim()
+      const closesAt = day.closesAt.trim()
+      const hasOpen = Boolean(opensAt)
+      const hasClose = Boolean(closesAt)
+
+      if (hasOpen !== hasClose) {
+        errors.hours =
+          'Enter both opening and closing times, or clear both.'
+        break
+      }
+
+      if (hasOpen && hasClose && opensAt >= closesAt) {
         errors.hours =
           'Opening time must be earlier than closing time for each open day.'
         break

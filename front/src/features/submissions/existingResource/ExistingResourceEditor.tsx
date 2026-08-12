@@ -70,6 +70,11 @@ interface ExistingResourceEditorProps {
   onShowErrorsChange: (show: boolean) => void
   onDirtyChange: (dirty: boolean) => void
   onRegisterSave: (save: () => SavedContributionPayload | null) => void
+  /**
+   * Live signal: whether the registered save handler would currently succeed
+   * (existing completeness + location verification gates). Does not toggle errors.
+   */
+  onCanSaveChange?: (canSave: boolean) => void
   onProgressChange?: (progress: {
     sections: readonly string[]
     revealed: number
@@ -115,6 +120,16 @@ function resolveInitialData(
   return createEmptyExistingResourceData()
 }
 
+/**
+ * Public New Resource / Update Resource contribution editor.
+ *
+ * TODO(images): Implement public resource image upload once the backend exposes
+ * a public-safe upload contract. Current POST /uploads/resources is moderator+
+ * only, while POST /submissions already accepts image_url. Intended flow:
+ * select image -> preview -> upload -> receive image_url -> include in submission.
+ * Ensure submitted images are visible in staff review and published Resource
+ * Detail. Backend/deployment must also confirm /uploads serving through Caddy.
+ */
 export function ExistingResourceEditor({
   initialContribution,
   initialData,
@@ -125,6 +140,7 @@ export function ExistingResourceEditor({
   onShowErrorsChange,
   onDirtyChange,
   onRegisterSave,
+  onCanSaveChange,
   onProgressChange,
   onUpdateStateChange,
 }: ExistingResourceEditorProps) {
@@ -236,6 +252,19 @@ export function ExistingResourceEditor({
   const needsPhysical =
     data.accessMode === 'physical' || data.accessMode === 'both'
 
+  const canSave =
+    isComplete &&
+    (!needsPhysical || locationsVerified) &&
+    (!isUpdate || hasChanges)
+
+  useEffect(() => {
+    onCanSaveChange?.(canSave)
+  }, [canSave, onCanSaveChange])
+
+  useEffect(() => {
+    return () => onCanSaveChange?.(false)
+  }, [onCanSaveChange])
+
   useEffect(() => {
     if (!needsPhysical) setLocationsVerified(true)
   }, [needsPhysical])
@@ -340,7 +369,7 @@ export function ExistingResourceEditor({
           value={data.name}
           maxLength={RESOURCE_NAME_MAX_LENGTH}
           onChange={(e) => patch({ name: e.target.value })}
-          placeholder="e.g. Rideau-Rockcliffe Community Food Cupboard"
+          placeholder="e.g. Community Food Cupboard"
           aria-invalid={Boolean(aboutErrors.name)}
         />
       </Field>
@@ -547,7 +576,7 @@ export function ExistingResourceEditor({
           id="eligibility"
           value={data.eligibility}
           onChange={(e) => patch({ eligibility: e.target.value })}
-          placeholder="e.g. Open to Rideau-Rockcliffe residents"
+          placeholder="e.g. Open to local residents"
         />
       </Field>
 
@@ -683,7 +712,7 @@ export function ExistingResourceEditor({
               id="eligibility"
               value={data.eligibility}
               onChange={(e) => patch({ eligibility: e.target.value })}
-              placeholder="e.g. Open to Rideau-Rockcliffe residents"
+              placeholder="e.g. Open to local residents"
             />
           </Field>
           <Field

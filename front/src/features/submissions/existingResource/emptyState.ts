@@ -5,6 +5,7 @@ import type {
   ExistingResourceLocation,
   ResourceContactMethod,
 } from '@/types/submission'
+import { DEPLOYMENT_CONFIG } from '@/config/deploymentConfig'
 
 function createLocalId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -23,8 +24,9 @@ export const WEEKDAY_LABELS = [
   'Saturday',
 ] as const
 
-export const DEFAULT_CITY = 'Ottawa'
-export const DEFAULT_PROVINCE = 'Ontario'
+/** Neutral aliases derived from deployment geography config. */
+export const DEFAULT_CITY = DEPLOYMENT_CONFIG.geography.defaultCity
+export const DEFAULT_PROVINCE = DEPLOYMENT_CONFIG.geography.defaultProvince
 
 export function createDefaultHours(): DayHours[] {
   return WEEKDAY_LABELS.map((_, dayOfWeek) => ({

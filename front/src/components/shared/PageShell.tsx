@@ -6,7 +6,7 @@ interface PageShellProps {
   title: string
   description?: string
   children: ReactNode
-  /** Optional header trailing content. Defaults to Staff Portal / session controls. */
+  /** Optional header trailing content. Defaults to Sign in / session controls. */
   actions?: ReactNode
   /**
    * When true, content fills the remaining viewport height without page-level
@@ -37,7 +37,8 @@ export function PageShell({
           : 'overflow-y-auto scrollbar-thin',
       )}
     >
-      <header className="app-header flex shrink-0 items-center gap-3 border-b border-border bg-surface px-4 sm:px-5">
+      {/* Desktop/tablet header — mobile uses MobilePublicHeader in AppLayout. */}
+      <header className="app-header hidden shrink-0 items-center gap-3 border-b border-border bg-surface px-4 sm:px-5 md:flex">
         <h1 className="min-w-0 flex-1 truncate font-heading text-base font-semibold text-foreground">
           {title}
         </h1>
@@ -45,11 +46,13 @@ export function PageShell({
       </header>
 
       {uncontained ? (
-        <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+        <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-hidden">
+          {children}
+        </div>
       ) : (
         <div
           className={cn(
-            'page-container flex-1',
+            'page-container flex-1 overflow-x-hidden',
             fill
               ? 'flex min-h-0 flex-col overflow-hidden pt-4'
               : 'space-y-section',

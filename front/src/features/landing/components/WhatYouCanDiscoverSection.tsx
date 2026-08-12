@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FocusEvent, TouchEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import resourcePlaceholder from '@/assets/resource-placeholder.svg'
+import { ResourcePlaceholderIllustration } from '@/components/shared/ResourcePlaceholderIllustration'
 import { useFeaturedResources, useMediaQuery } from '@/hooks'
 import type { FeaturedResourceCard } from '@/services/resourceService'
 import { cn } from '@/utils/cn'
@@ -76,30 +76,26 @@ function ResourceLabelChips({ labels }: { labels: string[] }) {
  */
 function FeaturedResourceCardView({ resource }: { resource: FeaturedResourceCard }) {
   const [imageFailed, setImageFailed] = useState(false)
-  /*
-   * TODO(improvement/landing-visual-polish)
-   *
-   * Replace the temporary placeholder carousel artwork with a version
-   * that uses the application's design tokens instead of hardcoded colors.
-   * The illustration should automatically inherit future theme updates.
-   */
-  const imageSrc =
-    resource.imageUrl?.trim() && !imageFailed
-      ? resource.imageUrl
-      : resourcePlaceholder
-  const usingPlaceholder = imageSrc === resourcePlaceholder
+  const hasImage = Boolean(resource.imageUrl?.trim()) && !imageFailed
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
       <div className="h-[120px] w-full shrink-0 overflow-hidden bg-muted sm:h-[130px]">
-        <img
-          src={imageSrc}
-          alt={usingPlaceholder ? '' : `${resource.title} photo`}
-          className="h-full w-full object-cover"
-          loading="lazy"
-          decoding="async"
-          onError={() => setImageFailed(true)}
-        />
+        {hasImage ? (
+          <img
+            src={resource.imageUrl!}
+            alt={`${resource.title} photo`}
+            className="h-full w-full object-cover"
+            loading="lazy"
+            decoding="async"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <ResourcePlaceholderIllustration
+            className="h-full w-full object-cover"
+            decorative
+          />
+        )}
       </div>
 
       <div className="flex flex-1 flex-col gap-1.5 px-3.5 py-3 sm:px-4 sm:py-3.5">

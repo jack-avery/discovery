@@ -1,7 +1,8 @@
-import { useEffect, useState, type ComponentType } from 'react'
+import { useEffect, useRef, useState, type ComponentType } from 'react'
 import type { DiscoverScreenProps } from './DiscoverScreen'
 import { DiscoverScreen } from './DiscoverScreen'
 import { ResourceDetailScreen } from './ResourceDetailScreen'
+import { WORKSPACE_STACK_TRANSITION_MS } from '@/features/discover/constants'
 import { useWorkspaceNavigation } from './providers/WorkspaceNavigationProvider'
 import { WorkspaceStackLayer } from './WorkspaceStackLayer'
 
@@ -19,21 +20,56 @@ interface WorkspaceNavigationStackProps {
 /**
  * Manages layered workspace screens with slide transitions.
  * The root Discover screen stays mounted underneath pushed screens.
+ * Overlays removed from the stack unmount after their exit transition so a
+ * stale empty Resource Detail cannot remain targetable by the guided tour.
  */
-export function WorkspaceNavigationStack({ discoverProps }: WorkspaceNavigationStackProps) {
+export function WorkspaceNavigationStack({
+  discoverProps,
+}: WorkspaceNavigationStackProps) {
   const { stack, current } = useWorkspaceNavigation()
-  const [mountedOverlayIds, setMountedOverlayIds] = useState<Set<string>>(new Set())
+  const [mountedOverlayIds, setMountedOverlayIds] = useState<Set<string>>(
+    () => new Set(),
+  )
+  const unmountTimerRef = useRef<number | null>(null)
 
   useEffect(() => {
-    stack.forEach((entry) => {
-      if (entry.id === ROOT_SCREEN_ID) return
-      setMountedOverlayIds((prev) => {
-        if (prev.has(entry.id)) return prev
-        const next = new Set(prev)
-        next.add(entry.id)
-        return next
+    const idsInStack = new Set(
+      stack
+        .map((entry) => entry.id)
+        .filter((id) => id !== ROOT_SCREEN_ID),
+    )
+
+    setMountedOverlayIds((prev) => {
+      const next = new Set(prev)
+      let changed = false
+      idsInStack.forEach((id) => {
+        if (!next.has(id)) {
+          next.add(id)
+          changed = true
+        }
       })
+      return changed ? next : prev
     })
+
+    if (unmountTimerRef.current != null) {
+      window.clearTimeout(unmountTimerRef.current)
+      unmountTimerRef.current = null
+    }
+
+    unmountTimerRef.current = window.setTimeout(() => {
+      setMountedOverlayIds((prev) => {
+        const next = new Set([...prev].filter((id) => idsInStack.has(id)))
+        return next.size === prev.size ? prev : next
+      })
+      unmountTimerRef.current = null
+    }, WORKSPACE_STACK_TRANSITION_MS)
+
+    return () => {
+      if (unmountTimerRef.current != null) {
+        window.clearTimeout(unmountTimerRef.current)
+        unmountTimerRef.current = null
+      }
+    }
   }, [stack])
 
   return (

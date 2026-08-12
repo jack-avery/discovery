@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ArrowRight, PlusCircle } from 'lucide-react'
 import { Button } from '@/components/ui'
+import { APP_BRANDING } from '@/config/appBranding'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import type {
   ContributorInfo,
   SavedContributionPayload,
@@ -51,6 +53,7 @@ const ADD_ANOTHER_BUTTON_ID = 'add-another-contribution'
 const NEXT_ACTION_BUTTON_ID = 'contribution-next-action'
 
 export function ContributionBuilder() {
+  const isMobile = useIsMobile()
   const {
     draft,
     restoreNotice,
@@ -69,6 +72,8 @@ export function ContributionBuilder() {
     closeReview,
     retainFailedContributions,
     completeSuccessfulSubmission,
+    isSubmitting,
+    setIsSubmitting,
   } = useSubmissionDraft()
 
   const { contributions, ui, contributor } = draft
@@ -115,9 +120,12 @@ export function ContributionBuilder() {
   const [showErrors, setShowErrors] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
   const [editorProgress, setEditorProgress] = useState<EditorProgress>(null)
+  /** Existing completeness gate for the open contribution editor (mobile Save). */
+  const [editorCanSave, setEditorCanSave] = useState(false)
+  /** Existing completeness gate for the contributor editor (mobile Save). */
+  const [contributorCanSave, setContributorCanSave] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
   const [showReviewGate, setShowReviewGate] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitOutcome, setSubmitOutcome] = useState<{
     kind: 'partial' | 'failure'
     succeeded: ContributionSubmitSuccess[]
@@ -144,9 +152,26 @@ export function ContributionBuilder() {
     setEditorProgress(progress)
   }, [])
 
+  const handleEditorCanSaveChange = useCallback((canSave: boolean) => {
+    setEditorCanSave(canSave)
+  }, [])
+
+  const handleContributorCanSaveChange = useCallback((canSave: boolean) => {
+    setContributorCanSave(canSave)
+  }, [])
+
   useEffect(() => {
-    if (!editor) setEditorProgress(null)
+    if (!editor) {
+      setEditorProgress(null)
+      setEditorCanSave(false)
+    }
   }, [editor])
+
+  useEffect(() => {
+    if (!ui.showContributorEditor) {
+      setContributorCanSave(false)
+    }
+  }, [ui.showContributorEditor])
 
   useEffect(() => {
     if (atLimit && editor?.mode === 'create') {
@@ -419,11 +444,11 @@ export function ContributionBuilder() {
 
   const editorDescription =
     editor?.type === 'existing_resource'
-      ? 'Tell us about an organization, program, service, or place that people can already access in the Rideau-Rockcliffe community.'
+      ? `Tell us about an organization, program, service, or place that people can already access in the ${APP_BRANDING.communityName} community.`
       : editor?.type === 'community_asset'
-        ? 'Tell us about something you would personally like to offer to the Rideau-Rockcliffe community.'
+        ? `Tell us about something you would personally like to offer to the ${APP_BRANDING.communityName} community.`
         : editor?.type === 'event'
-          ? 'Tell us about an upcoming one-time or recurring event that could benefit people in the Rideau-Rockcliffe community.'
+          ? `Tell us about an upcoming one-time or recurring event that could benefit people in the ${APP_BRANDING.communityName} community.`
           : undefined
 
   const progressNode = editorProgress ? (
@@ -633,6 +658,7 @@ export function ContributionBuilder() {
         saveLabel={
           editor?.mode === 'edit' ? 'Save changes' : 'Save Contribution'
         }
+        primaryDisabled={isMobile && !editorCanSave}
       >
         {editor?.type === 'existing_resource' ? (
           <ExistingResourceEditor
@@ -642,6 +668,7 @@ export function ContributionBuilder() {
             onShowErrorsChange={setShowErrors}
             onDirtyChange={setIsDirty}
             onRegisterSave={registerSave}
+            onCanSaveChange={handleEditorCanSaveChange}
             onProgressChange={handleProgressChange}
           />
         ) : editor?.type === 'community_asset' ? (
@@ -652,6 +679,7 @@ export function ContributionBuilder() {
             onShowErrorsChange={setShowErrors}
             onDirtyChange={setIsDirty}
             onRegisterSave={registerSave}
+            onCanSaveChange={handleEditorCanSaveChange}
             onProgressChange={handleProgressChange}
           />
         ) : editor?.type === 'event' ? (
@@ -662,6 +690,7 @@ export function ContributionBuilder() {
             onShowErrorsChange={setShowErrors}
             onDirtyChange={setIsDirty}
             onRegisterSave={registerSave}
+            onCanSaveChange={handleEditorCanSaveChange}
             onProgressChange={handleProgressChange}
           />
         ) : null}
@@ -670,10 +699,11 @@ export function ContributionBuilder() {
       <ContributionEditorSheet
         open={ui.showContributorEditor}
         title="Your Information"
-        description="Tell us how RRCRC can contact you if we need to clarify anything about your submission."
+        description="Tell us how we can contact you if we need to clarify anything about your submission."
         onClose={requestCloseContributor}
         onSave={handleContributorSave}
         saveLabel="Save your information"
+        primaryDisabled={isMobile && !contributorCanSave}
       >
         {ui.showContributorEditor ? (
           <ContributorEditor
@@ -683,6 +713,7 @@ export function ContributionBuilder() {
             onShowErrorsChange={setShowErrors}
             onDirtyChange={setIsDirty}
             onRegisterSave={registerContributorSave}
+            onValidityChange={handleContributorCanSaveChange}
             requireResourceConnection={requireResourceConnection}
           />
         ) : null}
@@ -701,8 +732,8 @@ export function ContributionBuilder() {
           submitOutcome
             ? undefined
             : isSubmitting
-              ? 'Please wait while we send your contributions to RRCRC.'
-              : 'Check the information below before submitting it to RRCRC.'
+              ? 'Please wait while we send your contributions.'
+              : 'Check the information below before submitting.'
         }
         onClose={() => {
           if (isSubmitting) return

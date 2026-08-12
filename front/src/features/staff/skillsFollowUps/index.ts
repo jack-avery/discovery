@@ -1,0 +1,6 @@
+export { SkillsFollowUpsWorkspace } from './SkillsFollowUpsWorkspace'
+export { SkillsFollowUpsToolbar } from './SkillsFollowUpsToolbar'
+export { SkillsFollowUpsTable } from './SkillsFollowUpsTable'
+export { SkillsFollowUpsTableSkeleton } from './SkillsFollowUpsTableSkeleton'
+export { SkillsFollowUpDetailPanel } from './SkillsFollowUpDetailPanel'
+export { buildSkillsFollowUpDetailView } from './buildSkillsFollowUpDetailView'

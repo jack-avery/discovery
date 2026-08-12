@@ -56,11 +56,15 @@
   outline-offset: 2px;
 }
 
+/* Geometric circle — avoids font glyph sidebearings that shifted ● left of center. */
 .resource-map-marker__icon {
+  display: block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  /* Counter-rotate with the pin so any subpixel paint stays axis-aligned. */
   transform: rotate(45deg);
-  width: 16px;
-  height: 16px;
-  color: var(--color-surface);
 }
 
 /* Resource pin hover / focus name label */

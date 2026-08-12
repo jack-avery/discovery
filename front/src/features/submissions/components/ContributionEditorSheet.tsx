@@ -211,15 +211,16 @@ export function ContributionEditorSheet({
           {children}
         </div>
 
-        <footer className="flex shrink-0 flex-col gap-2 border-t border-border bg-surface px-4 py-3 sm:px-6">
+        <footer className="flex shrink-0 flex-col gap-2 border-t border-border bg-surface px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
           {primaryHint && primaryDisabled && !hidePrimary ? (
             <p className="text-sm text-muted-foreground">{primaryHint}</p>
           ) : null}
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
             <Button
               type="button"
               variant="secondary"
               onClick={onCancel ?? onClose}
+              className="w-full sm:w-auto"
             >
               {cancelLabel}
             </Button>
@@ -229,6 +230,7 @@ export function ContributionEditorSheet({
                 variant="primary"
                 onClick={onSave}
                 disabled={primaryDisabled}
+                className="w-full sm:w-auto"
               >
                 {saveLabel}
               </Button>
