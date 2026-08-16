@@ -102,6 +102,8 @@ export function FlyToSelectedResource({
         abort.signal,
       )
       if (cancelled || !target) return
+      // map.remove() clears panes; public stop() is unsafe afterward.
+      if (!map.getPane('mapPane')) return
 
       map.stop()
 
@@ -140,7 +142,9 @@ export function FlyToSelectedResource({
     return () => {
       cancelled = true
       abort.abort()
-      map.stop()
+      if (map.getPane('mapPane')) {
+        map.stop()
+      }
     }
   }, [
     selectedResourceId,
