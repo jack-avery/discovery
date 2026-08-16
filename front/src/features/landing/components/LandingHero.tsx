@@ -245,11 +245,8 @@ export function LandingHero() {
           </div>
 
           <p className="mt-4 max-w-sm text-xs leading-relaxed text-foreground sm:mt-5 sm:max-w-[22rem] sm:text-[0.8125rem]">
-            This map is currently being piloted with select communities in
-            Rideau-Rockcliffe.{' '}
-            <span className="font-medium">
-              A broader public rollout is coming soon.
-            </span>
+            This map is currently being piloted with select communities in the
+            Rideau-Rockcliffe ward.
           </p>
 
           {/* Mobile pagination — in flow under CTAs so it does not cover copy/buttons */}
