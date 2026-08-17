@@ -67,6 +67,7 @@ function sectionSnapshot(
       return {
         name: data.name.trim(),
         description: data.description.trim(),
+        imageUrl: data.imageUrl?.trim() || null,
       }
     case 'hours':
       return canonicalizeHours({

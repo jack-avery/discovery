@@ -81,6 +81,7 @@ export interface ExistingResourceData {
   kind: 'existing_resource'
   name: string
   description: string
+  imageUrl: string | null
   categoryIds: number[]
   /** UI “additional details / help people find this” — backed by tags later. */
   filterIds: number[]

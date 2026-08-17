@@ -104,6 +104,7 @@ export function createEmptyExistingResourceData(): ExistingResourceData {
     kind: 'existing_resource',
     name: '',
     description: '',
+    imageUrl: null,
     categoryIds: [],
     filterIds: [],
     accessMode: null,
@@ -186,6 +187,10 @@ export function normalizeExistingResourceData(
     ...base,
     ...rest,
     kind: 'existing_resource',
+    imageUrl:
+      typeof raw.imageUrl === 'string' && raw.imageUrl.trim()
+        ? raw.imageUrl.trim()
+        : null,
     locations,
     categoryIds: Array.isArray(raw.categoryIds) ? raw.categoryIds : [],
     filterIds: Array.isArray(raw.filterIds) ? raw.filterIds : [],
