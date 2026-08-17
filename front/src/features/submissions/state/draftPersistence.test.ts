@@ -286,6 +286,27 @@ describe('draftStorage persistence invariant', () => {
     }
   })
 
+  it('restores an Event image URL from a saved draft', () => {
+    const contribution = createEmptyContribution('event')
+    contribution.data = {
+      ...createEmptyEventData(),
+      name: 'Community Event',
+      imageUrl: '/uploads/resources/community-event.webp',
+    }
+    writeStoredDraft(draftWithContribution(contribution))
+
+    const restored = readStoredDraft()
+    assert.ok(restored)
+    const restoredEvent = restored.contributions[0]?.data
+    assert.equal(restoredEvent?.kind, 'event')
+    if (restoredEvent?.kind === 'event') {
+      assert.equal(
+        restoredEvent.imageUrl,
+        '/uploads/resources/community-event.webp',
+      )
+    }
+  })
+
   it('simulates successful submission → unmount → draft remains cleared', () => {
     writeStoredDraft(withContributor({ name: 'Before submit' }))
     clearStoredDraft()

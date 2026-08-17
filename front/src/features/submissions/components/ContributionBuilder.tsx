@@ -705,6 +705,7 @@ export function ContributionBuilder() {
             onDirtyChange={setIsDirty}
             onRegisterSave={registerSave}
             onCanSaveChange={handleEditorCanSaveChange}
+            onImageUploadingChange={setEditorImageUploading}
             onProgressChange={handleProgressChange}
           />
         ) : null}

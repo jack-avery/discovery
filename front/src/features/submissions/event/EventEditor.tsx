@@ -42,6 +42,7 @@ import {
 } from '../form/AccessModeSelector'
 import { PhysicalLocationList } from '../form/PhysicalLocationList'
 import type { PhysicalLocationGeocodingHandle } from '../form/PhysicalLocationList'
+import { ResourceImageUploadField } from '../components/ResourceImageUploadField'
 
 interface EventEditorProps {
   initialContribution: Contribution | null
@@ -51,6 +52,7 @@ interface EventEditorProps {
   onRegisterSave: (save: () => SavedContributionPayload | null) => void
   /** Live save-eligibility for mobile primary button (existing completeness gates). */
   onCanSaveChange?: (canSave: boolean) => void
+  onImageUploadingChange?: (uploading: boolean) => void
   onProgressChange?: (progress: {
     sections: readonly string[]
     revealed: number
@@ -104,6 +106,7 @@ export function EventEditor({
   onDirtyChange,
   onRegisterSave,
   onCanSaveChange,
+  onImageUploadingChange,
   onProgressChange,
 }: EventEditorProps) {
   const { categories, isLoading: categoriesLoading, error: categoriesError, reload: reloadCategories } =
@@ -117,7 +120,9 @@ export function EventEditor({
     JSON.stringify(initialDataFromContribution(initialContribution)),
   )
   const locationGeocodingRef = useRef<PhysicalLocationGeocodingHandle>(null)
+  const imageUploadingRef = useRef(false)
   const [locationsVerified, setLocationsVerified] = useState(true)
+  const [isImageUploading, setIsImageUploading] = useState(false)
 
   useEffect(() => {
     onDirtyChange(JSON.stringify(data) !== baseline)
@@ -127,12 +132,19 @@ export function EventEditor({
     setData((current) => ({ ...current, ...partial }))
   }
 
+  const handleImageUploadingChange = (uploading: boolean) => {
+    imageUploadingRef.current = uploading
+    setIsImageUploading(uploading)
+    onImageUploadingChange?.(uploading)
+  }
+
   const needsPhysical =
     data.accessMode === 'physical' || data.accessMode === 'both'
 
   const canSave =
     isEventContributionComplete(data) &&
-    (!needsPhysical || locationsVerified)
+    (!needsPhysical || locationsVerified) &&
+    !isImageUploading
 
   useEffect(() => {
     onCanSaveChange?.(canSave)
@@ -197,6 +209,7 @@ export function EventEditor({
   useEffect(() => {
     onRegisterSave(() => {
       onShowErrorsChange(true)
+      if (imageUploadingRef.current) return null
       if (!isEventContributionComplete(data)) return null
       const needsSites =
         data.accessMode === 'physical' || data.accessMode === 'both'
@@ -262,6 +275,12 @@ export function EventEditor({
             placeholder="Share what will happen, who may benefit, and anything people should know."
           />
         </Field>
+        <ResourceImageUploadField
+          id="event-image"
+          value={data.imageUrl}
+          onChange={(imageUrl) => patch({ imageUrl })}
+          onUploadingChange={handleImageUploadingChange}
+        />
       </EditorSection>
 
       {revealed >= 2 ? (

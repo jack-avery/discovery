@@ -192,6 +192,7 @@ export interface EventContributionData {
   kind: 'event'
   name: string
   description: string
+  imageUrl: string | null
   scheduleKind: EventScheduleKind | null
   /** One-time start date, or recurring first occurrence (YYYY-MM-DD). */
   startDate: string
