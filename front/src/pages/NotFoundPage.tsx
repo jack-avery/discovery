@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom'
-import { Button } from '@/components/ui'
 import { StaffSessionControls } from '@/components/shared/StaffSessionControls'
 
 export function NotFoundPage() {
@@ -17,8 +16,11 @@ export function NotFoundPage() {
         <p className="mt-4 text-sm text-muted-foreground">
           The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
-        <Link to="/discover" className="mt-6">
-          <Button>Back to Discover</Button>
+        <Link
+          to="/discover"
+          className="mt-6 inline-flex h-10 min-h-[var(--ds-min-touch)] items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover focus-ring"
+        >
+          Back to Discover
         </Link>
       </div>
     </div>

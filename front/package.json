@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
     "preview": "vite preview",
+    "test": "VITE_API_URL=http://test.local/api/v1 tsx --tsconfig tsconfig.app.json --test \"src/**/*.test.ts\"",
     "test:contact-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/contacts/contactEquality.test.ts",
     "test:location-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/locations/locationEquality.test.ts",
     "test:hours-equality": "tsx --tsconfig tsconfig.app.json --test src/features/submissions/hours/hoursEquality.test.ts",
