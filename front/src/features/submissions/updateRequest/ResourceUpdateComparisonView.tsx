@@ -1,5 +1,7 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Button, Input, Textarea } from '@/components/ui'
+import { ResourcePlaceholderIllustration } from '@/components/shared/ResourcePlaceholderIllustration'
+import { resolveResourceImageUrl } from '@/utils/resolveResourceImageUrl'
 import type {
   ResourceUpdateComparison,
   ResourceUpdateComparisonField,
@@ -176,7 +178,8 @@ function FieldComparison({
     ? review.getProposedValue(field.id, field.proposed)
     : field.proposed
   const isEdited = review?.isFieldEdited(field.id) ?? false
-  const proposedEditable = interactive && useProposed
+  const proposedEditable =
+    interactive && useProposed && field.reviewerEditable !== false
   const multiline = prefersMultiline(field)
   const proposedControlId = `proposed-${field.id}`
   const acceptControlId = `accept-${field.id}`
@@ -221,7 +224,28 @@ function FieldComparison({
       </div>
 
       <div className="space-y-2 text-sm">
-        {showCurrent ? (
+        {field.images ? (
+          <>
+            {showCurrent ? (
+              <>
+                <ComparisonImageValue
+                  label="Current"
+                  imageUrl={field.images.current}
+                  caption={field.current!}
+                  muted
+                />
+                <p className="pl-1 text-muted-foreground" aria-hidden="true">
+                  ↓
+                </p>
+              </>
+            ) : null}
+            <ComparisonImageValue
+              label="Proposed"
+              imageUrl={field.images.proposed}
+              caption={field.proposed}
+            />
+          </>
+        ) : showCurrent ? (
           <>
             <ComparisonValue
               label="Current"
@@ -235,7 +259,7 @@ function FieldComparison({
           </>
         ) : null}
 
-        {interactive ? (
+        {field.images ? null : interactive ? (
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="text-xs font-medium text-muted-foreground">
@@ -307,6 +331,70 @@ function FieldComparison({
           />
         )}
       </div>
+    </div>
+  )
+}
+
+/**
+ * Image variant of {@link ComparisonValue}: previews the stored image and
+ * falls back to the shared placeholder when absent or unloadable.
+ */
+function ComparisonImageValue({
+  label,
+  imageUrl,
+  caption,
+  muted = false,
+}: {
+  label: string
+  imageUrl: string | null
+  caption: string
+  muted?: boolean
+}) {
+  const resolvedImageUrl = resolveResourceImageUrl(imageUrl)
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
+  const showImage =
+    resolvedImageUrl != null && resolvedImageUrl !== failedImageUrl
+
+  return (
+    <div
+      className={cn(
+        'rounded-lg px-3 py-2',
+        muted ? 'bg-muted/70 text-muted-foreground' : 'bg-muted/50',
+      )}
+    >
+      <p
+        className={cn(
+          'text-xs font-medium',
+          muted ? 'text-muted-foreground/80' : 'text-muted-foreground',
+        )}
+      >
+        {label}
+      </p>
+      <div className="mt-1.5 overflow-hidden rounded-md border border-border">
+        <div className="aspect-[17/8] w-full bg-muted">
+          {showImage ? (
+            <img
+              src={resolvedImageUrl}
+              alt={`${label} resource image`}
+              className="h-full w-full object-cover"
+              onError={() => setFailedImageUrl(resolvedImageUrl)}
+            />
+          ) : (
+            <ResourcePlaceholderIllustration
+              className="h-full w-full object-cover"
+              title={`${label}: no image available`}
+            />
+          )}
+        </div>
+      </div>
+      <p
+        className={cn(
+          'mt-1.5 text-xs',
+          muted ? 'text-muted-foreground' : 'text-muted-foreground',
+        )}
+      >
+        {caption}
+      </p>
     </div>
   )
 }

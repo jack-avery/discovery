@@ -6,6 +6,7 @@ import { ResourcePlaceholderIllustration } from '@/components/shared/ResourcePla
 import { useFeaturedResources, useMediaQuery } from '@/hooks'
 import type { FeaturedResourceCard } from '@/services/resourceService'
 import { cn } from '@/utils/cn'
+import { resolveResourceImageUrl } from '@/utils/resolveResourceImageUrl'
 
 const ROTATION_MS = 7000
 const SWIPE_THRESHOLD_PX = 48
@@ -75,20 +76,22 @@ function ResourceLabelChips({ labels }: { labels: string[] }) {
  * after navigation.
  */
 function FeaturedResourceCardView({ resource }: { resource: FeaturedResourceCard }) {
-  const [imageFailed, setImageFailed] = useState(false)
-  const hasImage = Boolean(resource.imageUrl?.trim()) && !imageFailed
+  const resolvedImageUrl = resolveResourceImageUrl(resource.imageUrl)
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
+  const hasImage =
+    resolvedImageUrl != null && resolvedImageUrl !== failedImageUrl
 
   return (
     <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-sm">
       <div className="h-[120px] w-full shrink-0 overflow-hidden bg-muted sm:h-[130px]">
         {hasImage ? (
           <img
-            src={resource.imageUrl!}
+            src={resolvedImageUrl}
             alt={`${resource.title} photo`}
             className="h-full w-full object-cover"
             loading="lazy"
             decoding="async"
-            onError={() => setImageFailed(true)}
+            onError={() => setFailedImageUrl(resolvedImageUrl)}
           />
         ) : (
           <ResourcePlaceholderIllustration

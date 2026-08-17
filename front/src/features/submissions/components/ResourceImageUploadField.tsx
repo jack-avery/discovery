@@ -184,7 +184,7 @@ export function ResourceImageUploadField({
         aria-controls={id}
         onClick={() => inputRef.current?.click()}
       >
-        {previewUrl ? 'Replace image' : 'Choose image'}
+        {value?.trim() ? 'Replace image' : 'Choose image'}
       </Button>
       {uploading ? (
         <p
