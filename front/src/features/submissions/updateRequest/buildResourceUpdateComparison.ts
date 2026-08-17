@@ -42,6 +42,16 @@ export interface ResourceUpdateComparisonField {
   proposed: string
   /** False until the host can supply a baseline resource. */
   currentAvailable: boolean
+  /** False when reviewers may accept/reject the field but not edit its value. */
+  reviewerEditable?: boolean
+  /**
+   * Stored image values for image fields, so hosts can preview them.
+   * Null when there is no image (or no baseline).
+   */
+  images?: {
+    current: string | null
+    proposed: string | null
+  }
   /**
    * True when the field differs for review purposes (or baseline is missing).
    * Structured fields (locations, hours) use semantic equality; others compare
@@ -148,6 +158,26 @@ function buildSectionFields(
           baseline.description,
           proposed.description,
           currentAvailable,
+        ),
+        field(
+          sectionId,
+          'image',
+          'Image',
+          formatImage(baseline.imageUrl),
+          formatImage(proposed.imageUrl),
+          currentAvailable,
+          {
+            semanticallyChanged:
+              normalizeImageUrl(baseline.imageUrl) !==
+              normalizeImageUrl(proposed.imageUrl),
+            reviewerEditable: false,
+            images: {
+              current: currentAvailable
+                ? normalizeImageUrl(baseline.imageUrl)
+                : null,
+              proposed: normalizeImageUrl(proposed.imageUrl),
+            },
+          },
         ),
       ]
     case 'hours':
@@ -361,6 +391,8 @@ function field(
      * (e.g. location coordinates) or normalize presentation.
      */
     semanticallyChanged?: boolean
+    reviewerEditable?: boolean
+    images?: ResourceUpdateComparisonField['images']
   },
 ): ResourceUpdateComparisonField {
   const proposed = displayValue(proposedRaw)
@@ -376,12 +408,23 @@ function field(
     proposed,
     currentAvailable,
     changed,
+    reviewerEditable: options?.reviewerEditable,
+    images: options?.images,
   }
 }
 
 function displayValue(value: string): string {
   const trimmed = value.trim()
   return trimmed || EMPTY_VALUE
+}
+
+function normalizeImageUrl(value: string | null | undefined): string | null {
+  const normalized = value?.trim() ?? ''
+  return normalized || null
+}
+
+function formatImage(value: string | null | undefined): string {
+  return normalizeImageUrl(value) ? 'Image provided' : 'No image'
 }
 
 function formatCost(

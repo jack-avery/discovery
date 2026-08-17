@@ -55,7 +55,7 @@ export function WhyThisExistsSection() {
           <p className="mx-auto mt-3 max-w-3xl text-base leading-relaxed text-muted-foreground sm:mt-4 sm:text-lg">
             By recognizing and leveraging the strengths, skills, knowledge, and
             resources already within the community, the map helps create
-            connections that support sustainable growth.
+            connections that support community well-being.
           </p>
         </div>
       </div>

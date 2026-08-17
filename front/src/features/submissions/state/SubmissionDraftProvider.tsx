@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { useAuth } from '@/app/providers/AuthProvider'
 import type {
   Contribution,
   ContributionType,
@@ -93,6 +94,7 @@ function touchDraft(draft: SubmissionDraft): SubmissionDraft {
 }
 
 export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
+  const { isAuthenticated } = useAuth()
   const [draft, setDraft] = useState<SubmissionDraft>(() =>
     createEmptySubmissionDraft(),
   )
@@ -142,7 +144,12 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
   const beginCreateContribution = useCallback(
     (type: ContributionType) => {
       updateDraft((current) => {
-        if (!canAddContribution(current.contributions.length)) {
+        if (
+          !canAddContribution(
+            current.contributions.length,
+            isAuthenticated,
+          )
+        ) {
           return {
             ...current,
             ui: {
@@ -168,7 +175,7 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
         }
       })
     },
-    [updateDraft],
+    [isAuthenticated, updateDraft],
   )
 
   const beginEditContribution = useCallback(
@@ -212,7 +219,12 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
       if (!session) return false
 
       if (session.mode === 'create') {
-        if (!canAddContribution(current.contributions.length)) {
+        if (
+          !canAddContribution(
+            current.contributions.length,
+            isAuthenticated,
+          )
+        ) {
           updateDraft((latest) => ({
             ...latest,
             ui: {
@@ -236,7 +248,12 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
         const previousCount = current.contributions.length
 
         updateDraft((latest) => {
-          if (!canAddContribution(latest.contributions.length)) {
+          if (
+            !canAddContribution(
+              latest.contributions.length,
+              isAuthenticated,
+            )
+          ) {
             return {
               ...latest,
               ui: {
@@ -282,12 +299,14 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
       }))
       return true
     },
-    [updateDraft],
+    [isAuthenticated, updateDraft],
   )
 
   const openTypePicker = useCallback(() => {
     updateDraft((current) => {
-      if (!canAddContribution(current.contributions.length)) {
+      if (
+        !canAddContribution(current.contributions.length, isAuthenticated)
+      ) {
         return {
           ...current,
           ui: {
@@ -308,7 +327,7 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
         },
       }
     })
-  }, [updateDraft])
+  }, [isAuthenticated, updateDraft])
 
   const closeTypePicker = useCallback(() => {
     updateDraft((current) => ({
@@ -444,7 +463,10 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
   const continueDraft = useCallback(() => {
     const stored = readStoredDraft()
     if (stored) {
-      const { draft: normalized, truncated } = normalizeDraft(stored)
+      const { draft: normalized, truncated } = normalizeDraft(
+        stored,
+        isAuthenticated,
+      )
       setDraft(normalized)
       draftRef.current = normalized
       setRestoreNotice(
@@ -454,7 +476,7 @@ export function SubmissionDraftProvider({ children }: { children: ReactNode }) {
     persistenceEnabledRef.current = true
     setShowRestoreBanner(false)
     persistSoon()
-  }, [persistSoon])
+  }, [isAuthenticated, persistSoon])
 
   const discardDraft = useCallback(() => {
     clearStoredDraft()
@@ -559,11 +581,15 @@ function normalizeContributionData(
   return data
 }
 
-function normalizeDraft(draft: SubmissionDraft): {
+function normalizeDraft(
+  draft: SubmissionDraft,
+  isAuthenticated: boolean,
+): {
   draft: SubmissionDraft
   truncated: boolean
 } {
   const truncated =
+    !isAuthenticated &&
     draft.contributions.length > MAX_CONTRIBUTIONS_PER_SUBMISSION
   const contributions = (
     truncated

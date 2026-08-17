@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ArrowRight, PlusCircle } from 'lucide-react'
+import { useAuth } from '@/app/providers/AuthProvider'
 import { Button } from '@/components/ui'
 import { APP_BRANDING } from '@/config/appBranding'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -32,6 +33,7 @@ import {
   CONTRIBUTION_LIMIT_REACHED_MESSAGE,
   contributionCountLabel,
   isContributionLimitReached,
+  shouldShowContributionCount,
 } from '../constants/contributionLimits'
 import {
   submitSubmission,
@@ -54,6 +56,7 @@ const NEXT_ACTION_BUTTON_ID = 'contribution-next-action'
 
 export function ContributionBuilder() {
   const isMobile = useIsMobile()
+  const { isAuthenticated } = useAuth()
   const {
     draft,
     restoreNotice,
@@ -78,8 +81,11 @@ export function ContributionBuilder() {
 
   const { contributions, ui, contributor } = draft
   const isEmpty = contributions.length === 0
-  const atLimit = isContributionLimitReached(contributions.length)
-  const canAdd = canAddContribution(contributions.length)
+  const atLimit = isContributionLimitReached(
+    contributions.length,
+    isAuthenticated,
+  )
+  const canAdd = canAddContribution(contributions.length, isAuthenticated)
   const showTypePicker = canAdd && (isEmpty || ui.showTypePicker)
   const editor = ui.editor
   const editorMeta = editor ? CONTRIBUTION_TYPE_META[editor.type] : null
@@ -122,6 +128,7 @@ export function ContributionBuilder() {
   const [editorProgress, setEditorProgress] = useState<EditorProgress>(null)
   /** Existing completeness gate for the open contribution editor (mobile Save). */
   const [editorCanSave, setEditorCanSave] = useState(false)
+  const [editorImageUploading, setEditorImageUploading] = useState(false)
   /** Existing completeness gate for the contributor editor (mobile Save). */
   const [contributorCanSave, setContributorCanSave] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
@@ -164,6 +171,7 @@ export function ContributionBuilder() {
     if (!editor) {
       setEditorProgress(null)
       setEditorCanSave(false)
+      setEditorImageUploading(false)
     }
   }, [editor])
 
@@ -372,6 +380,7 @@ export function ContributionBuilder() {
     try {
       const result = await submitSubmission(draftRef.current, {
         signal: controller.signal,
+        isAuthenticated,
       })
 
       if (result.status === 'success') {
@@ -517,9 +526,11 @@ export function ContributionBuilder() {
               Review what you&apos;ve added. You can edit or remove items before
               submitting.
             </p>
-            <p className="text-xs text-muted-foreground">
-              {contributionCountLabel(contributions.length)}
-            </p>
+            {shouldShowContributionCount(isAuthenticated) ? (
+              <p className="text-xs text-muted-foreground">
+                {contributionCountLabel(contributions.length)}
+              </p>
+            ) : null}
           </div>
 
           {!ui.showTypePicker ? (
@@ -658,7 +669,9 @@ export function ContributionBuilder() {
         saveLabel={
           editor?.mode === 'edit' ? 'Save changes' : 'Save Contribution'
         }
-        primaryDisabled={isMobile && !editorCanSave}
+        primaryDisabled={
+          editorImageUploading || (isMobile && !editorCanSave)
+        }
       >
         {editor?.type === 'existing_resource' ? (
           <ExistingResourceEditor
@@ -669,6 +682,7 @@ export function ContributionBuilder() {
             onDirtyChange={setIsDirty}
             onRegisterSave={registerSave}
             onCanSaveChange={handleEditorCanSaveChange}
+            onImageUploadingChange={setEditorImageUploading}
             onProgressChange={handleProgressChange}
           />
         ) : editor?.type === 'community_asset' ? (
@@ -691,6 +705,7 @@ export function ContributionBuilder() {
             onDirtyChange={setIsDirty}
             onRegisterSave={registerSave}
             onCanSaveChange={handleEditorCanSaveChange}
+            onImageUploadingChange={setEditorImageUploading}
             onProgressChange={handleProgressChange}
           />
         ) : null}

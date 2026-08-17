@@ -39,6 +39,7 @@ export function createEmptyEventData(): EventContributionData {
     kind: 'event',
     name: '',
     description: '',
+    imageUrl: null,
     scheduleKind: null,
     startDate: '',
     startTime: '',
@@ -96,6 +97,10 @@ export function normalizeEventContributionData(
     kind: 'event',
     name: typeof raw.name === 'string' ? raw.name : '',
     description: typeof raw.description === 'string' ? raw.description : '',
+    imageUrl:
+      typeof raw.imageUrl === 'string' && raw.imageUrl.trim()
+        ? raw.imageUrl.trim()
+        : null,
     scheduleKind:
       raw.scheduleKind === 'one_time' || raw.scheduleKind === 'recurring'
         ? raw.scheduleKind

@@ -86,7 +86,8 @@ export function mapExistingResourceVersionContent(
 
   const hours = mapPublicHours(data.hoursAvailability, data.hours)
   const resourceType = trimText(source.resource_type) || undefined
-  const imageUrl = trimText(source.image_url) || undefined
+  const imageUrl =
+    trimText(data.imageUrl) || trimText(source.image_url) || undefined
 
   return finalizeApprovedVersionPayload({
     name,

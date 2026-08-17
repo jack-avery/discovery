@@ -4,6 +4,7 @@ import { Info, MapPin, Settings } from 'lucide-react'
 import { ResourcePlaceholderIllustration } from '@/components/shared/ResourcePlaceholderIllustration'
 import { DetailSectionCard } from '@/features/discover/DetailInfoCard'
 import { cn } from '@/utils/cn'
+import { resolveResourceImageUrl } from '@/utils/resolveResourceImageUrl'
 
 function hasText(value: string | null | undefined): boolean {
   return Boolean(value && value.trim())
@@ -22,8 +23,10 @@ export function ResourceDetailHero({
   /** Accessible label when the placeholder artwork is shown. */
   fallbackAlt?: string
 }) {
-  const [failed, setFailed] = useState(false)
-  const hasImage = hasText(imageUrl) && !failed
+  const resolvedImageUrl = resolveResourceImageUrl(imageUrl)
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
+  const hasImage =
+    hasText(resolvedImageUrl) && resolvedImageUrl !== failedImageUrl
 
   return (
     <div
@@ -35,10 +38,10 @@ export function ResourceDetailHero({
       <div className="aspect-[17/8] w-full">
         {hasImage ? (
           <img
-            src={imageUrl!}
+            src={resolvedImageUrl!}
             alt={alt}
             className="h-full w-full object-cover"
-            onError={() => setFailed(true)}
+            onError={() => setFailedImageUrl(resolvedImageUrl)}
           />
         ) : (
           <ResourcePlaceholderIllustration

@@ -28,7 +28,7 @@ export function MobilePublicHeader() {
         }}
       >
         <Link
-          to="/home"
+          to="/"
           className="flex shrink-0 items-center rounded-lg focus-ring"
           aria-label={`${APP_BRANDING.communityName} ${APP_BRANDING.applicationName} home`}
         >

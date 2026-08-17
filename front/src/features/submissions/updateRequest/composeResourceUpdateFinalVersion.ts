@@ -343,6 +343,9 @@ function applyFieldFromSource(
     case 'about:description':
       target.description = source.description
       break
+    case 'about:image':
+      target.imageUrl = source.imageUrl
+      break
     case 'hours:hours':
       target.hoursAvailability = source.hoursAvailability
       target.hours = structuredClone(source.hours)

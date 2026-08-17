@@ -14,7 +14,7 @@ const contributionCards = [
       'Browse the map and use Request an Update at the bottom of any resource to help keep information accurate.',
     icon: PencilLine,
     ctaLabel: 'Browse Resources',
-    href: '/',
+    href: '/discover',
   },
   {
     id: 'share-knowledge',

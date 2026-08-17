@@ -49,6 +49,7 @@ import {
   UPDATE_SECTION_OPTIONS,
   type UpdateSectionId,
 } from '../updateRequest/updateSections'
+import { ResourceImageUploadField } from '../components/ResourceImageUploadField'
 
 export type ExistingResourceEditorMode = 'create' | 'update'
 
@@ -75,6 +76,7 @@ interface ExistingResourceEditorProps {
    * (existing completeness + location verification gates). Does not toggle errors.
    */
   onCanSaveChange?: (canSave: boolean) => void
+  onImageUploadingChange?: (uploading: boolean) => void
   onProgressChange?: (progress: {
     sections: readonly string[]
     revealed: number
@@ -120,16 +122,7 @@ function resolveInitialData(
   return createEmptyExistingResourceData()
 }
 
-/**
- * Public New Resource / Update Resource contribution editor.
- *
- * TODO(images): Implement public resource image upload once the backend exposes
- * a public-safe upload contract. Current POST /uploads/resources is moderator+
- * only, while POST /submissions already accepts image_url. Intended flow:
- * select image -> preview -> upload -> receive image_url -> include in submission.
- * Ensure submitted images are visible in staff review and published Resource
- * Detail. Backend/deployment must also confirm /uploads serving through Caddy.
- */
+/** Public New Resource / Update Resource contribution editor. */
 export function ExistingResourceEditor({
   initialContribution,
   initialData,
@@ -141,6 +134,7 @@ export function ExistingResourceEditor({
   onDirtyChange,
   onRegisterSave,
   onCanSaveChange,
+  onImageUploadingChange,
   onProgressChange,
   onUpdateStateChange,
 }: ExistingResourceEditorProps) {
@@ -177,7 +171,9 @@ export function ExistingResourceEditor({
   >(() => new Set(initialExpandedSections))
 
   const locationGeocodingRef = useRef<PhysicalLocationGeocodingHandle>(null)
+  const imageUploadingRef = useRef(false)
   const [locationsVerified, setLocationsVerified] = useState(true)
+  const [isImageUploading, setIsImageUploading] = useState(false)
   const prevShowErrorsRef = useRef(showErrors)
 
   useEffect(() => {
@@ -240,6 +236,12 @@ export function ExistingResourceEditor({
     setData((current) => ({ ...current, ...partial }))
   }
 
+  const handleImageUploadingChange = (uploading: boolean) => {
+    imageUploadingRef.current = uploading
+    setIsImageUploading(uploading)
+    onImageUploadingChange?.(uploading)
+  }
+
   const toggleSection = (sectionId: UpdateSectionId) => {
     setExpandedSections((current) => {
       const next = new Set(current)
@@ -255,7 +257,8 @@ export function ExistingResourceEditor({
   const canSave =
     isComplete &&
     (!needsPhysical || locationsVerified) &&
-    (!isUpdate || hasChanges)
+    (!isUpdate || hasChanges) &&
+    !isImageUploading
 
   useEffect(() => {
     onCanSaveChange?.(canSave)
@@ -317,6 +320,7 @@ export function ExistingResourceEditor({
   useEffect(() => {
     onRegisterSave(() => {
       onShowErrorsChange(true)
+      if (imageUploadingRef.current) return null
       if (!isExistingResourceComplete(data)) return null
       if (isUpdate && !hasResourceDataChanges(changeBaseline, data)) return null
       const needsSites =
@@ -389,6 +393,13 @@ export function ExistingResourceEditor({
           aria-invalid={Boolean(aboutErrors.description)}
         />
       </Field>
+
+      <ResourceImageUploadField
+        id="resource-image"
+        value={data.imageUrl}
+        onChange={(imageUrl) => patch({ imageUrl })}
+        onUploadingChange={handleImageUploadingChange}
+      />
     </>
   )
 

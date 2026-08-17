@@ -265,6 +265,7 @@ describe('draftStorage persistence invariant', () => {
     contribution.data = {
       ...createEmptyExistingResourceData(),
       description: 'Hot meals on Fridays',
+      imageUrl: '/uploads/resources/community-meal.webp',
     }
     const draft = draftWithContribution(contribution)
     writeStoredDraft(draft)
@@ -277,6 +278,31 @@ describe('draftStorage persistence invariant', () => {
       assert.equal(
         continued.contributions[0].data.description,
         'Hot meals on Fridays',
+      )
+      assert.equal(
+        continued.contributions[0].data.imageUrl,
+        '/uploads/resources/community-meal.webp',
+      )
+    }
+  })
+
+  it('restores an Event image URL from a saved draft', () => {
+    const contribution = createEmptyContribution('event')
+    contribution.data = {
+      ...createEmptyEventData(),
+      name: 'Community Event',
+      imageUrl: '/uploads/resources/community-event.webp',
+    }
+    writeStoredDraft(draftWithContribution(contribution))
+
+    const restored = readStoredDraft()
+    assert.ok(restored)
+    const restoredEvent = restored.contributions[0]?.data
+    assert.equal(restoredEvent?.kind, 'event')
+    if (restoredEvent?.kind === 'event') {
+      assert.equal(
+        restoredEvent.imageUrl,
+        '/uploads/resources/community-event.webp',
       )
     }
   })

@@ -60,7 +60,7 @@ export const PLACEHOLDER_QUICK_ACTIONS: PlaceholderQuickAction[] = [
     description: 'Suggest edits to an approved community listing.',
     icon: PencilLine,
     iconClassName: 'bg-interactive-muted text-interactive',
-    to: `/?${DISCOVER_OPEN_UPDATE_QUERY}=1`,
+    to: `/discover?${DISCOVER_OPEN_UPDATE_QUERY}=1`,
   },
   {
     id: 'manage-categories',

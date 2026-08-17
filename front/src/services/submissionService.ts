@@ -68,6 +68,7 @@ export class SubmissionValidationError extends Error {
 
 export interface SubmitSubmissionOptions {
   signal?: AbortSignal
+  isAuthenticated?: boolean
 }
 
 /**
@@ -78,12 +79,11 @@ export async function submitSubmission(
   draft: SubmissionDraft,
   options: SubmitSubmissionOptions = {},
 ): Promise<SubmitSubmissionResult> {
-  assertDraftReady(draft)
+  assertDraftReady(draft, options.isAuthenticated)
 
-  const contributions = draft.contributions.slice(
-    0,
-    MAX_CONTRIBUTIONS_PER_SUBMISSION,
-  )
+  const contributions = options.isAuthenticated
+    ? draft.contributions
+    : draft.contributions.slice(0, MAX_CONTRIBUTIONS_PER_SUBMISSION)
 
   const succeeded: ContributionSubmitSuccess[] = []
   const failed: ContributionSubmitFailure[] = []
@@ -174,14 +174,20 @@ async function createSubmission(
   return submitCreateSubmissionRequest(payload, { signal })
 }
 
-function assertDraftReady(draft: SubmissionDraft): void {
+function assertDraftReady(
+  draft: SubmissionDraft,
+  isAuthenticated = false,
+): void {
   const blockers: string[] = []
 
   if (draft.contributions.length === 0) {
     blockers.push('Add at least one contribution before submitting.')
   }
 
-  if (draft.contributions.length > MAX_CONTRIBUTIONS_PER_SUBMISSION) {
+  if (
+    !isAuthenticated &&
+    draft.contributions.length > MAX_CONTRIBUTIONS_PER_SUBMISSION
+  ) {
     blockers.push(
       `You can include up to ${MAX_CONTRIBUTIONS_PER_SUBMISSION} contributions in one submission.`,
     )

@@ -81,6 +81,7 @@ export interface ExistingResourceData {
   kind: 'existing_resource'
   name: string
   description: string
+  imageUrl: string | null
   categoryIds: number[]
   /** UI “additional details / help people find this” — backed by tags later. */
   filterIds: number[]
@@ -191,6 +192,7 @@ export interface EventContributionData {
   kind: 'event'
   name: string
   description: string
+  imageUrl: string | null
   scheduleKind: EventScheduleKind | null
   /** One-time start date, or recurring first occurrence (YYYY-MM-DD). */
   startDate: string

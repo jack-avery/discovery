@@ -4,12 +4,24 @@
  */
 export const MAX_CONTRIBUTIONS_PER_SUBMISSION = 5
 
-export function canAddContribution(savedCount: number): boolean {
-  return savedCount < MAX_CONTRIBUTIONS_PER_SUBMISSION
+export function canAddContribution(
+  savedCount: number,
+  isAuthenticated = false,
+): boolean {
+  return isAuthenticated || savedCount < MAX_CONTRIBUTIONS_PER_SUBMISSION
 }
 
-export function isContributionLimitReached(savedCount: number): boolean {
-  return savedCount >= MAX_CONTRIBUTIONS_PER_SUBMISSION
+export function isContributionLimitReached(
+  savedCount: number,
+  isAuthenticated = false,
+): boolean {
+  return !isAuthenticated && savedCount >= MAX_CONTRIBUTIONS_PER_SUBMISSION
+}
+
+export function shouldShowContributionCount(
+  isAuthenticated: boolean,
+): boolean {
+  return !isAuthenticated
 }
 
 export function contributionCountLabel(savedCount: number): string {

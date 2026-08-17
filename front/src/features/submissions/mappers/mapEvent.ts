@@ -96,7 +96,8 @@ export function mapEventVersionContent(
     ),
     accessibility_notes: trimText(data.accessibilityNotes) || undefined,
     general_notes: buildEventNotes(data),
-    image_url: trimText(source.image_url) || undefined,
+    image_url:
+      trimText(data.imageUrl) || trimText(source.image_url) || undefined,
     category_ids: data.categoryIds.length > 0 ? [...data.categoryIds] : undefined,
     tag_ids: data.filterIds.length > 0 ? [...data.filterIds] : undefined,
     locations: locations.length > 0 ? locations : undefined,

@@ -86,6 +86,7 @@ export function mapEventVersionToEventContributionData(
     ...createEmptyEventData(),
     name: trimText(version.name) || '',
     description: trimText(version.description) || '',
+    imageUrl: trimText(version.image_url) || null,
     scheduleKind,
     ...schedule,
     accessMode,

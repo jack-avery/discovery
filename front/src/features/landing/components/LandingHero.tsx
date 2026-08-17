@@ -228,7 +228,7 @@ export function LandingHero() {
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:flex-wrap sm:items-center sm:justify-start">
-            <Button href="/" variant="primary" size="lg" className="w-full sm:w-auto">
+            <Button href="/discover" variant="primary" size="lg" className="w-full sm:w-auto">
               <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
               Explore the Map
             </Button>
@@ -245,11 +245,8 @@ export function LandingHero() {
           </div>
 
           <p className="mt-4 max-w-sm text-xs leading-relaxed text-foreground sm:mt-5 sm:max-w-[22rem] sm:text-[0.8125rem]">
-            This map is currently being piloted with select communities in
-            Rideau-Rockcliffe.{' '}
-            <span className="font-medium">
-              A broader public rollout is coming soon.
-            </span>
+            This map is currently being piloted with select communities in the
+            Rideau-Rockcliffe ward.
           </p>
 
           {/* Mobile pagination — in flow under CTAs so it does not cover copy/buttons */}

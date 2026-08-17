@@ -83,6 +83,7 @@ export function mapResourceVersionToExistingResourceData(
     ...createEmptyExistingResourceData(),
     name: trimText(presented.name) || '',
     description: trimText(presented.description) || '',
+    imageUrl: trimText(presented.image_url) || null,
     categoryIds: presented.categories.map((category) => category.category_id),
     filterIds: presented.tags.map((tag) => tag.tag_id),
     accessMode,

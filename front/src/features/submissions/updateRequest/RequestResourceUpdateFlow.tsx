@@ -118,8 +118,8 @@ export function RequestResourceUpdateFlow({
         description={
           <>
             <p>
-              This resource will no longer appear in the public directory and
-              will be removed from staff workspaces.
+              This resource will no longer appear on the map. 
+              You won't be able to restore it once it has been deleted.
             </p>
             <p>Are you sure you want to delete this resource?</p>
           </>
