@@ -56,9 +56,9 @@ import { resolveDetailsStepTarget } from '@/features/discover/tour/tourTargets'
 import { guidedTourHref } from '@/features/landing/components/GetStartedSection'
 
 describe('guided tour landing entry', () => {
-  it('points the Guided Tour CTA at /?tour=1', () => {
-    assert.equal(guidedTourHref(), `/?${DISCOVER_START_TOUR_QUERY}=1`)
-    assert.equal(guidedTourHref(), '/?tour=1')
+  it('points the Guided Tour CTA at /discover?tour=1', () => {
+    assert.equal(guidedTourHref(), `/discover?${DISCOVER_START_TOUR_QUERY}=1`)
+    assert.equal(guidedTourHref(), '/discover?tour=1')
   })
 
   it('treats tour=1 as the one-shot start flag and strips it for replace', () => {

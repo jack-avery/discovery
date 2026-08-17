@@ -12,7 +12,7 @@ import {
 
 /**
  * Legacy map-only route — see route audit in project docs.
- * Primary map experience lives at / (Discover).
+ * Primary map experience lives at /discover.
  */
 export function MapPage() {
   const [category, setCategory] = useState<CategoryFilterValue>('all')

@@ -285,7 +285,7 @@ export function WhatYouCanDiscoverSection() {
                 map to browse what&apos;s available.
               </p>
               <Link
-                to="/"
+                to="/discover"
                 className="mt-4 inline-flex text-sm font-medium text-interactive underline-offset-4 hover:underline focus-ring"
               >
                 Open the map
@@ -298,7 +298,7 @@ export function WhatYouCanDiscoverSection() {
                 map.
               </p>
               <Link
-                to="/"
+                to="/discover"
                 className="mt-4 inline-flex text-sm font-medium text-interactive underline-offset-4 hover:underline focus-ring"
               >
                 Explore the map

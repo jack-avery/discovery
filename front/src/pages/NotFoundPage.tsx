@@ -17,7 +17,7 @@ export function NotFoundPage() {
         <p className="mt-4 text-sm text-muted-foreground">
           The page you&apos;re looking for doesn&apos;t exist or has been moved.
         </p>
-        <Link to="/" className="mt-6">
+        <Link to="/discover" className="mt-6">
           <Button>Back to Discover</Button>
         </Link>
       </div>

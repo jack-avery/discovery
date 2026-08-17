@@ -7,7 +7,7 @@ const eyebrowClassName =
 
 /** Public landing CTA → Discover with one-shot `?tour=1` to auto-start the guided tour. */
 export function guidedTourHref(): string {
-  return `/?${DISCOVER_START_TOUR_QUERY}=1`
+  return `/discover?${DISCOVER_START_TOUR_QUERY}=1`
 }
 
 /**

@@ -14,7 +14,7 @@ export function LandingHeader() {
   return (
     <header className="app-header hidden shrink-0 items-center justify-between gap-3 border-b border-border bg-surface px-4 sm:px-6 md:flex lg:px-10">
       <Link
-        to="/home"
+        to="/"
         className="flex min-w-0 items-center gap-3 rounded-lg focus-ring"
         aria-label="Rideau-Rockcliffe Community Resource Map home"
       >

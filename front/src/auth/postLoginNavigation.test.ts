@@ -7,6 +7,12 @@ import {
   resolvePostLoginPath,
 } from '@/auth/postLoginNavigation'
 
+describe('post-login route constants', () => {
+  it('uses Discover as the public fallback', () => {
+    assert.equal(PUBLIC_POST_LOGIN_PATH, '/discover')
+  })
+})
+
 describe('resolvePostLoginPath', () => {
   it('sends trusted_contributor to Discover', () => {
     assert.equal(

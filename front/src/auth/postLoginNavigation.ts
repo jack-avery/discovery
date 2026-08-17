@@ -1,7 +1,7 @@
 import { hasStaffAccess } from '@/auth/permissions'
 
 /** Public Discover after trusted-contributor (or any non-staff) login. */
-export const PUBLIC_POST_LOGIN_PATH = '/'
+export const PUBLIC_POST_LOGIN_PATH = '/discover'
 
 /** Default staff landing after moderator+ login. */
 export const STAFF_POST_LOGIN_PATH = '/staff'

@@ -20,13 +20,13 @@ export const routes: RouteObject[] = [
     path: '/',
     element: <AppLayout />,
     children: [
-      { index: true, element: <DiscoverPage /> },
-      { path: 'home', element: <HomePage /> },
+      { index: true, element: <HomePage /> },
+      { path: 'discover', element: <DiscoverPage /> },
       { path: 'submit', element: <SubmitResourcePage /> },
       {
         path: 'request-update',
         element: (
-          <Navigate to={`/?${DISCOVER_OPEN_UPDATE_QUERY}=1`} replace />
+          <Navigate to={`/discover?${DISCOVER_OPEN_UPDATE_QUERY}=1`} replace />
         ),
       },
       { path: 'sign-in', element: <StaffSignInPage /> },

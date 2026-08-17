@@ -228,7 +228,7 @@ export function LandingHero() {
           </div>
 
           <div className="mt-6 flex flex-col gap-3 sm:mt-7 sm:flex-row sm:flex-wrap sm:items-center sm:justify-start">
-            <Button href="/" variant="primary" size="lg" className="w-full sm:w-auto">
+            <Button href="/discover" variant="primary" size="lg" className="w-full sm:w-auto">
               <Search className="h-4 w-4 shrink-0" aria-hidden="true" />
               Explore the Map
             </Button>

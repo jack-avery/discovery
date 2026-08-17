@@ -9,7 +9,7 @@ import {
 } from '@/features/landing'
 
 /**
- * Public landing page at `/home`.
+ * Public landing page at `/`.
  * One shared sticky scene; hero + narrative panels scroll over it.
  */
 export function HomePage() {

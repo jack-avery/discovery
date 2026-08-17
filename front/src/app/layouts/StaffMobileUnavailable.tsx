@@ -26,13 +26,13 @@ export function StaffMobileUnavailable() {
         </p>
         <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-center">
           <Link
-            to="/home"
+            to="/"
             className="inline-flex h-10 min-h-[var(--ds-min-touch)] w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground shadow-sm hover:bg-primary-hover focus-ring sm:w-auto"
           >
             Return to Home
           </Link>
           <Link
-            to="/"
+            to="/discover"
             className="inline-flex h-10 min-h-[var(--ds-min-touch)] w-full items-center justify-center rounded-lg border border-border bg-surface px-4 text-sm font-medium text-foreground hover:bg-surface-raised focus-ring sm:w-auto"
           >
             Discover Resources
