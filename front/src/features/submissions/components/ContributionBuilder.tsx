@@ -128,6 +128,7 @@ export function ContributionBuilder() {
   const [editorProgress, setEditorProgress] = useState<EditorProgress>(null)
   /** Existing completeness gate for the open contribution editor (mobile Save). */
   const [editorCanSave, setEditorCanSave] = useState(false)
+  const [editorImageUploading, setEditorImageUploading] = useState(false)
   /** Existing completeness gate for the contributor editor (mobile Save). */
   const [contributorCanSave, setContributorCanSave] = useState(false)
   const [statusMessage, setStatusMessage] = useState('')
@@ -170,6 +171,7 @@ export function ContributionBuilder() {
     if (!editor) {
       setEditorProgress(null)
       setEditorCanSave(false)
+      setEditorImageUploading(false)
     }
   }, [editor])
 
@@ -667,7 +669,9 @@ export function ContributionBuilder() {
         saveLabel={
           editor?.mode === 'edit' ? 'Save changes' : 'Save Contribution'
         }
-        primaryDisabled={isMobile && !editorCanSave}
+        primaryDisabled={
+          editorImageUploading || (isMobile && !editorCanSave)
+        }
       >
         {editor?.type === 'existing_resource' ? (
           <ExistingResourceEditor
@@ -678,6 +682,7 @@ export function ContributionBuilder() {
             onDirtyChange={setIsDirty}
             onRegisterSave={registerSave}
             onCanSaveChange={handleEditorCanSaveChange}
+            onImageUploadingChange={setEditorImageUploading}
             onProgressChange={handleProgressChange}
           />
         ) : editor?.type === 'community_asset' ? (

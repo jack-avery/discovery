@@ -6,7 +6,11 @@ import {
   normalizeExistingResourceData,
 } from '@/features/submissions/existingResource/emptyState'
 import { createEmptyContributorInfo } from '@/features/submissions/contributor/emptyState'
-import { mapUpdateResourceRequest } from '@/features/submissions/mappers/mapExistingResource'
+import { createEmptyContribution } from '@/features/submissions/constants/contributionTypes'
+import {
+  mapExistingResourceContribution,
+  mapUpdateResourceRequest,
+} from '@/features/submissions/mappers/mapExistingResource'
 import { mapResourceVersionToExistingResourceData } from './mapResourceVersionToExistingResourceData'
 import { getEditedUpdateSections } from './updateSectionDiff'
 
@@ -64,6 +68,21 @@ describe('Update Resource image preservation', () => {
     assert.equal(payload.image_url, '/uploads/resources/existing.jpg')
   })
 
+  it('maps a replacement image into the update payload', () => {
+    const data = mapResourceVersionToExistingResourceData(
+      resourceVersion('/uploads/resources/existing.jpg'),
+    )
+    data.imageUrl = '/uploads/resources/replacement.webp'
+
+    const payload = mapUpdateResourceRequest(
+      1,
+      data,
+      createEmptyContributorInfo(),
+    )
+
+    assert.equal(payload.image_url, '/uploads/resources/replacement.webp')
+  })
+
   it('keeps a missing published image null and omits it from the DTO', () => {
     const data = mapResourceVersionToExistingResourceData(resourceVersion(null))
     const payload = mapUpdateResourceRequest(
@@ -105,5 +124,42 @@ describe('Update Resource image preservation', () => {
     const normalized = normalizeExistingResourceData(legacy)
 
     assert.equal(normalized.imageUrl, null)
+  })
+})
+
+describe('New Resource image mapping', () => {
+  it('omits image_url when no image was uploaded', () => {
+    const contribution = createEmptyContribution('existing_resource')
+    contribution.data = {
+      ...createEmptyExistingResourceData(),
+      name: 'Community Resource',
+    }
+
+    const payload = mapExistingResourceContribution(
+      contribution,
+      createEmptyContributorInfo(),
+    )
+
+    assert.equal(payload.image_url, undefined)
+    assert.equal(
+      Object.prototype.hasOwnProperty.call(payload, 'image_url'),
+      false,
+    )
+  })
+
+  it('includes the uploaded image_url', () => {
+    const contribution = createEmptyContribution('existing_resource')
+    contribution.data = {
+      ...createEmptyExistingResourceData(),
+      name: 'Community Resource',
+      imageUrl: '/uploads/resources/new-resource.png',
+    }
+
+    const payload = mapExistingResourceContribution(
+      contribution,
+      createEmptyContributorInfo(),
+    )
+
+    assert.equal(payload.image_url, '/uploads/resources/new-resource.png')
   })
 })

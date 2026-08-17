@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react'
-import { Input } from '@/components/ui'
+import { Button } from '@/components/ui'
 import {
   RESOURCE_IMAGE_ACCEPT,
   toResourceImageUploadErrorMessage,
@@ -38,6 +38,7 @@ export function ResourceImageUploadField({
   const requestIdRef = useRef(0)
   const abortRef = useRef<AbortController | null>(null)
   const localPreviewRef = useRef<string | null>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
   const uploadingRef = useRef(false)
   const onUploadingChangeRef = useRef(onUploadingChange)
 
@@ -144,6 +145,26 @@ export function ResourceImageUploadField({
 
   return (
     <div className="space-y-3">
+      <Field
+        id={id}
+        label={label}
+        hint={
+          value
+            ? `${hint} Choose another image to replace the current image.`
+            : hint
+        }
+        error={error}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept={RESOURCE_IMAGE_ACCEPT}
+          disabled={disabled}
+          onChange={handleFileChange}
+          className="sr-only"
+          tabIndex={-1}
+        />
+      </Field>
       {previewUrl && !previewFailed ? (
         <img
           src={previewUrl}
@@ -156,24 +177,15 @@ export function ResourceImageUploadField({
           Image preview is unavailable.
         </p>
       ) : null}
-      <Field
-        id={id}
-        label={label}
-        hint={
-          value
-            ? `${hint} Choose another image to replace the current image.`
-            : hint
-        }
-        error={error}
+      <Button
+        type="button"
+        variant="outline"
+        disabled={disabled}
+        aria-controls={id}
+        onClick={() => inputRef.current?.click()}
       >
-        <Input
-          type="file"
-          accept={RESOURCE_IMAGE_ACCEPT}
-          disabled={disabled}
-          onChange={handleFileChange}
-          className="h-auto py-2"
-        />
-      </Field>
+        {previewUrl ? 'Replace image' : 'Choose image'}
+      </Button>
       {uploading ? (
         <p
           className="text-xs text-muted-foreground"

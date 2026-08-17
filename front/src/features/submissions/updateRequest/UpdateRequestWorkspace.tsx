@@ -86,6 +86,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   const [contributorComplete, setContributorComplete] = useState(false)
   const [submitError, setSubmitError] = useState<string | undefined>()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isImageUploading, setIsImageUploading] = useState(false)
   const [pendingClose, setPendingClose] = useState(false)
   const [successOutcome, setSuccessOutcome] =
     useState<UpdateSubmissionOutcome>('pending_review')
@@ -117,6 +118,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
    * Mobile: also require existing completeness checks before Submit enables.
    */
   const canSubmitPrimary =
+    !isImageUploading &&
     submitGate.canSubmit &&
     (!isMobile || (updateState.isComplete && contributorComplete))
 
@@ -139,6 +141,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     })
     setContributorComplete(false)
     setSubmitError(undefined)
+    setIsImageUploading(false)
     setSuccessOutcome('pending_review')
     setActiveSectionId(null)
     setStaffNotes('')
@@ -263,7 +266,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
   )
 
   const handleSubmit = useCallback(async () => {
-    if (isSubmitting) return
+    if (isSubmitting || isImageUploading) return
     if (!baselineData || !proposedData || !hasResourceId) return
 
     // Reveal field errors; ExistingResourceEditor scrolls to the first invalid section.
@@ -329,6 +332,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
     }
   }, [
     isSubmitting,
+    isImageUploading,
     baselineData,
     proposedData,
     hasResourceId,
@@ -412,6 +416,7 @@ export function UpdateRequestWorkspace({ onClose }: UpdateRequestWorkspaceProps)
             onResourceDirtyChange={setResourceDirty}
             onContributorDirtyChange={setContributorDirty}
             onContributorValidityChange={setContributorComplete}
+            onImageUploadingChange={setIsImageUploading}
             onRegisterResourceSave={(save) => {
               resourceSaveRef.current = save
             }}
@@ -537,6 +542,7 @@ function EditingStage({
   onResourceDirtyChange,
   onContributorDirtyChange,
   onContributorValidityChange,
+  onImageUploadingChange,
   onRegisterResourceSave,
   onRegisterContributorSave,
   onUpdateStateChange,
@@ -559,6 +565,7 @@ function EditingStage({
   onResourceDirtyChange: (dirty: boolean) => void
   onContributorDirtyChange: (dirty: boolean) => void
   onContributorValidityChange: (complete: boolean) => void
+  onImageUploadingChange: (uploading: boolean) => void
   onRegisterResourceSave: (
     save: () => SavedContributionPayload | null,
   ) => void
@@ -587,6 +594,7 @@ function EditingStage({
         onShowErrorsChange={onShowResourceErrorsChange}
         onDirtyChange={onResourceDirtyChange}
         onRegisterSave={onRegisterResourceSave}
+        onImageUploadingChange={onImageUploadingChange}
         onUpdateStateChange={onUpdateStateChange}
       />
 

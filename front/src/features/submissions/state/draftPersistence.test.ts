@@ -265,6 +265,7 @@ describe('draftStorage persistence invariant', () => {
     contribution.data = {
       ...createEmptyExistingResourceData(),
       description: 'Hot meals on Fridays',
+      imageUrl: '/uploads/resources/community-meal.webp',
     }
     const draft = draftWithContribution(contribution)
     writeStoredDraft(draft)
@@ -277,6 +278,10 @@ describe('draftStorage persistence invariant', () => {
       assert.equal(
         continued.contributions[0].data.description,
         'Hot meals on Fridays',
+      )
+      assert.equal(
+        continued.contributions[0].data.imageUrl,
+        '/uploads/resources/community-meal.webp',
       )
     }
   })
