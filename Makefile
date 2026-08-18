@@ -1,33 +1,17 @@
-.PHONY: initdb importsampledata front up down reup
+.PHONY: initdb seed upgrade front build up down reup
+
+upgrade:
+	docker compose run --rm back flask --app run.py db upgrade
+
+seed:
+	docker compose run --rm back flask --app run.py seed-dev
 
 initdb: down
-	docker volume rm discovery_mysql-data
-	docker compose create db
-	docker compose start db
-	docker compose cp ./db/schema.sql db:/schema.sql
-	# the image starts an initial temp server for an empty vol. wait for this to close
-	docker logs -f discovery-db-1 2>&1 | sed -e '/Temporary server stopped/q'
-	# now we can wait for the ready signal
-	docker logs -f discovery-db-1 2>&1 | sed -e '/ready for connections/q'
-	# sleep another 2 seconds just to be sure?
-	sleep 2
-	docker compose exec db /bin/sh -c 'mysql < schema.sql'
-	docker compose exec db rm schema.sql
-	make down
-
-importsampledata: down
-	docker compose create db
-	docker compose start db
-	docker compose cp ./db/sampledata.sql db:/sampledata.sql
-	# the image starts an initial temp server for an empty vol. wait for this to close
-	docker logs -f discovery-db-1 2>&1 | sed -e '/Temporary server stopped/q'
-	# now we can wait for the ready signal
-	docker logs -f discovery-db-1 2>&1 | sed -e '/ready for connections/q'
-	# sleep another 2 seconds just to be sure?
-	sleep 2
-	docker compose exec db /bin/sh -c 'mysql < sampledata.sql'
-	docker compose exec db rm sampledata.sql
-	make down
+	docker compose down -v
+	docker compose up -d db
+	docker compose run --rm back flask --app run.py db upgrade
+	docker compose run --rm back flask --app run.py seed-admin
+	$(MAKE) down
 
 build: front
 	docker compose build

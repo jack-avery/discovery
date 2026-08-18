@@ -13,7 +13,7 @@ __pycache__/
 # Environment & secrets
 .env
 .env.*
-!.env.example
+!.env.sample
 
 # Flask / SQLAlchemy
 instance/
@@ -49,4 +49,5 @@ logs/
 Thumbs.db
 .DS_Store
 
+# Web server configs
 conf/caddy/Caddyfile

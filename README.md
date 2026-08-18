@@ -14,14 +14,17 @@ To install these requirements on Ubuntu Linux:
 Users of other Linux distributions: it is expected you know what you are doing.
 
 ### Running
+1. Clone the repository
+2. Copy `conf/caddy/Caddyfile.sample` to `conf/caddy/Caddyfile` (`localhost` is fine locally)
+3. Copy `.env.sample` to `.env` and set secrets / `DB_PASSWORD`
+4. Copy `front/.env.sample` to `front/.env`
+5. `make initdb` - fresh volume, migrate, seed **dev** users (local only)
+6. `make build`
+7. `make up`
 
-1. Clone the repository: `git clone https://github.com/jack-avery/discovery`
-1. Copy the sample Caddyfile to `conf/caddy/Caddyfile` and configure the Caddy domain. For local development, `localhost` will work.
-1. Create the initial database with `make initdb`
-1. Copy `front/.env.sample` to `front/.env` and fill out appropriate variables.
-1. Copy `.env.sample` to `.env` and fill out appropriate variables.
-1. Build necessary application resources with `make build`
-1. Run the application with `make up`
+After code changes: `make build reup`.
+After a new migration is merged: `make upgrade` (or just `make up`; the backend entrypoint runs `db upgrade`).
+Never run `make initdb` on a database you care about.
 
 Remember to run `make build reup` after every change in order for changes to reflect.
 

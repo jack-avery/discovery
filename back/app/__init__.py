@@ -189,6 +189,30 @@ def _register_cli(app: Flask) -> None:
         db.session.commit()
         print(f"Cleared {count} rate-limit row(s).")
 
+    @app.cli.command("seed-roles")
+    def seed_roles():
+        """Insert the four role rows if missing. Safe for production."""
+        from app.models import Role
+
+        ROLE_NAMES = [
+            "administrator",
+            "staff_editor",
+            "moderator",
+            "trusted_contributor",
+        ]
+        created = 0
+        for name in ROLE_NAMES:
+            if not Role.query.filter_by(role_name=name).first():
+                db.session.add(
+                    Role(
+                        role_name=name, # pyright: ignore[reportCallIssue]
+                        description=f"{name.replace('_', ' ').title()} role", # pyright: ignore[reportCallIssue]
+                    )
+                )
+                created += 1
+        db.session.commit()
+        print(f"Roles ready ({created} inserted, {len(ROLE_NAMES) - created} already present).")
+
     @app.cli.command("seed-dev")
     def seed_dev():
         from app.models import Role, User, UserRole
@@ -230,6 +254,46 @@ def _register_cli(app: Flask) -> None:
         for name in ROLE_NAMES:
             print(f"  {name}@rrcrc.dev / {DEV_PASSWORD}")
         print("Development credentials only — never use outside local/demo databases.")
+
+    @app.cli.command("seed-admin")
+    def seed_admin():
+        """Create the first administrator from ADMIN_EMAIL / ADMIN_PASSWORD."""
+        import os
+        from app.models import Role, User, UserRole
+        from app.extensions import bcrypt as _bcrypt
+
+        email = (os.environ.get("ADMIN_EMAIL") or "").strip().lower()
+        password = os.environ.get("ADMIN_PASSWORD") or ""
+        first_name = (os.environ.get("ADMIN_FIRST_NAME") or "System").strip()
+        last_name = (os.environ.get("ADMIN_LAST_NAME") or "Admin").strip()
+
+        if not email or not password:
+            print("ADMIN_EMAIL / ADMIN_PASSWORD not set; skipping admin seed.")
+            return
+        if len(password) < 8:
+            raise SystemExit("ADMIN_PASSWORD must be at least 8 characters.")
+
+        role = Role.query.filter_by(role_name="administrator").first()
+        if not role:
+            raise SystemExit("administrator role missing; seed-roles must run first.")
+
+        existing = User.query.filter_by(email=email).first()
+        if existing:
+            print(f"Admin {email} already exists; password left unchanged.")
+            return
+
+        user = User(
+            email=email, # pyright: ignore[reportCallIssue]
+            password_hash=_bcrypt.generate_password_hash(password).decode("utf-8"),# pyright: ignore[reportCallIssue]
+            first_name=first_name,# pyright: ignore[reportCallIssue]
+            last_name=last_name,# pyright: ignore[reportCallIssue]
+            is_active=1,# pyright: ignore[reportCallIssue]
+        )
+        db.session.add(user)
+        db.session.flush()
+        db.session.add(UserRole(user_id=user.user_id, role_id=role.role_id))# pyright: ignore[reportCallIssue]
+        db.session.commit()
+        print(f"Created administrator {email}.")
 
     @app.cli.command("seed-sample-data")
     def seed_sample_data():

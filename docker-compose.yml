@@ -3,9 +3,9 @@ services:
     image: "caddy:2.11-alpine"
     restart: no
     volumes:
-      - ./conf/caddy:/etc/caddy:ro # Caddyfile
-      - ./front/dist:/usr/share/caddy:ro # Web content
-      - caddy-data:/data # Caddy managed data
+      - ./conf/caddy:/etc/caddy:ro
+      - ./front/dist:/usr/share/caddy:ro
+      - caddy-data:/data
     ports:
       - 80:80
       - 443:443
@@ -20,6 +20,8 @@ services:
         condition: service_healthy
     env_file:
       - .env
+    environment:
+      FLASK_APP: run.py
     volumes:
       - uploads-data:/app/instance/uploads/resources
 
@@ -28,7 +30,10 @@ services:
     command: --sql-mode="TRADITIONAL"
     restart: no
     environment:
-      - "MYSQL_ALLOW_EMPTY_PASSWORD=1"
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
@@ -36,7 +41,7 @@ services:
       retries: 10
       start_period: 10s
     volumes:
-      - mysql-data:/var/lib/mysql # MySQL DB data
+      - mysql-data:/var/lib/mysql
 
 volumes:
   caddy-data:
